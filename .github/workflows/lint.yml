@@ -1,0 +1,20 @@
+name: Run linting on the Python codebase
+
+on: [pull_request] # Lintly runs only on Pull Requests
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v1
+
+      - name: Perform linting
+        uses: grantmcconnaughey/lintly-flake8-github-action@v1.0
+        with:
+          # The GitHub API token to create reviews with
+          token: ${{ secrets.API_TOKEN_LINTLY }}
+          # Fail if "new" violations detected or "any", default "new"
+          failIf: new
+          # Additional arguments to pass to flake8 can be passed using "args", which defaults to "." (current directory)
+          # Note that flake8 already uses repository defaults from the .flake8 configuration file.

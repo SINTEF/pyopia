@@ -1,0 +1,31 @@
+name: Version check
+
+on: [pull_request]
+
+env:
+  IMAGE_NAME: sintef/pyopia
+  IMAGE_TAG: github-ci
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Diff
+        id: main
+        run: |
+          check=$(git diff origin/master -- pyopia/__init__.py | grep __version | wc -l) &&
+          echo "::set-output name=check::$check"
+
+      - name: Check
+        if: steps.main.outputs.check != 2
+        run: |
+          echo "__init__.py is unchanged"
+          exit 1
+
