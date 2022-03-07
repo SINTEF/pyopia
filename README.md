@@ -5,14 +5,14 @@ A Python Ocean Particle Image Analysis toolbox
 
 Development requirements for PyOpia:
 ------------
--Allow nonfamiliar users to install and use PyOpia, and to contribute & commit code changes
--Not hardware specific
--Smaller dependency list than PySilCam -Eventual optional dependencies (e.g. for classification)
--Can be imported by pysilcam or other hardware-specific tools
--Work on a single-image basis (...primarily, with options for multiprocess to be considered later)
--No use of settings/config files - pass arguments directly. Eventual use of settings/config files should be handled by other repos that import PyOpia
--Github workflows
--Tests
+1) Allow nonfamiliar users to install and use PyOpia, and to contribute & commit code changes
+2) Not hardware specific
+3) Smaller dependency list than PySilCam -Eventual optional dependencies (e.g. for classification)
+4) Can be imported by pysilcam or other hardware-specific tools
+5) Work on a single-image basis (...primarily, with options for multiprocess to be considered later)
+6) No use of settings/config files - pass arguments directly. Eventual use of settings/config files should be handled by other repos that import PyOpia
+7) Github workflows
+8) Tests
 
 Normal functions within PyOpia should:
 ------------
