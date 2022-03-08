@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-import os
 import sys
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
 from setuptools.command.install import install
 from setuptools.command.develop import develop
-import distutils.cmd
 
 
 # modifications to develop and install, based on post here:
@@ -20,7 +18,6 @@ class PostInstallCommand(install):
     """Post-installation for installation mode."""
     def run(self):
         install.run(self)
-        Documentation.run(self)
 
 
 class PyTestNoSkip(TestCommand):

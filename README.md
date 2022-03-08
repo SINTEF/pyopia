@@ -32,6 +32,37 @@ We welcome additions and improvements to the code! We request that you follow a 
 4. All contributions are linted with flake8. We recommend that you run flake8 on your code while developing to fix any issues as you go.
 5. We recommend using autopep8 to autoformat your Python code (but please check the code behaviour is not affected by autoformatting before pushing). This makes flake8 happy, and makes it easier for us all to maintain a consistent and readable code base.
 
+Installing
+----------
+
+Install [Python](https://github.com/conda-forge/miniforge/#download)
+
+A prompt such as is provided by the [miniforge installation](https://github.com/conda-forge/miniforge/#download) may be used for the following:
+
+Create a virtual environment using the environment.yml (will create an environment called silcam)
+
+```bash
+conda env create -f environment.yml
+```
+
+to update, we recommend a forced re-install:
+
+```bash
+conda env create -f environment.yml --force
+```
+
+to activate:
+
+```bash
+conda activate pyopia
+```
+
+Test that it works with
+
+```bash
+python setup.py develop
+```
+
 License
 -------
 
