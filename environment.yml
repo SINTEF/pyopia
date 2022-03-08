@@ -10,6 +10,7 @@ dependencies:    # These are the conda packages
     - pytables
     - scikit-image
     - pytest
+    - numpy
     - pip: # The following packages are installed with pip
         - docopt
         - tqdm

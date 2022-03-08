@@ -3,18 +3,17 @@ import pandas as pd
 import numpy as np
 from skimage.exposure import rescale_intensity
 import h5py
-from enum import Enum
 from tqdm import tqdm
-import pyopia
+from pyopia.io import write_stats
 
 
 def d50_from_stats(stats, settings):
     '''
     Calculate the d50 from the stats and settings
-    
+
     Args:
         stats (DataFrame)           : particle statistics from silcam process
-        
+
     Returns:
         d50 (float)                 : the 50th percentile of the cumulative sum of the volume distributon, in microns
     '''
@@ -292,8 +291,7 @@ def vd_from_stats(stats, pix_size):
     return dias, vd
 
 
-def montage_maker(roifiles, roidir, pixel_size, msize=2048, brightness=255,
-                  tightpack=False, eyecandy=True):
+def montage_maker(roifiles, roidir, pixel_size, msize=2048, brightness=255, eyecandy=True):
     '''
     makes nice looking matages from a directory of extracted particle images
 
@@ -305,8 +303,8 @@ def montage_maker(roifiles, roidir, pixel_size, msize=2048, brightness=255,
         pixel_size              : pixel size of system in microns
         msize=2048              : size of canvas in pixels
         brightness=255          : brighness of packaged particles
-        tightpack=False         : boolean which if True packs particles using segmented alpha-shapes instead of bounding boxes. This is slow, but packs particles more tightly.
-        eyecandy=True           : boolean which if True will explode the contrast of packed particles (nice for natural particles, but not so good for oil and gas).
+        eyecandy=True           : boolean which if True will explode the contrast of packed particles
+                                  (nice for natural particles, but not so good for oil and gas).
 
     Returns:
         montageplot             : a nicely-made montage in the form of an image, which can be plotted using plotting.montage_plot(montage, settings.PostProcess.pix_size)
@@ -351,10 +349,6 @@ def montage_maker(roifiles, roidir, pixel_size, msize=2048, brightness=255,
         while (counter < 5):
             r = np.random.randint(1, msize - height)
             c = np.random.randint(1, msize - width)
-
-            # tighpack checks fitting within the canvas based on an approximation
-            # of the particle area. If not tightpack, then the fitting will be done
-            # based on bounding boxes instead
             test = np.max(immap_test[r:r + height, c:c + width, None] + 1)
 
             # if the new particle is overlapping an existing object in the
@@ -411,8 +405,7 @@ def make_montage(stats_file, pixel_size, roidir,
 
     # remove nans because concentrations are not important here
     stats = stats[~np.isnan(stats['major_axis_length'])]
-    stats = stats[(stats['major_axis_length'] *
-                  pixel_size) < maxlength]
+    stats = stats[(stats['major_axis_length'] * pixel_size) < maxlength]
 
     # sort the particles based on their length
     stats.sort_values(by=['major_axis_length'], ascending=False, inplace=True)
@@ -723,7 +716,7 @@ def statscsv_to_statshdf(stats_file):
     '''
     stats = pd.read_csv(stats_file, index_col=False)
     assert stats_file[-10:] == '-STATS.csv', f"Stats file {stats_file} should end in '-STATS.csv'."
-    pyopia.io.write_stats(stats_file[:-10], stats, append=False)
+    write_stats(stats_file[:-10], stats, append=False)
 
 
 def trim_stats(stats_file, start_time, end_time, write_new=False, stats=[]):
