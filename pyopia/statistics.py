@@ -298,16 +298,17 @@ def montage_maker(roifiles, roidir, pixel_size, msize=2048, brightness=255, eyec
     use make_montage to call this function
 
     Args:
-        roifiles                : list of roi files obtained from gen_roifiles(stats, auto_scaler=auto_scaler)
-        roidir                  : location of roifiles usually defined by settings.ExportParticles.outputpath in pysilcam
-        pixel_size              : pixel size of system in microns
-        msize=2048              : size of canvas in pixels
-        brightness=255          : brighness of packaged particles
-        eyecandy=True           : boolean which if True will explode the contrast of packed particles
-                                  (nice for natural particles, but not so good for oil and gas).
+        roifiles        : list of roi files obtained from gen_roifiles(stats, auto_scaler=auto_scaler)
+        roidir          : location of roifiles usually defined by settings.ExportParticles.outputpath in pysilcam
+        pixel_size      : pixel size of system in microns
+        msize=2048      : size of canvas in pixels
+        brightness=255  : brighness of packaged particles
+        eyecandy=True   : boolean which if True will explode the contrast of packed particles
+                          (nice for natural particles, but not so good for oil and gas).
 
     Returns:
-        montageplot             : a nicely-made montage in the form of an image, which can be plotted using plotting.montage_plot(montage, settings.PostProcess.pix_size)
+        montageplot     : a nicely-made montage in the form of an image,
+                          which can be plotted using plotting.montage_plot(montage, settings.PostProcess.pix_size)
     '''
     # pre-allocate an empty canvas
     montage = np.zeros((msize, msize, 3), dtype=np.uint8())
@@ -394,7 +395,8 @@ def make_montage(stats_file, pixel_size, roidir,
         crop_stats=None             : None or 4-tuple of lower-left then upper-right coord of crop
 
     Returns:
-        montage (uint8)             : a nicely-made montage in the form of an image, which can be plotted using plotting.montage_plot(montage, settings.PostProcess.pix_size)
+        montageplot (uint8)         : a nicely-made montage in the form of an image,
+                                      which can be plotted using plotting.montage_plot(montage, settings.PostProcess.pix_size)
     '''
 
     # obtain particle statistics from the stats file
