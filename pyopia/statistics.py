@@ -1,13 +1,12 @@
+import os
 import pandas as pd
 import numpy as np
-import os
-import imageio as imo
-from scipy import ndimage as ndi
-import skimage
 from skimage.exposure import rescale_intensity
 import h5py
 from enum import Enum
 from tqdm import tqdm
+import pyopia
+
 
 def d50_from_stats(stats, settings):
     '''
@@ -724,7 +723,7 @@ def statscsv_to_statshdf(stats_file):
     '''
     stats = pd.read_csv(stats_file, index_col=False)
     assert stats_file[-10:] == '-STATS.csv', f"Stats file {stats_file} should end in '-STATS.csv'."
-    write_stats(stats_file[:-10], stats, append=False)
+    pyopia.io.write_stats(stats_file[:-10], stats, append=False)
 
 
 def trim_stats(stats_file, start_time, end_time, write_new=False, stats=[]):
@@ -752,7 +751,7 @@ def trim_stats(stats_file, start_time, end_time, write_new=False, stats=[]):
         (pd.to_datetime(stats['timestamp']) > start_time) & (pd.to_datetime(stats['timestamp']) < end_time)]
 
     if np.isnan(trimmed_stats.equivalent_diameter.max()) or len(trimmed_stats) == 0:
-        logger.info('No data in specified time range!')
+        print('No data in specified time range!')
         outname = ''
         return trimmed_stats, outname
 
