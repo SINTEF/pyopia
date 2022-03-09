@@ -18,6 +18,7 @@ class PostInstallCommand(install):
     """Post-installation for installation mode."""
     def run(self):
         install.run(self)
+        Documentation.run(self)
 
 
 class PyTestNoSkip(TestCommand):
@@ -47,6 +48,26 @@ class PyTest(TestCommand):
         params["args"] += ["--junitxml", "test-report/output.xml"]
         errcode = pytest.main(self.test_args)
         sys.exit(errcode)
+
+
+class Documentation(distutils.cmd.Command):
+    description = '''Build the documentation with Sphinx.
+                   sphinx-apidoc is run for automatic generation of the sources.
+                   sphinx-build then creates the html from these sources.'''
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        command = 'sphinx-apidoc -f -o docs/source pysilcam/ --separate'
+        os.system(command)
+        command = 'sphinx-build -b html ./docs/source ./docs/build'
+        os.system(command)
+        sys.exit()
 
 
 def read(fname):
