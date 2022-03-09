@@ -48,7 +48,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pyopia'
-copyright = '2022, Emlyn Davies'
+copyright = '2022, SINTEF Ocean'
 author = 'Emlyn Davies'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -95,7 +95,7 @@ html_theme_options = {
     'canonical_url': '',
     'analytics_id': '',
     'logo_only': False,
-    'display_version': False,
+    'display_version': True,
     'prev_next_buttons_location': 'bottom',
     'style_external_links': False,
     'vcs_pageview_mode': '',

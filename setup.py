@@ -14,6 +14,7 @@ class PostDevelopCommand(develop):
     """Post-installation for development mode."""
     def run(self):
         develop.run(self)
+        Documentation.run(self)
 
 
 class PostInstallCommand(install):
@@ -65,7 +66,7 @@ class Documentation(distutils.cmd.Command):
         pass
 
     def run(self):
-        command = 'sphinx-apidoc -f -o docs/source pysilcam/ --separate'
+        command = 'sphinx-apidoc -f -o docs/source pyopia/ --separate'
         os.system(command)
         command = 'sphinx-build -b html ./docs/source ./docs/build'
         os.system(command)
