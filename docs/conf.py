@@ -48,7 +48,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pyopia'
-copyright = '2017, Emlyn Davies'
+copyright = '2022, Emlyn Davies'
 author = 'Emlyn Davies'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -180,6 +180,3 @@ texinfo_documents = [
      author, 'pyopia', 'One line description of project.',
      'Miscellaneous'),
 ]
-
-
-
