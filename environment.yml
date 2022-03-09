@@ -11,8 +11,10 @@ dependencies:    # These are the conda packages
     - scikit-image
     - pytest
     - numpy
+    - imageio
     - pip: # The following packages are installed with pip
         - docopt
         - tqdm
         - setuptools
         - pytest-error-for-skips
+        - tensorflow-cpu==2.3.1
