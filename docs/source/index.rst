@@ -12,6 +12,7 @@ PyOpia started in Feb. 2022 as a 'spin-off' from elements of `PySilCam <https://
 
 The code repository for PyOpia can be found `here <https://github.com/SINTEF/PyOpia/>`_.
 
+
 Contents
 ==================================
 
@@ -19,3 +20,10 @@ Contents
    :maxdepth: 10
 
    pyopia
+
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
