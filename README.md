@@ -3,6 +3,11 @@ PyOpia
 
 A Python Ocean Particle Image Analysis toolbox
 
+Current status:
+------------
+Moving code from PySilCam
+
+
 Development requirements for PyOpia:
 ------------
 1) Allow nonfamiliar users to install and use PyOpia, and to contribute & commit code changes
