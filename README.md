@@ -3,6 +3,11 @@ PyOpia
 
 A Python Ocean Particle Image Analysis toolbox
 
+Current status:
+------------
+Moving code from PySilCam
+
+
 Development requirements for PyOpia:
 ------------
 1) Allow nonfamiliar users to install and use PyOpia, and to contribute & commit code changes
@@ -39,7 +44,7 @@ Install [Python](https://github.com/conda-forge/miniforge/#download)
 
 A prompt such as is provided by the [miniforge installation](https://github.com/conda-forge/miniforge/#download) may be used for the following:
 
-Create a virtual environment using the environment.yml (will create an environment called silcam)
+Create a virtual environment using the environment.yml (will create an environment called pyopia)
 
 ```bash
 conda env create -f environment.yml
