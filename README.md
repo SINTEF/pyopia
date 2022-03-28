@@ -7,6 +7,9 @@ Current status:
 ------------
 Moving code from PySilCam
 
+Documentation:
+------------
+[https://pyopia.readthedocs.io](https://pyopia.readthedocs.io)
 
 Development requirements for PyOpia:
 ------------
