@@ -56,6 +56,12 @@ to update, we recommend a forced re-install:
 conda env create -f environment.yml --force
 ```
 
+(but you could also try this, which might be quicker but a less reliable form of updating):
+
+```bash
+conda env update --file environment.yml --prune
+```
+
 to activate:
 
 ```bash
