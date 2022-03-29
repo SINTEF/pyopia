@@ -107,36 +107,6 @@ def clean_bw(imbw, min_area):
     return imbw
 
 
-def fancy_props(iml, imc, timestamp, Classification,
-                export_images=False,
-                export_outputpath=None,
-                min_length=0):
-    '''Calculates fancy particle properties
-
-    Args:
-        iml                         : labelled segmented image
-        imc                         : background-corrected image
-        timestamp                   : timestamp of image collection
-        Classification              : initialised classification class from pyiopia.classify
-        export_images=export_images
-        export_outputpath=export_outputpath
-        min_length=min_length
-
-    Return:
-        stats                       : particle statistics
-
-    '''
-
-    region_properties = measure.regionprops(iml, cache=False)
-    # build the stats and export to HDF5
-    stats = extract_particles(imc, timestamp, Classification, region_properties,
-                              export_images=export_images,
-                              export_outputpath=export_outputpath,
-                              min_length=min_length)
-
-    return stats
-
-
 def concentration_check(imbw, max_coverage=30):
     ''' Check saturation level of the sample volume by comparing area of
     particles with settings.Process.max_coverage
@@ -205,102 +175,6 @@ def extract_roi(im, bbox):
     roi = im[bbox[0]:bbox[2], bbox[1]:bbox[3]]
 
     return roi
-
-
-def measure_particles(imbw, imc, timestamp, Classification,
-                      max_coverage=30,
-                      max_particles=5000,
-                      export_images=False,
-                      export_outputpath=None,
-                      min_length=0):
-    '''Measures properties of particles
-
-    Args:
-      imbw (full-frame binary image)
-      imc (full-frame corrected raw image)
-      timestamp
-      Classification class
-      max_coverage
-      max_particles
-
-    Returns:
-      stats (list of particle statistics for every particle, according to
-      Partstats class)
-
-    '''
-    print('max_coverage', max_coverage)
-    
-    # check the converage of the image of particles is acceptable
-    sat_check, saturation = concentration_check(imbw, max_coverage=max_coverage)
-    if (sat_check is False):
-        print('....breached concentration limit! Skipping image.')
-        imbw *= 0  # this is not a good way to handle this condition
-        # @todo handle situation when too many particles are found
-
-    # label the segmented image
-    iml = morphology.label(imbw > 0)
-    print('  {0} particles found'.format(iml.max()))
-
-    # if there are too many particles then do no proceed with analysis
-    if (iml.max() > max_particles):
-        print('....that''s way too many particles! Skipping image.')
-        imbw *= 0  # this is not a good way to handle this condition
-        # @todo handle situation when too many particles are found
-
-    # calculate particle statistics
-    stats = fancy_props(iml, imc, timestamp, Classification,
-                        export_images=export_images,
-                        export_outputpath=export_outputpath,
-                        min_length=min_length)
-
-    return stats, saturation
-
-
-def statextract(imc, timestamp, Classification,
-                minimum_area=12, threshold=0.98, real_time_stats=False,
-                measure_function=measure_particles):
-    '''extracts statistics of particles in imc (raw corrected image)
-
-    Args:
-        imc                         : background-corrected image
-        timestamp                   : timestamp of image collection
-        Classification              : initialised classification class from pyiopia.classify
-        measure_function            : function for measuring particles that must conform to measure_particles
-                                        defaults to measure_particles
-
-    Returns:
-        stats                       : (list of particle statistics for every particle, according to Partstats class)
-        imbw                        : segmented image
-        saturation                  : percentage saturation of image
-    '''
-    print('segment')
-
-    # simplify processing by squeezing the image dimensions into a 2D array
-    # min is used for squeezing to represent the highest attenuation of all wavelengths
-    img = np.uint8(np.min(imc, axis=2))
-
-    if real_time_stats:
-        imbw = image2blackwhite_fast(img, threshold)  # image2blackwhite_fast is less fancy but
-    else:
-        imbw = image2blackwhite_accurate(img, threshold)  # image2blackwhite_fast is less fancy but
-    # image2blackwhite_fast is faster than image2blackwhite_accurate but might cause problems when trying to
-    # process images with bad lighting
-
-    print('clean')
-
-    # clean segmented image (small particles and border particles)
-    imbw = clean_bw(imbw, minimum_area)
-
-    # fill holes in particles
-    imbw = ndi.binary_fill_holes(imbw)
-
-    # @todo re-implement: write_segmented_images(imbw, imc, settings, timestamp)
-
-    print('measure')
-    # calculate particle statistics
-    stats, saturation = measure_function(imbw, imc, timestamp, Classification)
-
-    return stats, imbw, saturation
 
 
 def write_segmented_images(imbw, imc, settings, timestamp):
@@ -415,8 +289,91 @@ def extract_particles(imc, timestamp, Classification, region_properties,
     return stats
 
 
+def measure_particles(imbw, max_particles=5000):
+    '''Measures properties of particles
+
+    Args:
+      imbw (full-frame binary image)
+      max_particles
+
+    Returns:
+      region_properties
+
+    '''
+    # label the segmented image
+    iml = morphology.label(imbw > 0)
+    print('  {0} particles found'.format(iml.max()))
+
+    # if there are too many particles then do no proceed with analysis
+    if (iml.max() > max_particles):
+        print('....that''s way too many particles! Skipping image.')
+        imbw *= 0  # this is not a good way to handle this condition
+        # @todo handle situation when too many particles are found
+
+    region_properties = measure.regionprops(iml, cache=False)
+
+    return region_properties
+
+
+def statextract(imc, timestamp, Classification,
+                minimum_area=12, threshold=0.98, real_time_stats=False, max_coverage=30, max_particles=5000,
+                extractparticles_function=extract_particles):
+    '''extracts statistics of particles in imc (raw corrected image)
+
+    Args:
+        imc                         : background-corrected image
+        timestamp                   : timestamp of image collection
+        Classification              : initialised classification class from pyiopia.classify
+        measure_function            : function for measuring particles that must conform to measure_particles
+                                        defaults to measure_particles
+
+    Returns:
+        stats                       : (list of particle statistics for every particle, according to Partstats class)
+        imbw                        : segmented image
+        saturation                  : percentage saturation of image
+    '''
+    print('segment')
+
+    # simplify processing by squeezing the image dimensions into a 2D array
+    # min is used for squeezing to represent the highest attenuation of all wavelengths
+    img = np.uint8(np.min(imc, axis=2))
+
+    if real_time_stats:
+        imbw = image2blackwhite_fast(img, threshold)  # image2blackwhite_fast is less fancy but
+    else:
+        imbw = image2blackwhite_accurate(img, threshold)  # image2blackwhite_fast is less fancy but
+    # image2blackwhite_fast is faster than image2blackwhite_accurate but might cause problems when trying to
+    # process images with bad lighting
+
+    print('clean')
+
+    # clean segmented image (small particles and border particles)
+    imbw = clean_bw(imbw, minimum_area)
+
+    # fill holes in particles
+    imbw = ndi.binary_fill_holes(imbw)
+
+    # @todo re-implement: write_segmented_images(imbw, imc, settings, timestamp)
+
+    # check the converage of the image of particles is acceptable
+    sat_check, saturation = concentration_check(imbw, max_coverage=max_coverage)
+    if (sat_check is False):
+        print('....breached concentration limit! Skipping image.')
+        imbw *= 0  # this is not a good way to handle this condition
+        # @todo handle situation when too many particles are found
+
+    print('measure')
+    # calculate particle statistics
+    region_properties = measure_particles(imbw, max_particles=max_particles)
+
+    # build the stats and export to HDF5
+    stats = extractparticles_function(imc, timestamp, Classification, region_properties)
+
+    return stats, imbw, saturation
+
+
 def process_image(Classification, data,
-                  extract_function=statextract):
+                  statextract_function=statextract):
     '''
     Proceses image data into a stats formatted DataFrame
 
@@ -426,8 +383,8 @@ def process_image(Classification, data,
                               where i is an int referring to the image number
                               timestamp is the image timestamp obtained from passing the filename
                               imc is the background-corrected image
-        extract_function    : function for extracting particles that must conform to extract_particles behaviour
-                                defaults to extract_particles
+        statextract_function    : function for extracting particles that must conform to statextract behaviour
+                                defaults to statextract
 
     Returns:
         stats (DataFrame) :  stats dataframe containing particle statistics
@@ -443,7 +400,7 @@ def process_image(Classification, data,
         print('Processing time stamp {0}'.format(timestamp))
 
         # Calculate particle statistics
-        stats, imbw, saturation = extract_function(imc, timestamp, Classification)
+        stats, imbw, saturation = statextract_function(imc, timestamp, Classification)
 
         # if there are not particles identified, assume zero concentration.
         # This means that the data should indicate that a 'good' image was
