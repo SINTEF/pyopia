@@ -228,6 +228,8 @@ def measure_particles(imbw, imc, timestamp, Classification,
       Partstats class)
 
     '''
+    print('max_coverage', max_coverage)
+    
     # check the converage of the image of particles is acceptable
     sat_check, saturation = concentration_check(imbw, max_coverage=max_coverage)
     if (sat_check is False):
@@ -255,13 +257,16 @@ def measure_particles(imbw, imc, timestamp, Classification,
 
 
 def statextract(imc, timestamp, Classification,
-                minimum_area=12, threshold=0.98, real_time_stats=False, max_coverage=30):
+                minimum_area=12, threshold=0.98, real_time_stats=False,
+                measure_function=measure_particles):
     '''extracts statistics of particles in imc (raw corrected image)
 
     Args:
         imc                         : background-corrected image
         timestamp                   : timestamp of image collection
         Classification              : initialised classification class from pyiopia.classify
+        measure_function            : function for measuring particles that must conform to measure_particles
+                                        defaults to measure_particles
 
     Returns:
         stats                       : (list of particle statistics for every particle, according to Partstats class)
@@ -270,7 +275,7 @@ def statextract(imc, timestamp, Classification,
     '''
     print('segment')
 
-    # simplyfy processing by squeezing the image dimensions into a 2D array
+    # simplify processing by squeezing the image dimensions into a 2D array
     # min is used for squeezing to represent the highest attenuation of all wavelengths
     img = np.uint8(np.min(imc, axis=2))
 
@@ -293,12 +298,7 @@ def statextract(imc, timestamp, Classification,
 
     print('measure')
     # calculate particle statistics
-    stats, saturation = measure_particles(imbw, imc, timestamp, Classification,
-                                          max_coverage=30,
-                                          max_particles=5000,
-                                          export_images=False,
-                                          export_outputpath=None,
-                                          min_length=0)
+    stats, saturation = measure_function(imbw, imc, timestamp, Classification)
 
     return stats, imbw, saturation
 
@@ -416,20 +416,18 @@ def extract_particles(imc, timestamp, Classification, region_properties,
 
 
 def process_image(Classification, data,
-                  minimum_area=12, threshold=0.98, real_time_stats=False):
+                  extract_function=statextract):
     '''
     Proceses image data into a stats formatted DataFrame
 
     Args:
-        Classification  : initialised classification class from pyiopia.classify
-        data (tuple)    : tuple contianing (i, timestamp, imc)
-                          where i is an int referring to the image number
-                          timestamp is the image timestamp obtained from passing the filename
-                          imc is the background-corrected image obtained using the backgrounder
-                          generator
-        minimum_area=12 : minimum pixel area to be considered a particle
-        threshold=0.98  : segmentation guidance threshold used by image2blackwhite fast or accurate functions
-        real_time_stats=False  : bool to switch between fast or accurate modes
+        Classification      : initialised classification class from pyiopia.classify
+        data (tuple)        : tuple contianing (i, timestamp, imc)
+                              where i is an int referring to the image number
+                              timestamp is the image timestamp obtained from passing the filename
+                              imc is the background-corrected image
+        extract_function    : function for extracting particles that must conform to extract_particles behaviour
+                                defaults to extract_particles
 
     Returns:
         stats (DataFrame) :  stats dataframe containing particle statistics
@@ -445,10 +443,7 @@ def process_image(Classification, data,
         print('Processing time stamp {0}'.format(timestamp))
 
         # Calculate particle statistics
-        stats, imbw, saturation = statextract(imc, timestamp, Classification,
-                                              minimum_area=minimum_area,
-                                              threshold=threshold,
-                                              real_time_stats=real_time_stats)
+        stats, imbw, saturation = extract_function(imc, timestamp, Classification)
 
         # if there are not particles identified, assume zero concentration.
         # This means that the data should indicate that a 'good' image was
