@@ -236,4 +236,9 @@ tags
 ### ipynb checkpoints
 **/*.ipynb_checkpoints/
 
+### image files
+*.silc
+*.bmp
+*.png
+
 # End of https://www.gitignore.io/api/vim,python,pycharm,visualstudiocode
