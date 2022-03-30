@@ -195,7 +195,7 @@ def write_segmented_images(imbw, imc, settings, timestamp):
 
 
 def extract_particles(imc, timestamp, Classification, region_properties,
-                      export_images=False, export_outputpath=None, min_length=0):
+                      export_outputpath=None, min_length=0):
     '''extracts the particles to build stats and export particle rois to HDF5 files
 
     Args:
@@ -204,7 +204,9 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         Classification              : initialised classification class from pyiopia.classify
         region_properties           : region properties object returned from regionprops (measure.regionprops(iml,
                                                                                                            cache=False))
-
+        export_outputpath           : path for writing h5 output files. Defaults to None, which switches off file writing
+                                        Note: path must exist
+    
     Returns:
         stats                       : (list of particle statistics for every particle, according to Partstats class)
     '''
@@ -219,7 +221,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
     # obtain the original image filename from the timestamp
     filename = timestamp.strftime('D%Y%m%dT%H%M%S.%f')
 
-    if export_images:
+    if export_outputpath is not None:
         # Make the HDF5 file
         hdf_filename = os.path.join(export_outputpath, filename + ".h5")
         HDF5File = h5py.File(hdf_filename, "w")
@@ -255,7 +257,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
 
             # add the roi to the HDF5 file
             filenames[int(i)] = filename + '-PN' + str(i)
-            if export_images:
+            if export_outputpath is not None:
                 HDF5File.create_dataset('PN' + str(i), data=roi)
                 # @todo also include particle stats here too.
 
@@ -263,7 +265,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
             prediction = Classification.proc_predict(roi)
             predictions[int(i), :] = prediction[0]
 
-    if export_images:
+    if export_outputpath is not None:
         # close the HDF5 file
         HDF5File.close()
 

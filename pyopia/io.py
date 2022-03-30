@@ -3,7 +3,7 @@ import pandas as pd
 
 def write_stats(
         datafilename,
-        stats_all,
+        stats,
         append=True,
         export_name_len=40):
     '''
@@ -22,12 +22,12 @@ def write_stats(
     # @todo accidentally appending to an existing file could be dangerous
     # because data will be duplicated (and concentrations would therefore
     # double) GUI promts user regarding this - directly-run functions are more dangerous.
-    if 'export name' in stats_all.columns:
+    if 'export name' in stats.columns:
         min_itemsize = {'export name': export_name_len}
     else:
         min_itemsize = None
 
     with pd.HDFStore(datafilename + '-STATS.h5', 'a') as fh:
-        stats_all.to_hdf(
+        stats.to_hdf(
             fh, 'ParticleStats/stats', append=append, format='t',
             data_columns=True, min_itemsize=min_itemsize)
