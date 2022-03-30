@@ -223,6 +223,9 @@ def extract_particles(imc, timestamp, Classification, region_properties,
     filename = timestamp.strftime('D%Y%m%dT%H%M%S.%f')
 
     if export_outputpath is not None:
+        # check path exists and create if not
+        # @todo
+        
         # Make the HDF5 file
         hdf_filename = os.path.join(export_outputpath, filename + ".h5")
         HDF5File = h5py.File(hdf_filename, "w")
