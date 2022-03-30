@@ -11,6 +11,7 @@ import h5py
 import os
 from skimage.io import imsave
 import traceback
+import datetime
 
 '''
 Module for processing particle image data
@@ -227,7 +228,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         HDF5File = h5py.File(hdf_filename, "w")
         # metadata
         meta = HDF5File.create_group('Meta')
-        meta.attrs['Modified'] = str(pd.datetime.now())
+        meta.attrs['Modified'] = str(datetime.now())
         meta.attrs['Timestamp'] = str(timestamp)
         meta.attrs['Raw image name'] = filename
         # @todo include more useful information in this meta data, e.g. possibly raw image location and background
