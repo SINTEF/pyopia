@@ -11,7 +11,7 @@ import h5py
 import os
 from skimage.io import imsave
 import traceback
-import datetime
+from datetime import datetime
 
 '''
 Module for processing particle image data
