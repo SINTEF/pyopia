@@ -1,4 +1,7 @@
 import pandas as pd
+import h5py
+from pyopia import __version__ as pyopia_version
+from datetime import datetime
 
 
 def write_stats(
@@ -31,3 +34,25 @@ def write_stats(
         stats.to_hdf(
             fh, 'ParticleStats/stats', append=append, format='t',
             data_columns=True, min_itemsize=min_itemsize)
+
+    # metadata
+    with h5py.File(datafilename + '-STATS.h5', "a") as fh:
+        meta = fh.require_group('Meta')
+        meta.attrs['Modified'] = str(datetime.now())
+        meta.attrs['PyOpia version'] = pyopia_version
+
+
+def show_h5_meta(h5file):
+    '''
+    prints metadata from an exported hdf5 file created from pyopia.process
+
+    Args:
+        h5file              : h5 filename from exported data from pyopia.process
+    '''
+
+    with h5py.File(h5file, 'r') as f:
+        keys = list(f['Meta'].attrs.keys())
+
+        for k in keys:
+            print(k + ':')
+            print('    ' + f['Meta'].attrs[k])
