@@ -19,3 +19,4 @@ def get_example_model():
         zipit.extractall()
     model_filename = 'keras_model.h5'
     return model_filename
+    
