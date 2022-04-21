@@ -8,9 +8,9 @@ dependencies:    # These are the conda packages
     - pandas
     - h5py
     - pytables
+    - scipy
     - scikit-image
     - pytest
-    - numpy
     - imageio
     - pip: # The following packages are installed with pip
         - docopt

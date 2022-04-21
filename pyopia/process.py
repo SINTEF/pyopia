@@ -386,7 +386,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
                 # @todo also include particle stats here too.
 
             # run a prediction on what type of particle this might be
-            prediction = Classification.predict(roi)
+            prediction = Classification.proc_predict(roi)
             predictions[int(i), :] = prediction[0]
 
     if export_images:
@@ -484,7 +484,7 @@ def process_image(Classification, data,
         print(e)
         traceback.print_exc()
         infostr = 'Failed to process frame {0}, skipping.'.format(i)
-        print(infostr, exc_info=True)
+        print(infostr)
         return None
 
     return stats
