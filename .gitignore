@@ -242,3 +242,6 @@ tags
 *.png
 
 # End of https://www.gitignore.io/api/vim,python,pycharm,visualstudiocode
+*.zip
+notebooks/header.tfl.txt
+notebooks/keras_model.h5
