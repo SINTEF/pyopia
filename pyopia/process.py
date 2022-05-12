@@ -207,7 +207,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
                                                                                                            cache=False))
         export_outputpath           : path for writing h5 output files. Defaults to None, which switches off file writing
                                         Note: path must exist
-    
+
     Returns:
         stats                       : (list of particle statistics for every particle, according to Partstats class)
     '''
@@ -225,7 +225,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
     if export_outputpath is not None:
         # check path exists and create if not
         # @todo
-        
+
         # Make the HDF5 file
         hdf_filename = os.path.join(export_outputpath, filename + ".h5")
         HDF5File = h5py.File(hdf_filename, "w")
