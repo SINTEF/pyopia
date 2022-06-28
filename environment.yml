@@ -6,7 +6,7 @@ dependencies:    # These are the conda packages
     - pip
     - flake8
     - pandas
-    - h5py
+    - h5py=2.10.0
     - pytables
     - scipy
     - scikit-image
