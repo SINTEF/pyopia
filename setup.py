@@ -82,7 +82,7 @@ setup(
     name='PyOpia',
     description='A Python Ocean Particle Image Analysis toolbox',
     long_description=read('README.md'),
-    author='Emlyn Davies',
+    author='PyOpia contributors',
     author_email='emlyn.davies@sintef.no',
     zip_safe=False,
     keywords='Ocean Particle Image Analysis',
