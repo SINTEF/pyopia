@@ -11,6 +11,7 @@ import h5py
 import os
 from skimage.io import imsave
 import traceback
+from datetime import datetime
 
 '''
 Module for processing particle image data
@@ -107,36 +108,6 @@ def clean_bw(imbw, min_area):
     return imbw
 
 
-def fancy_props(iml, imc, timestamp, Classification,
-                export_images=False,
-                export_outputpath=None,
-                min_length=0):
-    '''Calculates fancy particle properties
-
-    Args:
-        iml                         : labelled segmented image
-        imc                         : background-corrected image
-        timestamp                   : timestamp of image collection
-        Classification              : initialised classification class from pyiopia.classify
-        export_images=export_images
-        export_outputpath=export_outputpath
-        min_length=min_length
-
-    Return:
-        stats                       : particle statistics
-
-    '''
-
-    region_properties = measure.regionprops(iml, cache=False)
-    # build the stats and export to HDF5
-    stats = extract_particles(imc, timestamp, Classification, region_properties,
-                              export_images=export_images,
-                              export_outputpath=export_outputpath,
-                              min_length=min_length)
-
-    return stats
-
-
 def concentration_check(imbw, max_coverage=30):
     ''' Check saturation level of the sample volume by comparing area of
     particles with settings.Process.max_coverage
@@ -207,102 +178,6 @@ def extract_roi(im, bbox):
     return roi
 
 
-def measure_particles(imbw, imc, timestamp, Classification,
-                      max_coverage=30,
-                      max_particles=5000,
-                      export_images=False,
-                      export_outputpath=None,
-                      min_length=0):
-    '''Measures properties of particles
-
-    Args:
-      imbw (full-frame binary image)
-      imc (full-frame corrected raw image)
-      timestamp
-      Classification class
-      max_coverage
-      max_particles
-
-    Returns:
-      stats (list of particle statistics for every particle, according to
-      Partstats class)
-
-    '''
-    # check the converage of the image of particles is acceptable
-    sat_check, saturation = concentration_check(imbw, max_coverage=max_coverage)
-    if (sat_check is False):
-        print('....breached concentration limit! Skipping image.')
-        imbw *= 0  # this is not a good way to handle this condition
-        # @todo handle situation when too many particles are found
-
-    # label the segmented image
-    iml = morphology.label(imbw > 0)
-    print('  {0} particles found'.format(iml.max()))
-
-    # if there are too many particles then do no proceed with analysis
-    if (iml.max() > max_particles):
-        print('....that''s way too many particles! Skipping image.')
-        imbw *= 0  # this is not a good way to handle this condition
-        # @todo handle situation when too many particles are found
-
-    # calculate particle statistics
-    stats = fancy_props(iml, imc, timestamp, Classification,
-                        export_images=export_images,
-                        export_outputpath=export_outputpath,
-                        min_length=min_length)
-
-    return stats, saturation
-
-
-def statextract(imc, timestamp, Classification,
-                minimum_area=12, threshold=0.98, real_time_stats=False, max_coverage=30):
-    '''extracts statistics of particles in imc (raw corrected image)
-
-    Args:
-        imc                         : background-corrected image
-        timestamp                   : timestamp of image collection
-        Classification              : initialised classification class from pyiopia.classify
-
-    Returns:
-        stats                       : (list of particle statistics for every particle, according to Partstats class)
-        imbw                        : segmented image
-        saturation                  : percentage saturation of image
-    '''
-    print('segment')
-
-    # simplyfy processing by squeezing the image dimensions into a 2D array
-    # min is used for squeezing to represent the highest attenuation of all wavelengths
-    img = np.uint8(np.min(imc, axis=2))
-
-    if real_time_stats:
-        imbw = image2blackwhite_fast(img, threshold)  # image2blackwhite_fast is less fancy but
-    else:
-        imbw = image2blackwhite_accurate(img, threshold)  # image2blackwhite_fast is less fancy but
-    # image2blackwhite_fast is faster than image2blackwhite_accurate but might cause problems when trying to
-    # process images with bad lighting
-
-    print('clean')
-
-    # clean segmented image (small particles and border particles)
-    imbw = clean_bw(imbw, minimum_area)
-
-    # fill holes in particles
-    imbw = ndi.binary_fill_holes(imbw)
-
-    # @todo re-implement: write_segmented_images(imbw, imc, settings, timestamp)
-
-    print('measure')
-    # calculate particle statistics
-    stats, saturation = measure_particles(imbw, imc, timestamp, Classification,
-                                          max_coverage=30,
-                                          max_particles=5000,
-                                          export_images=False,
-                                          export_outputpath=None,
-                                          min_length=0)
-
-    return stats, imbw, saturation
-
-
 def write_segmented_images(imbw, imc, settings, timestamp):
     '''writes binary images as bmp files to the same place as hdf5 files if loglevel is in DEBUG mode
     Useful for checking threshold and segmentation
@@ -321,7 +196,7 @@ def write_segmented_images(imbw, imc, settings, timestamp):
 
 
 def extract_particles(imc, timestamp, Classification, region_properties,
-                      export_images=False, export_outputpath=None, min_length=0):
+                      export_outputpath=None, min_length=0):
     '''extracts the particles to build stats and export particle rois to HDF5 files
 
     Args:
@@ -330,6 +205,8 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         Classification              : initialised classification class from pyiopia.classify
         region_properties           : region properties object returned from regionprops (measure.regionprops(iml,
                                                                                                            cache=False))
+        export_outputpath           : path for writing h5 output files. Defaults to None, which switches off file writing
+                                        Note: path must exist
 
     Returns:
         stats                       : (list of particle statistics for every particle, according to Partstats class)
@@ -345,13 +222,16 @@ def extract_particles(imc, timestamp, Classification, region_properties,
     # obtain the original image filename from the timestamp
     filename = timestamp.strftime('D%Y%m%dT%H%M%S.%f')
 
-    if export_images:
+    if export_outputpath is not None:
+        # check path exists and create if not
+        # @todo
+
         # Make the HDF5 file
         hdf_filename = os.path.join(export_outputpath, filename + ".h5")
         HDF5File = h5py.File(hdf_filename, "w")
         # metadata
         meta = HDF5File.create_group('Meta')
-        meta.attrs['Modified'] = str(pd.datetime.now())
+        meta.attrs['Modified'] = str(datetime.now())
         meta.attrs['Timestamp'] = str(timestamp)
         meta.attrs['Raw image name'] = filename
         # @todo include more useful information in this meta data, e.g. possibly raw image location and background
@@ -381,7 +261,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
 
             # add the roi to the HDF5 file
             filenames[int(i)] = filename + '-PN' + str(i)
-            if export_images:
+            if export_outputpath is not None:
                 HDF5File.create_dataset('PN' + str(i), data=roi)
                 # @todo also include particle stats here too.
 
@@ -389,7 +269,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
             prediction = Classification.proc_predict(roi)
             predictions[int(i), :] = prediction[0]
 
-    if export_images:
+    if export_outputpath is not None:
         # close the HDF5 file
         HDF5File.close()
 
@@ -415,21 +295,104 @@ def extract_particles(imc, timestamp, Classification, region_properties,
     return stats
 
 
+def measure_particles(imbw, max_particles=5000):
+    '''Measures properties of particles
+
+    Args:
+      imbw (full-frame binary image)
+      max_particles
+
+    Returns:
+      region_properties
+
+    '''
+    # label the segmented image
+    iml = morphology.label(imbw > 0)
+    print('  {0} particles found'.format(iml.max()))
+
+    # if there are too many particles then do no proceed with analysis
+    if (iml.max() > max_particles):
+        print('....that''s way too many particles! Skipping image.')
+        imbw *= 0  # this is not a good way to handle this condition
+        # @todo handle situation when too many particles are found
+
+    region_properties = measure.regionprops(iml, cache=False)
+
+    return region_properties
+
+
+def statextract(data, Classification,
+                minimum_area=12, threshold=0.98, real_time_stats=False, max_coverage=30, max_particles=5000,
+                extractparticles_function=extract_particles):
+    '''extracts statistics of particles in imc (raw corrected image)
+
+    Args:
+        imc                         : background-corrected image
+        timestamp                   : timestamp of image collection
+        Classification              : initialised classification class from pyiopia.classify
+        measure_function            : function for measuring particles that must conform to measure_particles
+                                        defaults to measure_particles
+
+    Returns:
+        stats                       : (list of particle statistics for every particle, according to Partstats class)
+        imbw                        : segmented image
+        saturation                  : percentage saturation of image
+    '''
+    print('segment')
+
+    # simplify processing by squeezing the image dimensions into a 2D array
+    # min is used for squeezing to represent the highest attenuation of all wavelengths
+    timestamp = data[1]
+    imc = data[2]
+    img = np.uint8(np.min(imc, axis=2))
+
+    if real_time_stats:
+        imbw = image2blackwhite_fast(img, threshold)  # image2blackwhite_fast is less fancy but
+    else:
+        imbw = image2blackwhite_accurate(img, threshold)  # image2blackwhite_fast is less fancy but
+    # image2blackwhite_fast is faster than image2blackwhite_accurate but might cause problems when trying to
+    # process images with bad lighting
+
+    print('clean')
+
+    # clean segmented image (small particles and border particles)
+    imbw = clean_bw(imbw, minimum_area)
+
+    # fill holes in particles
+    imbw = ndi.binary_fill_holes(imbw)
+
+    # @todo re-implement: write_segmented_images(imbw, imc, settings, timestamp)
+
+    # check the converage of the image of particles is acceptable
+    sat_check, saturation = concentration_check(imbw, max_coverage=max_coverage)
+    if (sat_check is False):
+        print('....breached concentration limit! Skipping image.')
+        imbw *= 0  # this is not a good way to handle this condition
+        # @todo handle situation when too many particles are found
+
+    print('measure')
+    # calculate particle statistics
+    region_properties = measure_particles(imbw, max_particles=max_particles)
+
+    # build the stats and export to HDF5
+    stats = extractparticles_function(imc, timestamp, Classification, region_properties)
+
+    return stats, imbw, saturation
+
+
 def process_image(Classification, data,
-                  minimum_area=12, threshold=0.98, real_time_stats=False):
+                  statextract_function=statextract):
     '''
     Proceses image data into a stats formatted DataFrame
 
     Args:
-        Classification  : initialised classification class from pyiopia.classify
-        data (tuple)    : tuple contianing (i, timestamp, imc)
-                          where i is an int referring to the image number
-                          timestamp is the image timestamp obtained from passing the filename
-                          imc is the background-corrected image obtained using the backgrounder
-                          generator
-        minimum_area=12 : minimum pixel area to be considered a particle
-        threshold=0.98  : segmentation guidance threshold used by image2blackwhite fast or accurate functions
-        real_time_stats=False  : bool to switch between fast or accurate modes
+        Classification      : initialised classification class from pyiopia.classify
+        data (tuple)        : tuple contianing (i, timestamp, imc)
+                              where i is an int referring to the image number
+                              timestamp is the image timestamp obtained from passing the filename
+                              imc is the background-corrected image
+        statextract_function    : function for extracting particles that must conform to statextract behaviour
+                                defaults to statextract
 
     Returns:
         stats (DataFrame) :  stats dataframe containing particle statistics
@@ -437,7 +400,6 @@ def process_image(Classification, data,
     try:
         i = data[0]
         timestamp = data[1]
-        imc = data[2]
 
         # time the full acquisition and processing loop
         start_time = time.time()
@@ -445,10 +407,7 @@ def process_image(Classification, data,
         print('Processing time stamp {0}'.format(timestamp))
 
         # Calculate particle statistics
-        stats, imbw, saturation = statextract(imc, timestamp, Classification,
-                                              minimum_area=minimum_area,
-                                              threshold=threshold,
-                                              real_time_stats=real_time_stats)
+        stats, imbw, saturation = statextract_function(data, Classification)
 
         # if there are not particles identified, assume zero concentration.
         # This means that the data should indicate that a 'good' image was
