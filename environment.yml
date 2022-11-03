@@ -5,6 +5,7 @@ dependencies:    # These are the conda packages
     - python=3.8
     - pip
     - flake8
+    - numpy>=1.20.1
     - pandas
     - h5py=2.10.0
     - pytables
@@ -17,6 +18,5 @@ dependencies:    # These are the conda packages
         - tqdm
         - setuptools
         - pytest-error-for-skips
-        - tensorflow-cpu==2.3.1
         - sphinx_rtd_theme==0.5.0
         - sphinxcontrib-napoleon==0.7
