@@ -8,6 +8,16 @@ class Classify():
     '''
     A classifier class for PyOpia workflow.
     This is intended as a parent class that can be used as a template for flexible classification methods
+    
+    Args:
+        model_path (str)        : path to particle-classifier e.g.
+                                '/testdata/model_name/particle_classifier.h5'
+                                
+    example:
+        cl = Classify(model_path='/testdata/model_name/particle_classifier.h5')
+        cl.load_model()
+        
+        prediction = cl.proc_predict(roi) # roi is an image roi to be classified
     '''
     def __init__(self, model_path=None):
         self.model_path = model_path
@@ -18,14 +28,9 @@ class Classify():
 
     def load_model(self):
         '''
-        Load the trained tensorflow keras model. example here based on the pysilcam network setup
+        Load the trained tensorflow keras model into the Classify class. example here based on the pysilcam network setup
 
-        Args:
-            model_path (str)        : path to particle-classifier e.g.
-                                    '/testdata/model_name/particle_classifier.h5'
-
-        Returns:
-            model (tf model object) : loaded tf.keras model from load_model()
+        model (tf model object) : loaded tf.keras model from load_model()
         '''
         model_path = self.model_path
         
