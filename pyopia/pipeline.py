@@ -3,16 +3,17 @@ class Pipeline():
     
     def __init__(self, steps):
         self.steps = steps
+        self.cl = self.steps['classifier']()
+        self.cl.load_model()
         pass
     
     def run(self):
         
-        data = self.steps['load']()
+        timestamp, imc = self.steps['load']()
+                
+        stats, imbw, saturation = self.steps['statextract'](timestamp, imc, self.cl)
         
-        cl = self.steps['classifier']()
-        cl.load_model()
-        
-        stats = self.steps['process'](cl, data)
+        #stats = self.steps['process'](cl, data)
         
         return stats
         

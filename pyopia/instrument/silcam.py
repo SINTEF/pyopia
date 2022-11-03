@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import numpy as np
+from pyopia.process import statextract
 
 
 def timestamp_from_filename(filename):
@@ -22,6 +23,28 @@ class SilCamLoad():
         
         img = np.load(self.filename, allow_pickle=False)
     
-        # setup the 'data' tuple with an image number, timestamp and the image
-        data = (1, timestamp, img)
-        return data
+        return timestamp, img
+    
+    
+class SilCamStatExtract():
+    
+    def __init__(self,
+                 minimum_area=12,
+                 threshold=0.98,
+                 real_time_stats=False,
+                 max_coverage=30,
+                 max_particles=5000):
+        
+        self.minimum_area = minimum_area
+        self.threshold = threshold
+        self.real_time_stats = real_time_stats
+        self.max_coverage = max_coverage
+        self.max_particles = max_particles
+        pass
+
+    def __call__(self, timestamp, imc, Classification):
+        stats = statextract(timestamp, imc, Classification,
+                            minimum_area=self.minimum_area, threshold=self.threshold,
+                            real_time_stats=self.real_time_stats,
+                            max_coverage=self.max_coverage, max_particles=self.max_particles)
+        return stats

@@ -321,7 +321,7 @@ def measure_particles(imbw, max_particles=5000):
     return region_properties
 
 
-def statextract(data, Classification,
+def statextract(timestamp, imc, Classification,
                 minimum_area=12, threshold=0.98, real_time_stats=False, max_coverage=30, max_particles=5000,
                 extractparticles_function=extract_particles):
     '''extracts statistics of particles in imc (raw corrected image)
@@ -342,8 +342,6 @@ def statextract(data, Classification,
 
     # simplify processing by squeezing the image dimensions into a 2D array
     # min is used for squeezing to represent the highest attenuation of all wavelengths
-    timestamp = data[1]
-    imc = data[2]
     img = np.uint8(np.min(imc, axis=2))
 
     if real_time_stats:
