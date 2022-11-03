@@ -69,7 +69,8 @@ class Documentation(distutils.cmd.Command):
         os.system(command)
         command = 'sphinx-build -b html ./docs/source ./docs/build'
         os.system(command)
-        sys.exit()
+        if not os.environ.get('READTHEDOCS'):
+            sys.exit()
 
 
 def read(fname):
