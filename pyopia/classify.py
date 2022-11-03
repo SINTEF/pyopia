@@ -9,10 +9,14 @@ class Classify():
     A classifier class for PyOpia workflow.
     This is intended as a parent class that can be used as a template for flexible classification methods
     '''
-    def __init__(self):
+    def __init__(self, model_path=None):
+        self.model_path = model_path
         pass
+        
+    def __call__(self):
+        return self
 
-    def load_model(self, model_path):
+    def load_model(self):
         '''
         Load the trained tensorflow keras model. example here based on the pysilcam network setup
 
@@ -23,6 +27,8 @@ class Classify():
         Returns:
             model (tf model object) : loaded tf.keras model from load_model()
         '''
+        model_path = self.model_path
+        
         # import tensorflow here. It must be imported on the processor where it will be used!
         # import is therefore here instead of at the top of file.
         # consider # noqa: E(?) for flake8 / linting
