@@ -14,10 +14,14 @@ class Classify():
                                 '/testdata/model_name/particle_classifier.h5'
                                 
     example:
+    
+    .. code-block:: python
+    
         cl = Classify(model_path='/testdata/model_name/particle_classifier.h5')
         cl.load_model()
         
         prediction = cl.proc_predict(roi) # roi is an image roi to be classified
+        
     '''
     def __init__(self, model_path=None):
         self.model_path = model_path
