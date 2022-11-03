@@ -26,7 +26,14 @@ class Classify():
         # import tensorflow here. It must be imported on the processor where it will be used!
         # import is therefore here instead of at the top of file.
         # consider # noqa: E(?) for flake8 / linting
-        from tensorflow import keras
+        try:
+            from tensorflow import keras
+        except ImportError:
+            print('WARNING: Could not import Keras, Classify will not work until you install tensorflow (pip install tensorflow-cpu==2.3.1)')
+            self.model = lambda x: None
+            self.class_labels = []
+            return
+
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
         keras.backend.clear_session()
 
