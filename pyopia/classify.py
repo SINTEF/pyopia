@@ -29,7 +29,9 @@ class Classify():
         try:
             from tensorflow import keras
         except ImportError:
-            print('WARNING: Could not import Keras, Classify will not work until you install tensorflow (pip install tensorflow-cpu==2.3.1)')
+            info_str = 'WARNING: Could not import Keras, Classify will not work'
+            info_str += ' until you install tensorflow (pip install tensorflow-cpu==2.3.1'
+            print(info_str)
             self.model = lambda x: None
             self.class_labels = []
             return
