@@ -8,25 +8,25 @@ class Classify():
     '''
     A classifier class for PyOpia workflow.
     This is intended as a parent class that can be used as a template for flexible classification methods
-    
+
     Args:
         model_path (str)        : path to particle-classifier e.g.
                                 '/testdata/model_name/particle_classifier.h5'
-                                
+
     example:
-    
+
     .. code-block:: python
-    
+
         cl = Classify(model_path='/testdata/model_name/particle_classifier.h5')
         cl.load_model()
-        
+
         prediction = cl.proc_predict(roi) # roi is an image roi to be classified
-        
+
     '''
     def __init__(self, model_path=None):
         self.model_path = model_path
         pass
-        
+
     def __call__(self):
         return self
 
@@ -37,7 +37,7 @@ class Classify():
         model (tf model object) : loaded tf.keras model from load_model()
         '''
         model_path = self.model_path
-        
+
         # import tensorflow here. It must be imported on the processor where it will be used!
         # import is therefore here instead of at the top of file.
         # consider # noqa: E(?) for flake8 / linting

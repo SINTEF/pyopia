@@ -12,29 +12,29 @@ def timestamp_from_filename(filename):
 
 
 class SilCamLoad():
-    
+
     def __init__(self, filename):
         self.filename = filename
         pass
-    
+
     def __call__(self):
-    
+
         timestamp = timestamp_from_filename(self.filename)
-        
+
         img = np.load(self.filename, allow_pickle=False)
-    
+
         return timestamp, img
-    
-    
+
+
 class SilCamStatExtract():
-    
+
     def __init__(self,
                  minimum_area=12,
                  threshold=0.98,
                  real_time_stats=False,
                  max_coverage=30,
                  max_particles=5000):
-        
+
         self.minimum_area = minimum_area
         self.threshold = threshold
         self.real_time_stats = real_time_stats
