@@ -1,7 +1,9 @@
-import pandas as pd
-import h5py
-from pyopia import __version__ as pyopia_version
 from datetime import datetime
+
+import h5py
+import pandas as pd
+
+from pyopia import __version__ as pyopia_version
 
 
 def write_stats(
@@ -61,7 +63,8 @@ def show_h5_meta(h5file):
 
 
 class StatsH5():
-
+    '''PyOpia pipline-compatible class for calling write_stats()
+    '''
     def __init__(self, datafilename):
         self.datafilename = datafilename
 

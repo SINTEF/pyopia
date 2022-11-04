@@ -1,7 +1,8 @@
-from PIL import Image
-import numpy as np
 import os
+
+import numpy as np
 import pandas as pd
+from PIL import Image
 
 
 class Classify():
@@ -10,21 +11,27 @@ class Classify():
     This is intended as a parent class that can be used as a template for flexible classification methods
 
     Args:
-        model_path (str)        : path to particle-classifier e.g.
+        model_path=model_path (str)        : path to particle-classifier e.g.
                                 '/testdata/model_name/particle_classifier.h5'
 
-    example:
+    Example:
 
     .. code-block:: python
 
         cl = Classify(model_path='/testdata/model_name/particle_classifier.h5')
-        cl.load_model()
 
         prediction = cl.proc_predict(roi) # roi is an image roi to be classified
+
+    Note that :: cl.load_model()
+    is run by :: Classify.__init__
+    If this is used in combination with multiprocessing then the model must be loaded
+    on the process where it will be used and not passed between processers
+    (i.e. cl must be initialised on that process).
 
     '''
     def __init__(self, model_path=None):
         self.model_path = model_path
+        self.load_model()
 
     def __call__(self):
         return self
