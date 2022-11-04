@@ -62,14 +62,13 @@ def show_h5_meta(h5file):
 
 class StatsH5():
 
-    def __init__(self):
-        pass
+    def __init__(self, datafilename):
+        self.datafilename = datafilename
 
     def __call__(self,
-                 datafilename,
                  stats,
                  steps_string=None,
                  append=True,
                  export_name_len=40):
-        write_stats(datafilename, stats, steps_string=steps_string, append=append, export_name_len=40)
+        write_stats(self.datafilename, stats, steps_string=steps_string, append=append, export_name_len=40)
         pass
