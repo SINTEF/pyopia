@@ -48,9 +48,11 @@ class SilCamStatExtract():
     Args:
         minimum_area (int, optional): minimum number of pixels for particle detection. Defaults to 12.
         threshold (float, optional): threshold for segmentation. Defaults to 0.98.
-        real_time_stats (bool, optional): changed segmentation method (@todo this option for historical reasons and should be changed). Defaults to False.
+        real_time_stats (bool, optional): changed segmentation method
+          (@todo this option for historical reasons and should be changed). Defaults to False.
         max_coverage (int, optional): percentage of the image that is allowed to be filled by particles. Defaults to 30.
-        max_particles (int, optional): maximum allowed number of particles in an image. exceeding this will discard the image from analysis. Defaults to 5000.
+        max_particles (int, optional): maximum allowed number of particles in an image.
+          exceeding this will discard the image from analysis. Defaults to 5000.
     '''
     def __init__(self,
                  minimum_area=12,
