@@ -13,7 +13,7 @@ def timestamp_from_filename(filename):
         filename (string): silcam filename (.silc)
 
     Returns:
-        timestamp: from pandas.to_datetime()
+        timestamp: timestamp from pandas.to_datetime()
     '''
 
     # get the timestamp of the image (in this case from the filename)
@@ -24,12 +24,17 @@ def timestamp_from_filename(filename):
 class SilCamLoad():
     '''PyOpia pipline-compatible class for loading a single silcam image
 
-    Args:
-        filename (string): silcam filename (.silc)
+    Parameters
+    ----------
+    filename : string
+        silcam filename (.silc)
 
-    Returns:
-        timestamp: from timestamp_from_filename()
-        img (np.array): raw silcam image
+    Returns
+    -------
+    timestamp : timestamp
+        timestamp from timestamp_from_filename()
+    img : np.array
+        raw silcam image
     '''
 
     def __init__(self, filename):
