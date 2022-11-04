@@ -44,10 +44,12 @@ class SilCamStatExtract():
 
     def __call__(self, timestamp, imc, Classification):
         stats, imbw, saturation = statextract(timestamp, imc, Classification,
-                            minimum_area=self.minimum_area, threshold=self.threshold,
-                            real_time_stats=self.real_time_stats,
-                            max_coverage=self.max_coverage, max_particles=self.max_particles)
-        
+                                              minimum_area=self.minimum_area,
+                                              threshold=self.threshold,
+                                              real_time_stats=self.real_time_stats,
+                                              max_coverage=self.max_coverage,
+                                              max_particles=self.max_particles)
+
         stats['timestamp'] = timestamp
         stats['saturation'] = saturation
         return stats

@@ -25,7 +25,6 @@ class Classify():
     '''
     def __init__(self, model_path=None):
         self.model_path = model_path
-        pass
 
     def __call__(self):
         return self

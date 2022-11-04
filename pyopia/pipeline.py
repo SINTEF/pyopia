@@ -4,14 +4,13 @@ class Pipeline():
         self.steps = steps
         self.cl = self.steps['classifier']()
         self.cl.load_model()
-        pass
 
     def run(self):
 
         timestamp, imc = self.steps['load']()
 
         stats = self.steps['statextract'](timestamp, imc, self.cl)
-        
+
         self.steps['output'](stats, steps_to_string(self.steps))
         print('output done.')
 
@@ -31,8 +30,8 @@ class Pipeline():
 def steps_to_string(steps):
     steps_str = '\n'
     for i, key in enumerate(steps.keys()):
-        steps_str += (str(i+1) + ') Step: ' + key
-                        + '\n   Type: ' + str(type(steps[key]))
-                        + '\n   Vars: ' + str(vars(steps[key]))
-                        + '\n')
+        steps_str += (str(i + 1) + ') Step: ' + key
+                      + '\n   Type: ' + str(type(steps[key]))
+                      + '\n   Vars: ' + str(vars(steps[key]))
+                      + '\n')
     return steps_str

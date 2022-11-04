@@ -71,4 +71,3 @@ class StatsH5():
                  append=True,
                  export_name_len=40):
         write_stats(self.datafilename, stats, steps_string=steps_string, append=append, export_name_len=40)
-        pass
