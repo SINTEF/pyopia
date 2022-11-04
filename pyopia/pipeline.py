@@ -1,10 +1,10 @@
-
 class Pipeline():
 
     def __init__(self, steps):
         self.steps = steps
         self.cl = self.steps['classifier']()
         self.cl.load_model()
+        self.datafile_hdf = 'proc/test'
         pass
 
     def run(self):
@@ -12,8 +12,14 @@ class Pipeline():
         timestamp, imc = self.steps['load']()
 
         stats, imbw, saturation = self.steps['statextract'](timestamp, imc, self.cl)
+        
+        stats['timestamp'] = timestamp
+        stats['saturation'] = saturation
 
-        #stats = self.steps['process'](cl, data)
+        # stats = self.steps['process'](cl, data)
+        
+        self.steps['output'](self.datafile_hdf, stats, steps_to_string(self.steps))
+        print('output done.')
 
         return stats
 
@@ -27,9 +33,14 @@ class Pipeline():
         # and format into an appropriate standard
         print('\n-- Pipeline configuration --\n')
         print('PyOpia version: ' + pyopia_version + '\n')
-        for key in self.steps.keys():
-            print('Step name: ' + key + ':\n'
-                  + str(type(self.steps[key]))
-                  + '\n' + str(vars(self.steps[key]))
-                  + '\n')
-        print('---------------------------------\n')
+        print(steps_to_string(self.steps))
+        print('\n---------------------------------\n')
+
+
+def steps_to_string(steps):
+    steps_str = ''
+    for key in steps.keys():
+        steps_str += ('Step name: ' + key + ':\n'
+                        + str(type(steps[key]))
+                        + '\n' + str(vars(steps[key])))
+    return steps_str

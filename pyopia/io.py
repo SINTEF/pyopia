@@ -7,6 +7,7 @@ from datetime import datetime
 def write_stats(
         datafilename,
         stats,
+        steps_string=None,
         append=True,
         export_name_len=40):
     '''
@@ -40,6 +41,7 @@ def write_stats(
         meta = fh.require_group('Meta')
         meta.attrs['Modified'] = str(datetime.now())
         meta.attrs['PyOpia version'] = pyopia_version
+        meta.attrs['Pipeline steps'] = steps_string
 
 
 def show_h5_meta(h5file):
@@ -56,3 +58,18 @@ def show_h5_meta(h5file):
         for k in keys:
             print(k + ':')
             print('    ' + f['Meta'].attrs[k])
+
+
+class StatsH5():
+
+    def __init__(self):
+        pass
+
+    def __call__(self,
+                 datafilename,
+                 stats,
+                 steps_string=None,
+                 append=True,
+                 export_name_len=40):
+        write_stats(datafilename, stats, steps_string=steps_string, append=append, export_name_len=40)
+        pass
