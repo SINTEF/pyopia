@@ -1,28 +1,49 @@
-from PIL import Image
-import numpy as np
 import os
+
+import numpy as np
 import pandas as pd
+from PIL import Image
 
 
 class Classify():
     '''
     A classifier class for PyOpia workflow.
     This is intended as a parent class that can be used as a template for flexible classification methods
+
+    Args:
+        model_path=model_path (str)        : path to particle-classifier e.g.
+                                '/testdata/model_name/particle_classifier.h5'
+
+    Example:
+
+    .. code-block:: python
+
+        cl = Classify(model_path='/testdata/model_name/particle_classifier.h5')
+
+        prediction = cl.proc_predict(roi) # roi is an image roi to be classified
+
+    Note that :: cl.load_model()
+    is run by :: Classify.__init__
+    If this is used in combination with multiprocessing then the model must be loaded
+    on the process where it will be used and not passed between processers
+    (i.e. cl must be initialised on that process).
+
     '''
-    def __init__(self):
-        pass
+    def __init__(self, model_path=None):
+        self.model_path = model_path
+        self.load_model()
 
-    def load_model(self, model_path):
+    def __call__(self):
+        return self
+
+    def load_model(self):
         '''
-        Load the trained tensorflow keras model. example here based on the pysilcam network setup
+        Load the trained tensorflow keras model into the Classify class. example here based on the pysilcam network setup
 
-        Args:
-            model_path (str)        : path to particle-classifier e.g.
-                                    '/testdata/model_name/particle_classifier.h5'
-
-        Returns:
-            model (tf model object) : loaded tf.keras model from load_model()
+        model (tf model object) : loaded tf.keras model from load_model()
         '''
+        model_path = self.model_path
+
         # import tensorflow here. It must be imported on the processor where it will be used!
         # import is therefore here instead of at the top of file.
         # consider # noqa: E(?) for flake8 / linting
