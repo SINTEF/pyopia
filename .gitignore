@@ -244,6 +244,7 @@ tags
 *.bmp
 *.png
 *.h5
+*.pgm
 
 # End of https://www.gitignore.io/api/vim,python,pycharm,visualstudiocode
 *.zip
