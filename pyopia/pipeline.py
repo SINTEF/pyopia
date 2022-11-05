@@ -6,6 +6,7 @@ class Pipeline():
 
     def __init__(self, steps):
         self.steps = steps
+        self.common = self.steps['common']()
         self.cl = self.steps['classifier']()
         self.cl.load_model()
 
@@ -16,8 +17,8 @@ class Pipeline():
             stats (DataFrame): stats DataFrame of particle statistics
         '''
 
-        timestamp, imc = self.steps['load']()
-
+        timestamp, imraw = self.steps['load']()
+        imc = self.steps['imageprep'](imraw, self.common)
         stats = self.steps['statextract'](timestamp, imc, self.cl)
 
         self.steps['output'](stats, steps_to_string(self.steps))
@@ -54,3 +55,11 @@ def steps_to_string(steps):
                       + '\n   Vars: ' + str(vars(steps[key]))
                       + '\n')
     return steps_str
+
+
+class Common():
+    def __init__(self):
+        pass
+
+    def __call__(self):
+        return dict()
