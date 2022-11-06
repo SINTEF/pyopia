@@ -22,12 +22,8 @@ sphinx:
 python:
    version: 3.8
    install:
-    - method: setuptools
-      path: .
-      extra_requirements:
-        - docs
     - method: pip
-      path: pyopia
+      path: .
 
 # By default readthedocs does not checkout git submodules
 submodules:                                                                                                                          
