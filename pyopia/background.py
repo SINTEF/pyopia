@@ -178,14 +178,17 @@ def backgrounder(av_window, acquire, bad_lighting_limit=None,
         imc (uint8)                   : corrected image ready for analysis or plotting
         imraw (uint8)                 : raw image
 
-    Useage:
-      avwind = 10 # number of images used for background
-      imgen = backgrounder(avwind,acquire,bad_lighting_limit) # setup generator
+    Example:
 
-      n = 10 # acquire 10 images and correct them with a sliding background:
-      for i in range(n):
-          imc = next(imgen)
-          print(i)
+    .. code-block:: python
+
+        avwind = 10 # number of images used for background
+        imgen = backgrounder(avwind,acquire,bad_lighting_limit) # setup generator
+
+        n = 10 # acquire 10 images and correct them with a sliding background:
+        for i in range(n):
+            imc = next(imgen)
+            print(i)
     '''
 
     # Set up initial background image stack
