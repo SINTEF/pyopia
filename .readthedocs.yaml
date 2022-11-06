@@ -24,6 +24,10 @@ python:
    install:
     - method: setuptools
       path: .
+      extra_requirements:
+        - docs
+    - method: pip
+      path: pyopia
 
 # By default readthedocs does not checkout git submodules
 submodules:                                                                                                                          
