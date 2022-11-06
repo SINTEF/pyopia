@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 from setuptools.command.install import install
 from setuptools.command.develop import develop
@@ -94,7 +94,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.8',
     ],
-    packages=['pyopia', 'pyopia.instrument'],
+    packages=find_packages('pyopia'),
     cmdclass={'test': PyTest,
               'test_noskip': PyTestNoSkip,
               'develop': PostDevelopCommand,
