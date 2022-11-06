@@ -22,7 +22,7 @@ sphinx:
 python:
    version: 3.8
    install:
-    - method: setuptools
+    - method: pip
       path: .
 
 # By default readthedocs does not checkout git submodules

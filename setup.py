@@ -94,7 +94,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.8',
     ],
-    packages=['pyopia'],
+    packages=['pyopia', 'pyopia.instrument'],
     cmdclass={'test': PyTest,
               'test_noskip': PyTestNoSkip,
               'develop': PostDevelopCommand,
