@@ -7,6 +7,10 @@ Current status:
 ------------
 Moving code from PySilCam
 
+Building a structure for a standard processing pipline
+
+Building a system for metadata and output files
+
 Documentation:
 ------------
 [https://pyopia.readthedocs.io](https://pyopia.readthedocs.io)
