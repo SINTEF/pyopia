@@ -23,9 +23,6 @@ from pyopia import __version__
 sys.path.insert(0, os.path.abspath('../pyopia'))
 sys.path.insert(0, os.path.abspath('../pyopia/instrument/'))
 
-import pyopia.instrument.holo
-import pyopia.instrument.silcam
-
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.

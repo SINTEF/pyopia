@@ -211,7 +211,7 @@ def inverse_transform(im_fft, kern):
     -------
     np.arry
         im_stack
-    '''    
+    '''
     im_stack = np.zeros(np.shape(kern)).astype(np.float64)
 
     for i in range(np.shape(kern)[2]):
@@ -226,7 +226,7 @@ def clean_stack(im_stack, stack_clean):
     Parameters
     ----------
     im_stack : np.array
-        
+
     stack_clean : flaot
         pixels below this value will be zeroed
 
@@ -234,7 +234,7 @@ def clean_stack(im_stack, stack_clean):
     -------
     np.array
         cleaned version of im_stack
-    '''    
+    '''
     im_max = np.amax(im_stack, axis=None)
     im_stack[im_stack < im_max * stack_clean] = 0
     return im_stack
@@ -252,7 +252,7 @@ def std_map(im_stack):
     -------
     _type_
         _description_
-    '''    
+    '''
     std_map = np.std(im_stack, axis=2)
     return std_map
 
@@ -269,7 +269,7 @@ def max_map(im_stack):
     -------
     _type_
         _description_
-    '''    
+    '''
     max_map = np.max(im_stack, axis=2)
     return max_map
 
@@ -286,7 +286,7 @@ def rescale_stack(im_stack):
     -------
     _type_
         _description_
-    '''    
+    '''
     im_max = np.max(im_stack)
     im_min = np.min(im_stack)
     im_stack_inverted = 255 * (im_stack - im_min) / (im_max - im_min)
