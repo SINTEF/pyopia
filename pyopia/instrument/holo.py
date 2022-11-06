@@ -191,8 +191,8 @@ def create_kernel(im, pixel_size, wavelength, minZ, maxZ, stepZ):
 
     z = np.arange(minZ * 1e-3, maxZ * 1e-3, stepZ * 1e-3)
 
-    l = wavelength * 1e-9
-    k = 2 * np.pi / l
+    wavelength_m = wavelength * 1e-9
+    k = 2 * np.pi / wavelength_m
 
     kern = -1j * np.zeros((im.shape[0], im.shape[1], len(z)))
     for i, z_ in enumerate(z):
