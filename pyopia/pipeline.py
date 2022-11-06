@@ -1,5 +1,5 @@
 '''
-Module for managing processing pipelines in PyOpia
+Module for managing the PyOpia processing pipeline
 
 Refer to :class:`Pipeline` for examples of how to process datasets and images
 '''
