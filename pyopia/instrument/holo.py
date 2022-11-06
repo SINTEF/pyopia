@@ -90,7 +90,7 @@ class Reconstruct():
 
     Parameters
     ----------
-    im : np.arry
+    im : np.array
         hologram image
 
     Returns
@@ -124,7 +124,19 @@ class Reconstruct():
 
 
 def forward_transform(im):
+    '''Perform forward transform
+    Remove the zero frequency components and then fftshift
 
+    Parameters
+    ----------
+    im : np.array
+        hologram (usually background-corrected)
+
+    Returns
+    -------
+    im_fft : np.array
+        im_fft
+    '''
     # Perform forward transform
     im_fft = fftpack.fft2(im)
 
@@ -139,7 +151,28 @@ def forward_transform(im):
 
 
 def create_kernel(im, pixel_size, wavelength, minZ, maxZ, stepZ):
+    '''create reconstruction kernel
 
+    Parameters
+    ----------
+    im : np.arry
+        hologram
+    pixel_size : float
+        pixel_size in microns per pixel (i.e. usually 4.4 for lisst-holo type of resolution)
+    wavelength : float
+        laser wavelength in nm
+    minZ : float
+        minimum reconstruction distance in mm
+    maxZ : float
+        maximum reconstruction distance in mm
+    stepZ : float
+        step size in mm (i.e. resolution of reconstruction between minZ and maxZ)
+
+    Returns
+    -------
+    np.array
+        holographic reconstruction kernel (3D array of complex numbers)
+    '''
     cx = im.shape[1] / 2
     cy = im.shape[0] / 2
 
@@ -165,6 +198,20 @@ def create_kernel(im, pixel_size, wavelength, minZ, maxZ, stepZ):
 
 
 def inverse_transform(im_fft, kern):
+    '''create the reconstructed hologram stack of real images
+
+    Parameters
+    ----------
+    im_fft : np.array
+        calculated from forward_transform
+    kern : np.array
+        calculated from create_kernel
+
+    Returns
+    -------
+    np.arry
+        im_stack
+    '''    
     im_stack = np.zeros(np.shape(kern)).astype(np.float64)
 
     for i in range(np.shape(kern)[2]):
@@ -174,22 +221,72 @@ def inverse_transform(im_fft, kern):
 
 
 def clean_stack(im_stack, stack_clean):
+    '''clean the im_stack by removing low value pixels
+
+    Parameters
+    ----------
+    im_stack : np.array
+        
+    stack_clean : flaot
+        pixels below this value will be zeroed
+
+    Returns
+    -------
+    np.array
+        cleaned version of im_stack
+    '''    
     im_max = np.amax(im_stack, axis=None)
     im_stack[im_stack < im_max * stack_clean] = 0
     return im_stack
 
 
 def std_map(im_stack):
+    '''_summary_
+
+    Parameters
+    ----------
+    im_stack : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    '''    
     std_map = np.std(im_stack, axis=2)
     return std_map
 
 
 def max_map(im_stack):
+    '''_summary_
+
+    Parameters
+    ----------
+    im_stack : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    '''    
     max_map = np.max(im_stack, axis=2)
     return max_map
 
 
 def rescale_stack(im_stack):
+    '''rescale the reconstructed stack so that particles look dark on a light background
+
+    Parameters
+    ----------
+    im_stack : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    '''    
     im_max = np.max(im_stack)
     im_min = np.min(im_stack)
     im_stack_inverted = 255 * (im_stack - im_min) / (im_max - im_min)
