@@ -14,15 +14,29 @@ The code repository for PyOpia can be found `here <https://github.com/SINTEF/PyO
 
 Pipelines
 ==================================
-As well as function-based tools for processing and statistical analysis,
-we are developing a pipeline-based workflow as a standard for analysis.
-This pipline should be consistent across different instrument, and therefore
-has flexibility to adapt steps to meet instrument-specific processing needs
+PyOpia aims to provide a pipeline-based workflow as a standard for analysis of particle images in the ocean.
+This pipeline should be consistent across different instruments (hardware), and therefore
+has flexibility to adapt analysis steps to meet instrument-specific processing needs
 (i.e. holographic reconstruction), while maintaining a traceable workflow that
-can is attached as metadata to a standard output file (HDF5).
+can is attached as metadata to a standard output file (HDF5) that helps users follow FAIR data principles.
 
-See :class:`pyopia.pipeline.Pipeline` for more details
+See :class:`pyopia.pipeline.Pipeline` for more details and examples of how to process images with PyOpia.
 
+A function-based toolbox
+==================================
+
+PyOpia tools are organised into the following modules:
+
+#. background correction (:mod:`pyopia.background`).
+#. processing (:mod:`pyopia.process`).
+#. statistical analysis (:mod:`pyopia.statistics`).
+#. classification (:mod:`pyopia.classify`).
+#. metadata & datafile formatting (:mod:`pyopia.io`).
+
+You can combine these tools for exploring different analysis approaches (i.e. in notebooks).
+We hope this can help more exploratory development and contributions to the PyOpia code.
+
+If you are analysing data for publication, we recommend using the :class:`pyopia.pipeline.Pipeline` standard so that your analysis steps are documented and the output format is more easily shareable.
 
 Contents
 ==================================

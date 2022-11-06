@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+'''
+Module containing tools for processing particle image data
+'''
+
 import time
 import numpy as np
 from skimage import morphology
@@ -12,10 +16,6 @@ import os
 from skimage.io import imsave
 import traceback
 from datetime import datetime
-
-'''
-Module for processing particle image data
-'''
 
 
 def image2blackwhite_accurate(imc, greythresh):

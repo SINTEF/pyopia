@@ -1,3 +1,7 @@
+'''
+Module containing tools for datafile and metadata handling
+'''
+
 from datetime import datetime
 
 import h5py

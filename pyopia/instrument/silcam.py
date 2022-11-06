@@ -1,3 +1,7 @@
+'''
+Module containing SilCam specific tools to enable compatability with the :mod:`pyopia.pipeline`
+'''
+
 import os
 
 import numpy as np

@@ -1,3 +1,7 @@
+'''
+Module containing tools for classifying particle ROIs
+'''
+
 import os
 
 import numpy as np
@@ -22,8 +26,8 @@ class Classify():
 
         prediction = cl.proc_predict(roi) # roi is an image roi to be classified
 
-    Note that :: cl.load_model()
-    is run by :: Classify.__init__
+    Note that :meth:`Classify.load_model()`
+    is run when the :class:`Classify` class is initialised.
     If this is used in combination with multiprocessing then the model must be loaded
     on the process where it will be used and not passed between processers
     (i.e. cl must be initialised on that process).

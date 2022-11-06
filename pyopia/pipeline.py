@@ -1,7 +1,13 @@
+'''
+Module for managing processing pipelines in PyOpia
+
+Refer to :class:`Pipeline` for examples of how to process datasets and images
+'''
+
+
 class Pipeline():
     '''The processing pipeline class
-
-    @todo add further explanation
+    ================================
 
     Examples:
     ^^^^^^^^^
@@ -118,6 +124,15 @@ def steps_to_string(steps):
 
 
 class Common():
+    '''Class for routines that are common for all images,
+    and only run onece at the start processing (e.g. creation of a static baground image)
+
+    This is the default Common class that just returns an empty dict
+
+    If returning a background image, this could be contained in the output dictionary as 'imbg'
+
+    An example cutomised Common class is :class:`pyopia.instrument.holo.Common`
+    '''
     def __init__(self):
         pass
 

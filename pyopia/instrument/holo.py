@@ -1,3 +1,7 @@
+'''
+Module containing hologram specific tools to enable compatability with the :mod:`pyopia.pipeline`
+'''
+
 import numpy as np
 import pandas as pd
 from scipy import fftpack

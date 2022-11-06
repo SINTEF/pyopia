@@ -1,10 +1,8 @@
-import numpy as np
-
-
 '''
 Background correction module (inherited from PySilCam)
-
 '''
+
+import numpy as np
 
 
 def ini_background(av_window, acquire):
