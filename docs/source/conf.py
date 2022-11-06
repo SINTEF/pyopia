@@ -21,7 +21,7 @@ import os
 import sys
 from pyopia import __version__
 sys.path.insert(0, os.path.abspath('../pyopia'))
-sys.path.insert(0, os.path.abspath('../pyopia/instrument/'))
+sys.path.insert(0, os.path.abspath('../../pyopia/instrument/'))
 
 # -- General configuration ------------------------------------------------
 
