@@ -1,7 +1,67 @@
 class Pipeline():
-    '''Processing pipeline class
+    '''The processing pipeline class
 
-    further explanation @todo
+    @todo add further explanation
+
+    Examples:
+    ^^^^^^^^^
+
+    A holographic processing pipeline:
+    """"""""""""""""""""""""""""""""""
+
+    .. code-block:: python
+
+        datafile_hdf = 'proc/holotest'
+        model_path = exampledata.get_example_model()
+        threshold = 0.9
+
+        holo_common_settings = {'pixel_size': 4.4, # pixel size in um
+                                'wavelength': 658, # laser wavelength in nm
+                                'minZ': 22, # minimum reconstruction distance in mm
+                                'maxZ': 60, # maximum reconstruction distance in mm
+                                'stepZ': 2} #step size in mm
+
+        steps = {'common': holo.Common('imbg.pgm', **holo_common_settings),
+                'classifier': Classify(model_path=model_path),
+                'load': holo.Load(filename),
+                'imageprep': holo.Reconstruct(stack_clean=0),
+                'statextract': CalculateStats(threshold=threshold),
+                'output': pyopia.io.StatsH5(datafile_hdf)}
+
+        processing_pipeline = Pipeline(steps)
+
+    A silcam processing pipeline:
+    """""""""""""""""""""""""""""
+
+    .. code-block:: python
+
+        datafile_hdf = 'proc/test'
+        model_path = exampledata.get_example_model()
+        threshold = 0.85
+
+        steps = {'common': Common(),
+                'load': SilCamLoad(filename),
+                'classifier': Classify(model_path=model_path),
+                'imageprep': ImagePrep(),
+                'statextract': CalculateStats(threshold=threshold),
+                'output': pyopia.io.StatsH5(datafile_hdf)}
+
+        processing_pipeline = Pipeline(steps)
+
+    Running a pipeline:
+    """""""""""""""""""
+
+    .. code-block:: python
+
+        stats = processing_pipeline.run()
+
+
+    You can check the workflow used by reading the steps from the metadata in output file, like this:
+
+    .. code-block:: python
+
+        pyopia.io.show_h5_meta(datafile_hdf + '-STATS.h5')
+
     '''
 
     def __init__(self, steps):

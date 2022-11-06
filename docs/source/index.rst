@@ -12,6 +12,17 @@ PyOpia started in Feb. 2022 as a 'spin-off' from elements of `PySilCam <https://
 
 The code repository for PyOpia can be found `here <https://github.com/SINTEF/PyOpia/>`_.
 
+Pipelines
+==================================
+As well as function-based tools for processing and statistical analysis,
+we are developing a pipeline-based workflow as a standard for analysis.
+This pipline should be consistent across different instrument, and therefore
+has flexibility to adapt steps to meet instrument-specific processing needs
+(i.e. holographic reconstruction), while maintaining a traceable workflow that
+can is attached as metadata to a standard output file (HDF5).
+
+See :class:`pyopia.pipeline.Pipeline` for more details
+
 
 Contents
 ==================================
