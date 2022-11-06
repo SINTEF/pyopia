@@ -36,7 +36,7 @@ def image2blackwhite_accurate(imc, greythresh):
     # obtain a semi-autimated treshold which can handle
     # some flicker in the illumination by tracking the 50th percentile of the
     # image histogram
-    thresh = np.uint8(greythresh * np.percentile(img, 50))
+    thresh = greythresh * np.percentile(img, 50)
 
     # create a segmented image using the crude threshold
     imbw1 = img < thresh
@@ -44,7 +44,7 @@ def image2blackwhite_accurate(imc, greythresh):
     # perform an adaptive historgram equalization to handle some
     # less-than-ideal lighting situations
     img_adapteq = skimage.exposure.equalize_adapthist(img,
-                                                      clip_limit=(1 - greythresh),
+                                                      clip_limit=(greythresh),
                                                       nbins=256)
 
     # use the equalised image to estimate a second semi-automated threshold
@@ -75,7 +75,7 @@ def image2blackwhite_fast(imc, greythresh):
     # obtain a semi-autimated treshold which can handle
     # some flicker in the illumination by tracking the 50th percentile of the
     # image histogram
-    thresh = np.uint8(greythresh * np.percentile(imc, 50))
+    thresh = greythresh * np.percentile(imc, 50)
     imbw = imc < thresh  # segment the image
 
     return imbw
@@ -340,10 +340,11 @@ def statextract(timestamp, img, Classification,
     '''
     print('segment')
 
-    if real_time_stats:
-        imbw = image2blackwhite_fast(img, threshold)  # image2blackwhite_fast is less fancy but
-    else:
-        imbw = image2blackwhite_accurate(img, threshold)  # image2blackwhite_fast is less fancy but
+    # @ todo move segmentation to a place where is can be compatible with a seperate pipline step
+    # if real_time_stats:
+    imbw = image2blackwhite_fast(img, threshold)  # image2blackwhite_fast is less fancy but
+    # else:
+    #    imbw = image2blackwhite_accurate(img, threshold)  # image2blackwhite_fast is less fancy but
     # image2blackwhite_fast is faster than image2blackwhite_accurate but might cause problems when trying to
     # process images with bad lighting
 

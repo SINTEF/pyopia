@@ -10,9 +10,10 @@ This is an subpackage containing basic processing for reconstruction of in-line 
 See (and references therein):
 Davies EJ, Buscombe D, Graham GW & Nimmo-Smith WAM (2015)
 'Evaluating Unsupervised Methods to Size and Classify Suspended Particles
-Using Digital In-Line Holography' 
+Using Digital In-Line Holography'
 Journal of Atmospheric and Oceanic Technology 32, (6) 1241-1256,
-https://doi.org/10.1175/JTECH-D-14-00157.1 https://journals.ametsoc.org/view/journals/atot/32/6/jtech-d-14-00157_1.xml
+https://doi.org/10.1175/JTECH-D-14-00157.1
+https://journals.ametsoc.org/view/journals/atot/32/6/jtech-d-14-00157_1.xml
 
 2022-11-01 Alex Nimmo-Smith alex.nimmo.smith@plymouth.ac.uk
 '''
@@ -115,6 +116,8 @@ class Reconstruct():
         im_stack = clean_stack(im_stack, self.stack_clean)
         print('summarise stack')
         stack_max = max_map(im_stack)
+        stack_max = np.max(stack_max) - stack_max
+        stack_max -= np.min(stack_max)
         stack_max /= np.max(stack_max)
         # im_stack_inv = holo.rescale_stack(im_stack)
         return stack_max

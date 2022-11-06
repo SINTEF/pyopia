@@ -55,9 +55,11 @@ class ImagePrep():
         # background correction
         print('WARNING: Background correction not implemented!')
 
-        imc = imraw
+        imc = np.float64(imraw)
 
         # simplify processing by squeezing the image dimensions into a 2D array
         # min is used for squeezing to represent the highest attenuation of all wavelengths
-        imc = np.uint8(np.min(imc, axis=2))
+        imc = np.min(imc, axis=2)
+        imc -= np.min(imc)
+        imc /= np.max(imc)
         return imc
