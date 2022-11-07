@@ -74,7 +74,6 @@ class Pipeline():
         self.steps = steps
         self.common = self.steps['common']()
         self.cl = self.steps['classifier']()
-        self.cl.load_model()
 
     def run(self):
         '''Method for executing the processing pipeline
