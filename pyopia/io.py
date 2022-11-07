@@ -6,6 +6,7 @@ from datetime import datetime
 
 import h5py
 import pandas as pd
+
 from pyopia import __version__ as pyopia_version
 
 
@@ -63,3 +64,17 @@ def show_h5_meta(h5file):
         for k in keys:
             print(k + ':')
             print('    ' + f['Meta'].attrs[k])
+
+
+class StatsH5():
+    '''PyOpia pipline-compatible class for calling write_stats()
+    '''
+    def __init__(self, datafilename):
+        self.datafilename = datafilename
+
+    def __call__(self,
+                 stats,
+                 steps_string=None,
+                 append=True,
+                 export_name_len=40):
+        write_stats(self.datafilename, stats, steps_string=steps_string, append=append, export_name_len=40)
