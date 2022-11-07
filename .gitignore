@@ -153,6 +153,9 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+docs/source/
+!docs/source/conf.py
+!docs/source/index.rst
 
 # PyBuilder
 target/
@@ -241,6 +244,7 @@ tags
 *.bmp
 *.png
 *.h5
+*.pgm
 
 # End of https://www.gitignore.io/api/vim,python,pycharm,visualstudiocode
 *.zip
