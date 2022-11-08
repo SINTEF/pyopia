@@ -21,7 +21,7 @@ import os
 import sys
 from pyopia import __version__
 sys.path.insert(0, os.path.abspath('../pyopia'))
-sys.path.insert(0, os.path.abspath('../pyopia/instrument'))
+sys.path.insert(0, os.path.abspath('../pyopia/instrument/'))
 
 # -- General configuration ------------------------------------------------
 
@@ -76,7 +76,7 @@ exclude_patterns = []
 pygments_style = 'sphinx'
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
-todo_include_todos = False
+todo_include_todos = True
 
 
 # -- Options for HTML output ----------------------------------------------
@@ -101,7 +101,7 @@ html_theme_options = {
     # Toc options
     'collapse_navigation': False,
     'sticky_navigation': True,
-    'navigation_depth': 4,
+    'navigation_depth': 10,
     'includehidden': True,
     'titles_only': False
 }

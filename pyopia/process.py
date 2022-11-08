@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+'''
+Module containing tools for processing particle image data
+'''
+
 import time
 import numpy as np
 from skimage import morphology
@@ -12,10 +16,6 @@ import os
 from skimage.io import imsave
 import traceback
 from datetime import datetime
-
-'''
-Module for processing particle image data
-'''
 
 
 def image2blackwhite_accurate(imc, greythresh):
@@ -36,7 +36,7 @@ def image2blackwhite_accurate(imc, greythresh):
     # obtain a semi-autimated treshold which can handle
     # some flicker in the illumination by tracking the 50th percentile of the
     # image histogram
-    thresh = np.uint8(greythresh * np.percentile(img, 50))
+    thresh = greythresh * np.percentile(img, 50)
 
     # create a segmented image using the crude threshold
     imbw1 = img < thresh
@@ -44,7 +44,7 @@ def image2blackwhite_accurate(imc, greythresh):
     # perform an adaptive historgram equalization to handle some
     # less-than-ideal lighting situations
     img_adapteq = skimage.exposure.equalize_adapthist(img,
-                                                      clip_limit=(1 - greythresh),
+                                                      clip_limit=(greythresh),
                                                       nbins=256)
 
     # use the equalised image to estimate a second semi-automated threshold
@@ -75,7 +75,7 @@ def image2blackwhite_fast(imc, greythresh):
     # obtain a semi-autimated treshold which can handle
     # some flicker in the illumination by tracking the 50th percentile of the
     # image histogram
-    thresh = np.uint8(greythresh * np.percentile(imc, 50))
+    thresh = greythresh * np.percentile(imc, 50)
     imbw = imc < thresh  # segment the image
 
     return imbw
@@ -321,7 +321,7 @@ def measure_particles(imbw, max_particles=5000):
     return region_properties
 
 
-def statextract(timestamp, imc, Classification,
+def statextract(timestamp, img, Classification,
                 minimum_area=12, threshold=0.98, real_time_stats=False, max_coverage=30, max_particles=5000,
                 extractparticles_function=extract_particles):
     '''extracts statistics of particles in imc (raw corrected image)
@@ -340,14 +340,11 @@ def statextract(timestamp, imc, Classification,
     '''
     print('segment')
 
-    # simplify processing by squeezing the image dimensions into a 2D array
-    # min is used for squeezing to represent the highest attenuation of all wavelengths
-    img = np.uint8(np.min(imc, axis=2))
-
-    if real_time_stats:
-        imbw = image2blackwhite_fast(img, threshold)  # image2blackwhite_fast is less fancy but
-    else:
-        imbw = image2blackwhite_accurate(img, threshold)  # image2blackwhite_fast is less fancy but
+    # @ todo move segmentation to a place where is can be compatible with a seperate pipline step
+    # if real_time_stats:
+    imbw = image2blackwhite_fast(img, threshold)  # image2blackwhite_fast is less fancy but
+    # else:
+    #    imbw = image2blackwhite_accurate(img, threshold)  # image2blackwhite_fast is less fancy but
     # image2blackwhite_fast is faster than image2blackwhite_accurate but might cause problems when trying to
     # process images with bad lighting
 
@@ -373,6 +370,12 @@ def statextract(timestamp, imc, Classification,
     region_properties = measure_particles(imbw, max_particles=max_particles)
 
     # build the stats and export to HDF5
+    # stats = extractparticles_function(imc, timestamp, Classification, region_properties)
+    print('WARNING. exportparticles temporarily modified for 2-d images without color!')
+    imc = np.zeros((np.shape(img)[0], np.shape(img)[1], 3), dtype=np.uint8)
+    imc[:, :, 0] = img
+    imc[:, :, 1] = img
+    imc[:, :, 2] = img
     stats = extractparticles_function(imc, timestamp, Classification, region_properties)
 
     return stats, imbw, saturation
@@ -445,3 +448,40 @@ def process_image(Classification, data,
         return None
 
     return stats
+
+
+class CalculateStats():
+    '''PyOpia pipline-compatible class for calling statextract
+
+    Args:
+        minimum_area (int, optional): minimum number of pixels for particle detection. Defaults to 12.
+        threshold (float, optional): threshold for segmentation. Defaults to 0.98.
+        real_time_stats (bool, optional): changed segmentation method
+          (@todo this option for historical reasons and should be changed). Defaults to False.
+        max_coverage (int, optional): percentage of the image that is allowed to be filled by particles. Defaults to 30.
+        max_particles (int, optional): maximum allowed number of particles in an image.
+          exceeding this will discard the image from analysis. Defaults to 5000.
+    '''
+    def __init__(self,
+                 minimum_area=12,
+                 threshold=0.98,
+                 real_time_stats=False,
+                 max_coverage=30,
+                 max_particles=5000):
+
+        self.minimum_area = minimum_area
+        self.threshold = threshold
+        self.real_time_stats = real_time_stats
+        self.max_coverage = max_coverage
+        self.max_particles = max_particles
+
+    def __call__(self, timestamp, imc, Classification):
+        stats, imbw, saturation = statextract(timestamp, imc, Classification,
+                                              minimum_area=self.minimum_area,
+                                              threshold=self.threshold,
+                                              real_time_stats=self.real_time_stats,
+                                              max_coverage=self.max_coverage,
+                                              max_particles=self.max_particles)
+        stats['timestamp'] = timestamp
+        stats['saturation'] = saturation
+        return stats

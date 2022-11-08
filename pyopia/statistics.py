@@ -1,3 +1,7 @@
+'''
+Module containing tools for handling particle image statistics after processing
+'''
+
 import os
 import pandas as pd
 import numpy as np
