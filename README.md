@@ -5,6 +5,8 @@ A Python Ocean Particle Image Analysis toolbox
 
 Current status:
 ------------
+Under initial development. NOT 'RESEARCH READY'
+
 Moving code from PySilCam
 
 Building a structure for a standard processing pipline
