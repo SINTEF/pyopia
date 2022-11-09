@@ -75,14 +75,16 @@ class Pipeline():
         self.common = self.steps['common']()
         self.cl = self.steps['classifier']()
 
-    def run(self):
+    def run(self, filename):
         '''Method for executing the processing pipeline
 
         Returns:
             stats (DataFrame): stats DataFrame of particle statistics
         '''
 
-        timestamp, imraw = self.steps['load']()
+        self.common['filename'] = filename
+
+        timestamp, imraw = self.steps['load'](filename)
         imc = self.steps['imageprep'](imraw, self.common)
         stats = self.steps['statextract'](timestamp, imc, self.cl)
 
