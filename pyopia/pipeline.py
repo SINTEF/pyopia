@@ -70,15 +70,23 @@ class Pipeline():
 
     '''
 
-    def __init__(self, steps):
+    def __init__(self, steps, initial_steps=['initial', 'classifier']):
+
+        self.initial_steps = initial_steps
         print('Initialising pipeline')
         self.common = dict()
         self.common['steps'] = steps
 
-        print('  Running', self.common['steps']['common'])
-        self.common = self.common['steps']['common'](self.common)
-        print('  Running', self.common['steps']['classifier'])
-        self.common['cl'] = self.common['steps']['classifier']()
+        for s in self.common['steps']:
+            if not self.initial_steps.__contains__(s):
+                continue
+            if s == 'classifier':
+                print('  Running', self.common['steps']['classifier'])
+                self.common['cl'] = self.common['steps']['classifier']()
+            else:
+                print('  Running', self.common['steps'][s])
+                self.common = self.common['steps'][s](self.common)
+
         print('Pipeline ready with these data: ', list(self.common.keys()))
 
     def run(self):
@@ -90,10 +98,9 @@ class Pipeline():
 
         self.common['steps_string'] = steps_to_string(self.common['steps'])
 
-        blacklist_steps = ['common', 'classifier']
         # [self.steps[s]() for s in self.steps if not start.__contains__(s)]
         for s in self.common['steps']:
-            if blacklist_steps.__contains__(s):
+            if self.initial_steps.__contains__(s):
                 continue
 
             print('calling: ', str(type(self.common['steps'][s])), ' with: ', list(self.common.keys()))

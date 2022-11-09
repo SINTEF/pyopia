@@ -321,6 +321,86 @@ def measure_particles(imbw, max_particles=5000):
     return region_properties
 
 
+def segment(img, threshold=0.98, minimum_area=12, fill_holes=True):
+    '''Create a binary image from a background-corrected image.
+
+    Parameters
+    ----------
+    img : np.array
+        background-corrected image
+    threshold : float, optional
+        segmentation threshold, by default 0.98
+    minimum_area : int, optional
+        minimum number of pixels to be considered a particle, by default 12
+    fill_holes : bool, optional
+        runs ndi.binary_fill_holes if True, by default True
+
+    Returns
+    -------
+    imbw : np.array
+        segmented image
+    '''
+    print('segment')
+
+    imbw = image2blackwhite_fast(img, threshold)
+    # image2blackwhite_fast is less fancy but faster than image2blackwhite_accurate
+    # but might cause problems when trying to process images with bad lighting
+
+    print('clean')
+
+    # clean segmented image (small particles and border particles)
+    imbw = clean_bw(imbw, minimum_area)
+
+    if fill_holes:
+        # fill holes in particles
+        imbw = ndi.binary_fill_holes(imbw)
+
+    imbw = imbw > 0
+    return imbw
+
+
+def statextract_light(imbw, timestamp, img, Classification,
+                      max_coverage=30,
+                      max_particles=5000,
+                      extractparticles_function=extract_particles):
+    '''extracts statistics of particles in a binary images (imbw)
+
+    Args:
+        imbw                        : segmented binary image
+        img                         : background-corrected image
+        timestamp                   : timestamp of image collection
+        Classification              : initialised classification class from pyiopia.classify
+        measure_function            : function for measuring particles that must conform to measure_particles
+                                        defaults to measure_particles
+
+    Returns:
+        stats                       : (list of particle statistics for every particle, according to Partstats class)
+        saturation                  : percentage saturation of image
+    '''
+
+    # check the converage of the image of particles is acceptable
+    sat_check, saturation = concentration_check(imbw, max_coverage=max_coverage)
+    if (sat_check is False):
+        print('....breached concentration limit! Skipping image.')
+        imbw *= 0  # this is not a good way to handle this condition
+        # @todo handle situation when too many particles are found
+
+    print('measure')
+    # calculate particle statistics
+    region_properties = measure_particles(imbw, max_particles=max_particles)
+
+    # build the stats and export to HDF5
+    # stats = extractparticles_function(imc, timestamp, Classification, region_properties)
+    print('WARNING. exportparticles temporarily modified for 2-d images without color!')
+    imc = np.zeros((np.shape(img)[0], np.shape(img)[1], 3), dtype=np.uint8)
+    imc[:, :, 0] = img
+    imc[:, :, 1] = img
+    imc[:, :, 2] = img
+    stats = extractparticles_function(imc, timestamp, Classification, region_properties)
+
+    return stats, saturation
+
+
 def statextract(timestamp, img, Classification,
                 minimum_area=12, threshold=0.98, real_time_stats=False, max_coverage=30, max_particles=5000,
                 extractparticles_function=extract_particles):
@@ -450,36 +530,46 @@ def process_image(Classification, data,
     return stats
 
 
-class CalculateStats():
-    '''PyOpia pipline-compatible class for calling statextract
+class Segment():
+    '''PyOpia pipline-compatible class for calling segment
 
     Args:
         minimum_area (int, optional): minimum number of pixels for particle detection. Defaults to 12.
         threshold (float, optional): threshold for segmentation. Defaults to 0.98.
-        real_time_stats (bool, optional): changed segmentation method
-          (@todo this option for historical reasons and should be changed). Defaults to False.
+        fill_holes (bool): runs ndi.binary_fill_holes if True. Defaults to True.
+    '''
+    def __init__(self,
+                 minimum_area=12,
+                 threshold=0.98,
+                 fill_holes=True):
+
+        self.minimum_area = minimum_area
+        self.threshold = threshold
+        self.fill_holes = fill_holes
+
+    def __call__(self, common):
+        common['imbw'] = segment(common['imc'], threshold=self.threshold, fill_holes=self.fill_holes)
+        return common
+
+
+class CalculateStats():
+    '''PyOpia pipline-compatible class for calling statextract
+
+    Args:
         max_coverage (int, optional): percentage of the image that is allowed to be filled by particles. Defaults to 30.
         max_particles (int, optional): maximum allowed number of particles in an image.
           exceeding this will discard the image from analysis. Defaults to 5000.
     '''
     def __init__(self,
-                 minimum_area=12,
-                 threshold=0.98,
-                 real_time_stats=False,
                  max_coverage=30,
                  max_particles=5000):
 
-        self.minimum_area = minimum_area
-        self.threshold = threshold
-        self.real_time_stats = real_time_stats
         self.max_coverage = max_coverage
         self.max_particles = max_particles
 
     def __call__(self, common):
-        stats, imbw, saturation = statextract(common['timestamp'], common['imc'], common['cl'],
-                                              minimum_area=self.minimum_area,
-                                              threshold=self.threshold,
-                                              real_time_stats=self.real_time_stats,
+        print('statextract_light')
+        stats, saturation = statextract_light(common['imbw'], common['timestamp'], common['imc'], common['cl'],
                                               max_coverage=self.max_coverage,
                                               max_particles=self.max_particles)
         stats['timestamp'] = common['timestamp']

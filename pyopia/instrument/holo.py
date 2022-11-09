@@ -23,7 +23,7 @@ https://journals.ametsoc.org/view/journals/atot/32/6/jtech-d-14-00157_1.xml
 '''
 
 
-class Common():
+class Initial():
     '''PyOpia pipline-compatible class for one-time setup of holograhic reconstruction
 
     Parameters
