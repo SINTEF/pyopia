@@ -79,4 +79,3 @@ class StatsH5():
         write_stats(self.datafilename, common['stats'], steps_string=common['steps_string'],
                     append=append, export_name_len=export_name_len)
         return common
-

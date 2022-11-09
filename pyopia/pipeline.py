@@ -96,7 +96,7 @@ class Pipeline():
             if blacklist_steps.__contains__(s):
                 continue
 
-            print('calling: ', str(type(self.common['steps'][s])) , ' with: ', list(self.common.keys()))
+            print('calling: ', str(type(self.common['steps'][s])), ' with: ', list(self.common.keys()))
             self.common = self.common['steps'][s](self.common)
 
         stats = self.common['stats']
