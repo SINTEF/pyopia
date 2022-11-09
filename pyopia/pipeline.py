@@ -71,9 +71,15 @@ class Pipeline():
     '''
 
     def __init__(self, steps):
-        self.steps = steps
-        self.common = self.steps['common']()
-        self.cl = self.steps['classifier']()
+        print('Initialising pipeline')
+        self.common = dict()
+        self.common['steps'] = steps
+
+        print('  Running', self.common['steps']['common'])
+        self.common = self.common['steps']['common'](self.common)
+        print('  Running', self.common['steps']['classifier'])
+        self.common['cl'] = self.common['steps']['classifier']()
+        print('Pipeline ready with these data: ', list(self.common.keys()))
 
     def run(self):
         '''Method for executing the processing pipeline
@@ -82,11 +88,18 @@ class Pipeline():
             stats (DataFrame): stats DataFrame of particle statistics
         '''
 
-        timestamp, imraw = self.steps['load']()
-        imc = self.steps['imageprep'](imraw, self.common)
-        stats = self.steps['statextract'](timestamp, imc, self.cl)
+        self.common['steps_string'] = steps_to_string(self.common['steps'])
 
-        self.steps['output'](stats, steps_to_string(self.steps))
+        blacklist_steps = ['common', 'classifier']
+        # [self.steps[s]() for s in self.steps if not start.__contains__(s)]
+        for s in self.common['steps']:
+            if blacklist_steps.__contains__(s):
+                continue
+
+            print('calling: ', str(type(self.common['steps'][s])) , ' with: ', list(self.common.keys()))
+            self.common = self.common['steps'][s](self.common)
+
+        stats = self.common['stats']
 
         return stats
 
@@ -135,5 +148,5 @@ class Common():
     def __init__(self):
         pass
 
-    def __call__(self):
-        return dict()
+    def __call__(self, common):
+        return common

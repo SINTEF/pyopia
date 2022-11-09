@@ -475,13 +475,15 @@ class CalculateStats():
         self.max_coverage = max_coverage
         self.max_particles = max_particles
 
-    def __call__(self, timestamp, imc, Classification):
-        stats, imbw, saturation = statextract(timestamp, imc, Classification,
+    def __call__(self, common):
+        stats, imbw, saturation = statextract(common['timestamp'], common['imc'], common['cl'],
                                               minimum_area=self.minimum_area,
                                               threshold=self.threshold,
                                               real_time_stats=self.real_time_stats,
                                               max_coverage=self.max_coverage,
                                               max_particles=self.max_particles)
-        stats['timestamp'] = timestamp
+        stats['timestamp'] = common['timestamp']
         stats['saturation'] = saturation
-        return stats
+
+        common['stats'] = stats
+        return common
