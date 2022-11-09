@@ -52,15 +52,15 @@ class Common():
         self.maxZ = maxZ
         self.stepZ = stepZ
 
-    def __call__(self):
+    def __call__(self, common):
         print('Load background from disc. \n WARNING: Proper background calculation not implemented here.')
         imbg = imread(self.filename).astype(np.float64)
         print('Build kernel')
         kern = create_kernel(imbg, self.pixel_size, self.wavelength, self.minZ, self.maxZ, self.stepZ)
         print('HoloCommon done', pd.datetime.now())
-        output = {'imbg': imbg,
-                  'kern': kern}
-        return output
+        common['imbg'] = imbg
+        common['kern'] = kern
+        return common
 
 
 class Load():
@@ -82,11 +82,13 @@ class Load():
     def __init__(self, filename):
         self.filename = filename
 
-    def __call__(self):
+    def __call__(self, common):
         print('WARNING: timestamp not implemented for holo data! using current time to test workflow.')
         timestamp = pd.datetime.now()
         im = imread(self.filename).astype(np.float64)
-        return timestamp, im
+        common['timestamp'] = timestamp
+        common['img'] = im
+        return common
 
 
 class Reconstruct():
@@ -106,7 +108,8 @@ class Reconstruct():
     def __init__(self, stack_clean):
         self.stack_clean = stack_clean
 
-    def __call__(self, imraw, common):
+    def __call__(self, common):
+        imraw = common['img']
         imbg = common['imbg']
         kern = common['kern']
 
@@ -124,7 +127,8 @@ class Reconstruct():
         stack_max -= np.min(stack_max)
         stack_max /= np.max(stack_max)
         # im_stack_inv = holo.rescale_stack(im_stack)
-        return stack_max
+        common['imc'] = stack_max
+        return common
 
 
 def forward_transform(im):
