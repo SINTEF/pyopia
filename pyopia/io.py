@@ -73,8 +73,9 @@ class StatsH5():
         self.datafilename = datafilename
 
     def __call__(self,
-                 stats,
-                 steps_string=None,
+                 common,
                  append=True,
                  export_name_len=40):
-        write_stats(self.datafilename, stats, steps_string=steps_string, append=append, export_name_len=export_name_len)
+        write_stats(self.datafilename, common['stats'], steps_string=common['steps_string'],
+                    append=append, export_name_len=export_name_len)
+        return common
