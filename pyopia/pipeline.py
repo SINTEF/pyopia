@@ -93,15 +93,15 @@ class Pipeline():
         self.common = dict()
         self.steps = steps
 
-        for s in self.common['steps']:
+        for s in self.steps:
             if not self.initial_steps.__contains__(s):
                 continue
             if s == 'classifier':
-                print('  Running', self.common['steps']['classifier'])
-                self.common['cl'] = self.common['steps']['classifier']()
+                print('  Running', self.steps['classifier'])
+                self.common['cl'] = self.steps['classifier']()
             else:
-                print('  Running', self.common['steps'][s])
-                self.common = self.common['steps'][s](self.common)
+                print('  Running', self.steps[s])
+                self.common = self.steps[s](self.common)
 
         print('Pipeline ready with these data: ', list(self.common.keys()))
 
