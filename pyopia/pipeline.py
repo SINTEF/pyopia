@@ -83,10 +83,11 @@ class Pipeline():
         pyopia.io.show_h5_meta(datafile_hdf + '-STATS.h5')
 
 
+
     '''
 
     def __init__(self, steps, initial_steps=['initial', 'classifier']):
-
+    
         self.initial_steps = initial_steps
         print('Initialising pipeline')
         self.data = dict()
