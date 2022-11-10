@@ -87,7 +87,7 @@ class Pipeline():
     '''
 
     def __init__(self, steps, initial_steps=['initial', 'classifier']):
-    
+
         self.initial_steps = initial_steps
         print('Initialising pipeline')
         self.data = dict()
