@@ -42,12 +42,12 @@ class SilCamLoad():
     def __init__(self, filename):
         self.filename = filename
 
-    def __call__(self, output):
+    def __call__(self, common):
         timestamp = timestamp_from_filename(self.filename)
         img = np.load(self.filename, allow_pickle=False)
-        output['timestamp'] = timestamp
-        output['img'] = img
-        return output
+        common['timestamp'] = timestamp
+        common['img'] = img
+        return common
 
 
 class ImagePrep():
