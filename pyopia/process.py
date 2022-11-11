@@ -343,8 +343,6 @@ def segment(img, threshold=0.98, minimum_area=12, fill_holes=True):
     print('segment')
 
     imbw = image2blackwhite_fast(img, threshold)
-    # image2blackwhite_fast is less fancy but faster than image2blackwhite_accurate
-    # but might cause problems when trying to process images with bad lighting
 
     print('clean')
 
