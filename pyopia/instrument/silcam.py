@@ -42,12 +42,12 @@ class SilCamLoad():
     def __init__(self, filename):
         self.filename = filename
 
-    def __call__(self, common):
+    def __call__(self, data):
         timestamp = timestamp_from_filename(self.filename)
         img = np.load(self.filename, allow_pickle=False)
-        common['timestamp'] = timestamp
-        common['img'] = img
-        return common
+        data['timestamp'] = timestamp
+        data['img'] = img
+        return data
 
 
 class ImagePrep():
@@ -55,12 +55,12 @@ class ImagePrep():
     def __init__(self):
         pass
 
-    def __call__(self, common):
+    def __call__(self, data):
         # @todo
-        # #imbg = common['imbg']
+        # #imbg = data['imbg']
         # background correction
         print('WARNING: Background correction not implemented!')
-        imraw = common['img']
+        imraw = data['img']
         imc = np.float64(imraw)
 
         # simplify processing by squeezing the image dimensions into a 2D array
@@ -69,5 +69,5 @@ class ImagePrep():
         imc -= np.min(imc)
         imc /= np.max(imc)
 
-        common['imc'] = imc
-        return common
+        data['imc'] = imc
+        return data
