@@ -23,7 +23,7 @@ https://journals.ametsoc.org/view/journals/atot/32/6/jtech-d-14-00157_1.xml
 '''
 
 
-class Common():
+class Initial():
     '''PyOpia pipline-compatible class for one-time setup of holograhic reconstruction
 
     Parameters
@@ -52,15 +52,15 @@ class Common():
         self.maxZ = maxZ
         self.stepZ = stepZ
 
-    def __call__(self):
+    def __call__(self, data):
         print('Load background from disc. \n WARNING: Proper background calculation not implemented here.')
         imbg = imread(self.filename).astype(np.float64)
         print('Build kernel')
         kern = create_kernel(imbg, self.pixel_size, self.wavelength, self.minZ, self.maxZ, self.stepZ)
-        print('HoloCommon done', pd.datetime.now())
-        output = {'imbg': imbg,
-                  'kern': kern}
-        return output
+        print('HoloInitial done', pd.datetime.now())
+        data['imbg'] = imbg
+        data['kern'] = kern
+        return data
 
 
 class Load():
@@ -82,11 +82,13 @@ class Load():
     def __init__(self, filename):
         self.filename = filename
 
-    def __call__(self):
+    def __call__(self, data):
         print('WARNING: timestamp not implemented for holo data! using current time to test workflow.')
         timestamp = pd.datetime.now()
         im = imread(self.filename).astype(np.float64)
-        return timestamp, im
+        data['timestamp'] = timestamp
+        data['img'] = im
+        return data
 
 
 class Reconstruct():
@@ -106,9 +108,10 @@ class Reconstruct():
     def __init__(self, stack_clean):
         self.stack_clean = stack_clean
 
-    def __call__(self, imraw, common):
-        imbg = common['imbg']
-        kern = common['kern']
+    def __call__(self, data):
+        imraw = data['img']
+        imbg = data['imbg']
+        kern = data['kern']
 
         print('correct background')
         imc = pyopia.background.subtract_background(imbg, imraw)
@@ -124,7 +127,8 @@ class Reconstruct():
         stack_max -= np.min(stack_max)
         stack_max /= np.max(stack_max)
         # im_stack_inv = holo.rescale_stack(im_stack)
-        return stack_max
+        data['imc'] = stack_max
+        return data
 
 
 def forward_transform(im):

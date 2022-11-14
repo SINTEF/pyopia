@@ -73,8 +73,9 @@ class StatsH5():
         self.datafilename = datafilename
 
     def __call__(self,
-                 stats,
-                 steps_string=None,
+                 data,
                  append=True,
                  export_name_len=40):
-        write_stats(self.datafilename, stats, steps_string=steps_string, append=append, export_name_len=40)
+        write_stats(self.datafilename, data['stats'], steps_string=data['steps_string'],
+                    append=append, export_name_len=export_name_len)
+        return data
