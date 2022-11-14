@@ -17,8 +17,8 @@ Pipelines
 PyOpia aims to provide a pipeline-based workflow as a standard for analysis of particle images in the ocean.
 This pipeline should be consistent across different instruments (hardware), and therefore
 has flexibility to adapt analysis steps to meet instrument-specific processing needs
-(i.e. holographic reconstruction), while maintaining a traceable workflow that
-can is attached as metadata to a standard output file (HDF5) that helps users follow FAIR data principles.
+(i.e. holographic reconstruction), while maintaining a traceable workflow that is attached as metadata to a
+standard output file (HDF5) that helps users follow FAIR data principles.
 
 See :class:`pyopia.pipeline.Pipeline` for more details and examples of how to process images with PyOpia.
 
