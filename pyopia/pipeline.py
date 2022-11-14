@@ -114,7 +114,7 @@ class Pipeline():
 
         self.data['filename'] = filename
 
-        self.data['steps_string'] = steps_to_string(self.data['filename'])
+        self.data['steps_string'] = steps_to_string(self.steps)
 
         for s in self.steps:
             if self.initial_steps.__contains__(s):
