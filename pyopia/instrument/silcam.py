@@ -3,6 +3,8 @@ Module containing SilCam specific tools to enable compatability with the :mod:`p
 '''
 
 import os
+from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -23,8 +25,16 @@ def timestamp_from_filename(filename):
     return timestamp
 
 
+@dataclass
+class LoadData:
+    timestamp: Any
+    img: Any
+
+
 class SilCamLoad():
     '''PyOpia pipline-compatible class for loading a single silcam image
+
+    Requires pipeline data: :class:`LoadData`
 
     Parameters
     ----------
@@ -33,16 +43,14 @@ class SilCamLoad():
 
     Returns
     -------
-    timestamp : timestamp
-        timestamp from timestamp_from_filename()
-    img : np.array
-        raw silcam image
+        data.img : :class:`LoadData`
+        data.timestamp : :class:`LoadData`
     '''
 
     def __init__(self, filename):
         self.filename = filename
 
-    def __call__(self, data):
+    def __call__(self, data: LoadData) -> LoadData:
         timestamp = timestamp_from_filename(self.filename)
         img = np.load(self.filename, allow_pickle=False)
         data['timestamp'] = timestamp
@@ -50,14 +58,30 @@ class SilCamLoad():
         return data
 
 
+@dataclass
+class ImagePrepData(LoadData):
+    img: np.ndarray
+    imc: np.ndarray
+
+
 class ImagePrep():
+    '''Simplify processing by squeezing a 3-channel image into a 2D array
+
+    min is used for squeezing to represent the highest attenuation of all wavelengths
+
+    Requires pipeline data: :class:`ImagePrepData`
+
+    Returns
+    -------
+        data.imc : :class:`ImagePrepData`
+    '''
 
     def __init__(self):
         pass
 
-    def __call__(self, data):
+    def __call__(self, data: ImagePrepData) -> ImagePrepData:
         # @todo
-        # #imbg = data['imbg']
+        # #imbg = data.imbg
         # background correction
         print('WARNING: Background correction not implemented!')
         imraw = data['img']

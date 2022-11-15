@@ -45,7 +45,7 @@ def write_stats(
     # metadata
     with h5py.File(datafilename + '-STATS.h5', "a") as fh:
         meta = fh.require_group('Meta')
-        meta.attrs['Modified'] = str(datetime.now())
+        meta.attrs['Modified'] = str(datetime.utcnow()) + ' UTC'
         meta.attrs['PyOpia version'] = pyopia_version
         meta.attrs['Pipeline steps'] = steps_string
 
