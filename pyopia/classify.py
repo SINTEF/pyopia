@@ -97,7 +97,8 @@ class Classify():
         Use tensorflow model to classify particles. example here based on the pysilcam network setup.
 
         Args:
-            img_preprocessed (uint8) : a particle ROI, corrected and preprocessed, ready for prediction
+            img_preprocessed (uint8) : a particle ROI, corrected and preprocessed using :meth:`Classify.preprocessing`,
+            ready for prediction using :meth:`Classify.predict`
 
         Returns:
             prediction (array)       : the probability of the roi belonging to each class
@@ -109,7 +110,7 @@ class Classify():
 
     def proc_predict(self, img_input):
         '''
-        Use tensorflow model to classify particles. example here based on the pysilcam network setup.
+        Run pre-processing (:meth:`Classify.preprocessing`) and prediction (:meth:`Classify.predict`) using tensorflow model to classify particles. example here based on the pysilcam network setup.
 
         Args:
             img_input (uint8)  : a particle ROI before preprocessing
