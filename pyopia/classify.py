@@ -110,7 +110,8 @@ class Classify():
 
     def proc_predict(self, img_input):
         '''
-        Run pre-processing (:meth:`Classify.preprocessing`) and prediction (:meth:`Classify.predict`) using tensorflow model to classify particles. example here based on the pysilcam network setup.
+        Run pre-processing (:meth:`Classify.preprocessing`) and prediction (:meth:`Classify.predict`)
+        using tensorflow model to classify particles. example here based on the pysilcam network setup.
 
         Args:
             img_input (uint8)  : a particle ROI before preprocessing
