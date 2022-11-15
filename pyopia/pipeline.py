@@ -98,7 +98,7 @@ class Pipeline():
                 continue
             if s == 'classifier':
                 print('  Running', self.steps['classifier'])
-                self.data['cl'] = self.steps['classifier']()
+                self.data.cl = self.steps['classifier']()
             else:
                 print('  Running', self.steps[s])
                 self.data = self.steps[s](self.data)
@@ -119,7 +119,8 @@ class Pipeline():
             if self.initial_steps.__contains__(s):
                 continue
 
-            print('calling: ', str(type(self.steps[s])), ' with: ', list(self.data.keys()))
+            # print('calling: ', str(type(self.steps[s])), ' with: ', list(self.data.keys()))
+            print('calling: ', str(type(self.steps[s])))
             self.data = self.steps[s](self.data)
 
         stats = self.data['stats']

@@ -50,17 +50,15 @@ class SilCamLoad():
     def __init__(self, filename):
         self.filename = filename
 
-    def __call__(self, data: LoadData) -> LoadData:
+    def __call__(self, _) -> LoadData:
         timestamp = timestamp_from_filename(self.filename)
         img = np.load(self.filename, allow_pickle=False)
-        data['timestamp'] = timestamp
-        data['img'] = img
+        data = LoadData(timestamp=timestamp, img=img) # doing this will cause an error in pyopia.process.CalculateStats() by removing data.cl that should have been made by the first step: Classify(model_path=model_path)
         return data
 
 
 @dataclass
 class ImagePrepData(LoadData):
-    img: np.ndarray
     imc: np.ndarray
 
 
@@ -79,12 +77,12 @@ class ImagePrep():
     def __init__(self):
         pass
 
-    def __call__(self, data: ImagePrepData) -> ImagePrepData:
+    def __call__(self, data: LoadData) -> ImagePrepData:
         # @todo
         # #imbg = data.imbg
         # background correction
         print('WARNING: Background correction not implemented!')
-        imraw = data['img']
+        imraw = data.img
         imc = np.float64(imraw)
 
         # simplify processing by squeezing the image dimensions into a 2D array
@@ -93,5 +91,5 @@ class ImagePrep():
         imc -= np.min(imc)
         imc /= np.max(imc)
 
-        data['imc'] = imc
+        data.imc = imc
         return data

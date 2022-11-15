@@ -3,10 +3,17 @@ Module containing tools for classifying particle ROIs
 '''
 
 import os
+from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import pandas as pd
 from PIL import Image
+
+
+@dataclass
+class ClassifyData:
+    cl: Any
 
 
 class Classify():
@@ -37,8 +44,9 @@ class Classify():
         self.model_path = model_path
         self.load_model()
 
-    def __call__(self):
-        return self
+    def __call__(self) -> ClassifyData:
+        classifier = ClassifyData(self)
+        return classifier
 
     def load_model(self):
         '''

@@ -546,7 +546,7 @@ class Segment():
         self.fill_holes = fill_holes
 
     def __call__(self, data):
-        data['imbw'] = segment(data['imc'], threshold=self.threshold, fill_holes=self.fill_holes)
+        data.imbw = segment(data.imc, threshold=self.threshold, fill_holes=self.fill_holes)
         return data
 
 
@@ -567,11 +567,11 @@ class CalculateStats():
 
     def __call__(self, data):
         print('statextract_light')
-        stats, saturation = statextract_light(data['imbw'], data['timestamp'], data['imc'], data['cl'],
+        stats, saturation = statextract_light(data.imbw, data.timestamp, data.imc, data.cl,
                                               max_coverage=self.max_coverage,
                                               max_particles=self.max_particles)
-        stats['timestamp'] = data['timestamp']
+        stats['timestamp'] = data.timestamp
         stats['saturation'] = saturation
 
-        data['stats'] = stats
+        data.stats = stats
         return data
