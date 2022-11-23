@@ -39,12 +39,12 @@ class SilCamLoad():
         raw silcam image
     '''
 
-    def __init__(self, filename):
-        self.filename = filename
+    def __init__(self):
+        pass
 
     def __call__(self, data):
-        timestamp = timestamp_from_filename(self.filename)
-        img = np.load(self.filename, allow_pickle=False)
+        timestamp = timestamp_from_filename(data['filename'])
+        img = np.load(data['filename'], allow_pickle=False)
         data['timestamp'] = timestamp
         data['img'] = img
         return data
