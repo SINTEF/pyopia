@@ -79,13 +79,13 @@ class Load():
         hologram
     '''
 
-    def __init__(self, filename):
-        self.filename = filename
+    def __init__(self):
+        pass
 
     def __call__(self, data):
         print('WARNING: timestamp not implemented for holo data! using current time to test workflow.')
         timestamp = pd.datetime.now()
-        im = imread(self.filename).astype(np.float64)
+        im = imread(data['filename']).astype(np.float64)
         data['timestamp'] = timestamp
         data['img'] = im
         return data
