@@ -23,6 +23,11 @@ class Pipeline():
 
     The step called 'classifier' must return a dict containing 'cl' in order to run successfully.
 
+    `Pipeline.run()` takes a string as input.
+    This string is put into the `data` dict available to the steps in the pipeline as `data['filename']`.
+    This is intended for use in looping through several files during processing, so run can be
+    called multiple times with different filenames.
+
     Examples:
     ^^^^^^^^^
 
@@ -31,6 +36,7 @@ class Pipeline():
 
     .. code-block:: python
 
+        filename, background_file = exampledata.get_example_hologram_and_background()
         datafile_hdf = 'proc/holotest'
         model_path = exampledata.get_example_model()
         threshold = 0.9
@@ -41,12 +47,13 @@ class Pipeline():
                                 'maxZ': 60, # maximum reconstruction distance in mm
                                 'stepZ': 2} #step size in mm
 
-        steps = {'initial': holo.Initial('imbg.pgm', **holo_initial_settings),
-                'classifier': Classify(model_path=model_path),
-                'load': holo.Load(filename),
-                'imageprep': holo.Reconstruct(stack_clean=0),
-                'statextract': CalculateStats(threshold=threshold),
-                'output': pyopia.io.StatsH5(datafile_hdf)}
+        steps = {'initial': holo.Initial('imbg-001-2082.pgm', **holo_initial_settings),
+                 'classifier': Classify(model_path=model_path),
+                 'load': holo.Load(),
+                 'reconstruct': holo.Reconstruct(stack_clean=0),
+                 'segmentation': pyopia.process.Segment(threshold=threshold),
+                 'statextract': pyopia.process.CalculateStats(),
+                 'output': pyopia.io.StatsH5(datafile_hdf)}
 
         processing_pipeline = Pipeline(steps)
 
@@ -59,11 +66,12 @@ class Pipeline():
         model_path = exampledata.get_example_model()
         threshold = 0.85
 
-        steps = {'load': SilCamLoad(filename),
-                'classifier': Classify(model_path=model_path),
-                'imageprep': ImagePrep(),
-                'statextract': CalculateStats(threshold=threshold),
-                'output': pyopia.io.StatsH5(datafile_hdf)}
+        steps = {'classifier': Classify(model_path=model_path),
+                 'load': SilCamLoad(),
+                 'imageprep': ImagePrep(),
+                 'segmentation': pyopia.process.Segment(threshold=threshold),
+                 'statextract': pyopia.process.CalculateStats(),
+                 'output': pyopia.io.StatsH5(datafile_hdf)}
 
         # initialise the pipeline with a only the 'classifier' initialisation step:
         processing_pipeline = Pipeline(steps, initial_steps=['classifier'])
@@ -73,7 +81,7 @@ class Pipeline():
 
     .. code-block:: python
 
-        stats = processing_pipeline.run()
+        stats = processing_pipeline.run(filename)
 
 
     You can check the workflow used by reading the steps from the metadata in output file, like this:
