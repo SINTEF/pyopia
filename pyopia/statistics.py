@@ -11,19 +11,20 @@ from tqdm import tqdm
 from pyopia.io import write_stats
 
 
-def d50_from_stats(stats, settings):
+def d50_from_stats(stats, pixel_size):
     '''
     Calculate the d50 from the stats and settings
 
     Args:
         stats (DataFrame)           : particle statistics from silcam process
+        pixel_size                  : pixel size in microns per pixel
 
     Returns:
         d50 (float)                 : the 50th percentile of the cumulative sum of the volume distributon, in microns
     '''
 
     # the volume distribution needs calculating first
-    dias, vd = vd_from_stats(stats, settings)
+    dias, vd = vd_from_stats(stats, pixel_size)
 
     # then the d50
     d50 = d50_from_vd(vd, dias)
@@ -206,12 +207,12 @@ def nc_vc_from_stats(stats, pix_size, path_length):
 
 
 def nd_from_stats_scaled(stats, pix_size, path_length):
-    ''' calcualte a scaled number distribution from stats and settings
+    ''' calcualte a scaled number distribution from stats.
     units of nd are in number per micron per litre
 
     Args:
         stats (DataFrame)           : particle statistics from silcam process
-        pix_size                    : size of pixels in microns (settings.PostProcess.pixel_size)
+        pix_size                    : size of pixels in microns
         path_length                 : path length of sample volume in mm
 
     Returns:
@@ -662,12 +663,13 @@ def extract_latest_stats(stats, window_size):
     return stats
 
 
-def make_timeseries_vd(stats, settings):
+def make_timeseries_vd(stats, pixel_size, path_length):
     '''makes a dataframe of time-series volume distribution and d50
 
     Args:
         stats (silcam stats dataframe): loaded from a *-STATS.h5 file
-        settings (silcam settings): loaded from PySilCamSettings
+        pixel_size () : pixel size in microns per pixel
+        path_length : path length of the sample volume in mm
 
     Returns:
         dataframe: of time series volume concentrations are in uL/L columns with number headings are diameter min-points
@@ -676,15 +678,14 @@ def make_timeseries_vd(stats, settings):
 
     u = stats['timestamp'].unique()
 
-    sample_volume = get_sample_volume(settings.PostProcess.pix_size, path_length=settings.PostProcess.path_length)
+    sample_volume = get_sample_volume(pixel_size, path_length=path_length)
 
     vdts = []
     d50 = []
     timestamp = []
     dias = []
     for s in tqdm(u):
-        dias, vd = vd_from_stats(stats[stats['timestamp'] == s],
-                                 settings.PostProcess)
+        dias, vd = vd_from_stats(stats[stats['timestamp'] == s], pixel_size)
         nims = count_images_in_stats(stats[stats['timestamp'] == s])
         sv = sample_volume * nims
         vd /= sv
