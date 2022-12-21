@@ -395,7 +395,8 @@ def statextract_light(imbw, timestamp, img, Classification,
     imc[:, :, 0] = img
     imc[:, :, 1] = img
     imc[:, :, 2] = img
-    stats = extract_particles(imc, timestamp, Classification, region_properties, export_outputpath=export_outputpath, min_length=min_length)
+    stats = extract_particles(imc, timestamp, Classification, region_properties,
+                              export_outputpath=export_outputpath, min_length=min_length)
 
     return stats, saturation
 
