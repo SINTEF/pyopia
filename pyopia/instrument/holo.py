@@ -120,10 +120,7 @@ class Reconstruct():
         im_stack = clean_stack(im_stack, self.stack_clean)
         print('summarise stack')
         stack_max = max_map(im_stack)
-        stack_max = np.max(stack_max) - stack_max
-        stack_max -= np.min(stack_max)
-        stack_max /= np.max(stack_max)
-        # im_stack_inv = holo.rescale_stack(im_stack)
+        stack_max = rescale_stack(stack_max)
         data['imc'] = stack_max
         return data
 
@@ -296,4 +293,4 @@ def rescale_stack(im_stack):
     im_min = np.min(im_stack)
     im_stack_inverted = 255 * (im_stack - im_min) / (im_max - im_min)
     im_stack_inverted = 255 - im_stack_inverted
-    return im_stack
+    return im_stack_inverted
