@@ -360,7 +360,8 @@ def segment(img, threshold=0.98, minimum_area=12, fill_holes=True):
 def statextract_light(imbw, timestamp, img, Classification,
                       max_coverage=30,
                       max_particles=5000,
-                      extractparticles_function=extract_particles):
+                      export_outputpath=None,
+                      min_length=0):
     '''extracts statistics of particles in a binary images (imbw)
 
     Args:
@@ -394,7 +395,8 @@ def statextract_light(imbw, timestamp, img, Classification,
     imc[:, :, 0] = img
     imc[:, :, 1] = img
     imc[:, :, 2] = img
-    stats = extractparticles_function(imc, timestamp, Classification, region_properties)
+    stats = extract_particles(imc, timestamp, Classification, region_properties,
+                              export_outputpath=export_outputpath, min_length=min_length)
 
     return stats, saturation
 
@@ -560,16 +562,22 @@ class CalculateStats():
     '''
     def __init__(self,
                  max_coverage=30,
-                 max_particles=5000):
+                 max_particles=5000,
+                 export_outputpath=None,
+                 min_length=0):
 
         self.max_coverage = max_coverage
         self.max_particles = max_particles
+        self.export_outputpath = export_outputpath
+        self.min_length = min_length
 
     def __call__(self, data):
         print('statextract_light')
         stats, saturation = statextract_light(data['imbw'], data['timestamp'], data['imc'], data['cl'],
                                               max_coverage=self.max_coverage,
-                                              max_particles=self.max_particles)
+                                              max_particles=self.max_particles,
+                                              export_outputpath=self.export_outputpath,
+                                              min_length=self.min_length)
         stats['timestamp'] = data['timestamp']
         stats['saturation'] = saturation
 
