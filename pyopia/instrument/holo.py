@@ -1,14 +1,6 @@
 '''
 Module containing hologram specific tools to enable compatability with the :mod:`pyopia.pipeline`
-'''
 
-import numpy as np
-import pandas as pd
-from scipy import fftpack
-from skimage.io import imread
-import pyopia.background
-
-'''
 This is an subpackage containing basic processing for reconstruction of in-line holographic images.
 
 See (and references therein):
@@ -19,9 +11,17 @@ Journal of Atmospheric and Oceanic Technology 32, (6) 1241-1256,
 https://doi.org/10.1175/JTECH-D-14-00157.1
 https://journals.ametsoc.org/view/journals/atot/32/6/jtech-d-14-00157_1.xml
 
+ToDo
+%%%%ADD Recommended settings here%%%%%
+
 2022-11-01 Alex Nimmo-Smith alex.nimmo.smith@plymouth.ac.uk
 '''
 
+import numpy as np
+import pandas as pd
+from scipy import fftpack
+from skimage.io import imread
+import pyopia.background
 
 class Initial():
     '''PyOpia pipline-compatible class for one-time setup of holograhic reconstruction
