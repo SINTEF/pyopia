@@ -116,6 +116,9 @@ class Pipeline():
     def run(self, filename):
         '''Method for executing the processing pipeline
 
+        Args:
+            filename (str): file to be processed
+
         Returns:
             stats (DataFrame): stats DataFrame of particle statistics
         '''
