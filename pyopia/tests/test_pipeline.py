@@ -1,8 +1,6 @@
 '''
 A high level test for the basic processing pipeline.
 
-Asserts that the number of images counted in the processed hdf5 stats is the same as the
-number of images that should have been downloaded for the test
 '''
 
 import pandas as pd
@@ -20,6 +18,10 @@ import pyopia.statistics
 
 
 def test_pipeline():
+    '''
+    Asserts that the number of images counted in the processed hdf5 stats is the same as the
+    number of images that should have been downloaded for the test
+    '''
     with tempfile.TemporaryDirectory() as tempdir:
         os.makedirs(tempdir, exist_ok=True)
         tempdir_proc = os.path.join(tempdir, 'proc')
