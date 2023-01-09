@@ -11,7 +11,8 @@ def ini_background(bgfiles, load_function):
 
     Args:
         bgfiles (list)                   : list of strings of filenames to be used in background creation
-        load_function (function object)  : this function should take a filename and return an image
+        load_function (function object)  : this function should take a filename and return an image,
+                                           for example: :func:`pyopia.instrument.silcam.load_image`
     Returns:
         bgstack (list)              : list of all images in the background stack
         imbg (array)                : background image
@@ -231,6 +232,11 @@ def subtract_background(imbg, imraw):
 
 
 class CreateBackground():
+    '''
+    :class:`pyopia.pipeline` compatible class that calls: :func:`pyopia.background.ini_background`
+
+    adds "bgstack" and "imbg" to the data dict.
+    '''
 
     def __init__(self, bgfiles, load_function):
         self.bgfiles = bgfiles
@@ -246,6 +252,15 @@ class CreateBackground():
 
 
 class CorrectBackgroundAccurate():
+    '''
+    :class:`pyopia.pipeline` compatible class that calls: :func:`pyopia.background.correct_im_accurate`
+
+    requires these data dict keys:
+    "img"
+    "imbg"
+
+    and adds "imc" to the data dict.
+    '''
 
     def __init__(self):
         pass
