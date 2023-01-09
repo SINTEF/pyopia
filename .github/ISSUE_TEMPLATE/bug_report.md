@@ -17,7 +17,7 @@ Detailed steps to reproduce the behavior.
 A clear and concise description of what you expected to happen.
 
 **Screenshots**
-If applicable (e.g. when using the silcam GUI), add screenshots to help explain your problem.
+If applicable add screenshots to help explain your problem.
 
 **Additional context**
 Add any other context about the problem here.
