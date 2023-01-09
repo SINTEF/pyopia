@@ -47,7 +47,7 @@ class PyTest(TestCommand):
     def run_tests(self):
         import pytest
         params = {"args": self.test_args}
-        params["args"] += ["--junitxml", "test-report/output.xml"]
+        params["args"] += ["-s", "--junitxml", "test-report/output.xml"]
         errcode = pytest.main(self.test_args)
         sys.exit(errcode)
 
