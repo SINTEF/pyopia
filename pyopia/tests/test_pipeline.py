@@ -51,7 +51,10 @@ def test_pipeline():
         stats = pd.read_hdf(datafile_hdf + '-STATS.h5', 'ParticleStats/stats')
         print('stats header: ', stats.columns)
         print('Total number of particles: ', len(stats))
-        print('Number of raw images: ', pyopia.statistics.count_images_in_stats(stats))
+        num_images = pyopia.statistics.count_images_in_stats(stats)
+        print('Number of raw images: ', num_images)
+        assert num_images == 1, ('Number of images expected is 1.' + 
+                                 'This test sounted' + str(num_images))
 
 
 if __name__ == "__main__":
