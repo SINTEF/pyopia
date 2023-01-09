@@ -23,6 +23,11 @@ def timestamp_from_filename(filename):
     return timestamp
 
 
+def load_image(filename):
+    img = np.load(filename, allow_pickle=False)
+    return img
+
+
 class SilCamLoad():
     '''PyOpia pipline-compatible class for loading a single silcam image
 
@@ -44,7 +49,7 @@ class SilCamLoad():
 
     def __call__(self, data):
         timestamp = timestamp_from_filename(data['filename'])
-        img = np.load(data['filename'], allow_pickle=False)
+        img = load_image(data['filename'])
         data['timestamp'] = timestamp
         data['img'] = img
         return data
@@ -56,12 +61,9 @@ class ImagePrep():
         pass
 
     def __call__(self, data):
-        # @todo
-        # #imbg = data['imbg']
-        # background correction
-        print('WARNING: Background correction not implemented!')
-        imraw = data['img']
-        imc = np.float64(imraw)
+        im_corrected = data['imc']
+        data['imref'] = im_corrected
+        imc = np.float64(im_corrected)
 
         # simplify processing by squeezing the image dimensions into a 2D array
         # min is used for squeezing to represent the highest attenuation of all wavelengths
