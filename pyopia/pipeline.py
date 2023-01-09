@@ -168,3 +168,20 @@ def steps_to_string(steps):
                       + '\n   Vars: ' + str(vars(steps[key]))
                       + '\n')
     return steps_str
+
+
+class ReturnData():
+    '''Pipeline compatible class that can be used for debugging
+    if inserted as the last step in the steps dict.
+
+    This will allow you to call pipeline.run() like this:
+    `data = pipeline.run(filename)`
+    where `data` will be the available data dictionary available at the point of calling this
+    '''
+
+    def __init__(self):
+        pass
+
+    def __call__(self, data):
+        data['stats'] = data
+        return data
