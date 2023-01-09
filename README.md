@@ -5,7 +5,7 @@ A Python Ocean Particle Image Analysis toolbox
 
 Current status of main branch:
 ------------
-[![Windows build and test](https://github.com/SINTEF/pyopia/actions/workflows/windows-build-and-test.yml/badge.svg?branch=main)](https://github.com/SINTEF/pyopia/actions/workflows/windows-build-and-test.yml)
+[![Windows build and test (main)](https://github.com/SINTEF/pyopia/actions/workflows/windows-build-and-test.yml/badge.svg?branch=main)](https://github.com/SINTEF/pyopia/actions/workflows/windows-build-and-test.yml)
 
 
 Under initial development. NOT 'RESEARCH READY'
