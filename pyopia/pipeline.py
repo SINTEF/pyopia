@@ -4,6 +4,9 @@ Module for managing the PyOpia processing pipeline
 Refer to :class:`Pipeline` for examples of how to process datasets and images
 '''
 
+import numpy as np
+from typing import TypedDict
+
 
 class Pipeline():
     '''The processing pipeline class
@@ -98,7 +101,7 @@ class Pipeline():
 
         self.initial_steps = initial_steps
         print('Initialising pipeline')
-        self.data = dict()
+        self.data: Data = dict()
         self.steps = steps
 
         for s in self.steps:
@@ -106,10 +109,10 @@ class Pipeline():
                 continue
             if s == 'classifier':
                 print('  Running', self.steps['classifier'])
-                self.data['cl'] = self.steps['classifier']()
+                self.data['cl']: Data = self.steps['classifier']()
             else:
                 print('  Running', self.steps[s])
-                self.data = self.steps[s](self.data)
+                self.data: Data = self.steps[s](self.data)
 
         print('Pipeline ready with these data: ', list(self.data.keys()))
 
@@ -149,6 +152,20 @@ class Pipeline():
         print('PyOpia version: ' + pyopia_version + '\n')
         print(steps_to_string(self.steps))
         print('\n---------------------------------\n')
+
+
+class Data(TypedDict, total=False):
+    '''Data dict which is passed between :class:`pyopia.pipeline` steps.
+    '''
+
+    imc: np.uint8
+    '''Corrected image'''
+    filename: int
+    '''Filename string'''
+    steps_string: str
+    '''String documenting the steps given to :class:`pyopia.pipeline`'''
+    cl: object
+    '''classifier object from :class:`pyopia.classify.Classify`'''
 
 
 def steps_to_string(steps):
