@@ -1,3 +1,8 @@
+'''
+This is a submodule for providing convienient access to online testdata
+for use in the tests contain within this submodule.
+'''
+
 import urllib.request
 import zipfile
 import os
@@ -53,21 +58,3 @@ def get_example_model(download_directory):
         zipit.extractall(download_directory)
     model_filename = 'keras_model.h5'
     return os.path.join(download_directory, model_filename)
-
-
-def get_example_hologram_and_background():
-    '''calls `get_file_from_pysilcam_blob` for a raw hologram, and its associated background image.
-
-    Returns
-    -------
-    string
-        holo_filename
-
-    string
-        holo_background_filename
-    '''
-    holo_filename = '001-2082.pgm'
-    holo_background_filename = 'imbg-' + holo_filename
-    get_file_from_pysilcam_blob(holo_filename)
-    get_file_from_pysilcam_blob(holo_background_filename)
-    return holo_filename, holo_background_filename

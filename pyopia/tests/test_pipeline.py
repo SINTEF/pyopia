@@ -1,3 +1,10 @@
+'''
+A high level test for the basic processing pipeline.
+
+Asserts that the number of images counted in the processed hdf5 stats is the same as the
+number of images that should have been downloaded for the test
+'''
+
 import pandas as pd
 from glob import glob
 import tempfile
