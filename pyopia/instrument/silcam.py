@@ -6,6 +6,18 @@ import os
 
 import numpy as np
 import pandas as pd
+import pyopia
+
+
+def silcam_steps(model_path, threshold, datafile_hdf):
+    steps = {'classifier': pyopia.classify.Classify(model_path=model_path),
+             'load': SilCamLoad(),
+             'imageprep': ImagePrep(),
+             'segmentation': pyopia.process.Segment(threshold=threshold),
+             'statextract': pyopia.process.CalculateStats(),
+             'output': pyopia.io.StatsH5(datafile_hdf)}
+    initial_steps = ['classifier']
+    return steps, initial_steps
 
 
 def timestamp_from_filename(filename):
