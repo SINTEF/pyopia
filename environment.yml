@@ -11,7 +11,7 @@ dependencies:    # These are the conda packages
     - pytables
     - scipy
     - scikit-image
-    - pytest
+    - pytest==7.2.0
     - imageio
     - pip: # The following packages are installed with pip
         - docopt
