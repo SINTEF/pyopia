@@ -8,13 +8,15 @@ Current status of main branch:
 [![Windows build and test (main)](https://github.com/SINTEF/pyopia/actions/workflows/windows-build-and-test.yml/badge.svg?branch=main)](https://github.com/SINTEF/pyopia/actions/workflows/windows-build-and-test.yml)
 
 
-Under initial development. NOT 'RESEARCH READY'
+- Under initial development. **NOT 'RESEARCH READY'**
 
-Moving code from PySilCam
+- Moving code from [PySilCam](https://github.com/SINTEF/PySilCam/wiki)
 
-Building a structure for a standard processing pipline
+- Building a structure for a standard [processing pipline](https://pyopia.readthedocs.io/en/latest/pyopia.pipeline.html)
 
-Building a system for metadata and output files
+- Building a system for metadata and [output files](https://pyopia.readthedocs.io/en/latest/pyopia.io.html)
+
+- Working through [known issues](https://github.com/SINTEF/pyopia/issues)
 
 Documentation:
 ------------
