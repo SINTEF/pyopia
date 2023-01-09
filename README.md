@@ -3,15 +3,20 @@ PyOpia
 
 A Python Ocean Particle Image Analysis toolbox
 
-Current status:
+Current status of main branch:
 ------------
-Under initial development. NOT 'RESEARCH READY'
+[![Windows build and test (main)](https://github.com/SINTEF/pyopia/actions/workflows/windows-build-and-test.yml/badge.svg?branch=main)](https://github.com/SINTEF/pyopia/actions/workflows/windows-build-and-test.yml)
 
-Moving code from PySilCam
 
-Building a structure for a standard processing pipline
+- Under initial development. **NOT 'RESEARCH READY'**
 
-Building a system for metadata and output files
+- Moving code from [PySilCam](https://github.com/SINTEF/PySilCam/wiki)
+
+- Building a structure for a standard [processing pipline](https://pyopia.readthedocs.io/en/latest/pyopia.pipeline.html)
+
+- Building a system for metadata and [output files](https://pyopia.readthedocs.io/en/latest/pyopia.io.html)
+
+- Working through [known issues](https://github.com/SINTEF/pyopia/issues)
 
 Documentation:
 ------------
