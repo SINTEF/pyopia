@@ -51,6 +51,7 @@ def get_example_model():
     urllib.request.urlretrieve(url, model_filename)
     with zipfile.ZipFile(model_filename, 'r') as zipit:
         zipit.extractall()
+    model_filename = 'keras_model.h5'
     return model_filename
 
 
