@@ -533,11 +533,31 @@ def process_image(Classification, data,
 class Segment():
     '''PyOpia pipline-compatible class for calling segment
 
-    Args:
-        minimum_area (int, optional): minimum number of pixels for particle detection. Defaults to 12.
-        threshold (float, optional): threshold for segmentation. Defaults to 0.98.
-        fill_holes (bool): runs ndi.binary_fill_holes if True. Defaults to True.
+    Pipeline input data:
+    ---------
+    :class:`pyopia.pipeline.Data`
+
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.imc`
+
+    Parameters:
+    ----------
+    minimum_area : (int, optional)
+        minimum number of pixels for particle detection. Defaults to 12.
+    threshold : (float, optional)
+        threshold for segmentation. Defaults to 0.98.
+    fill_holes : (bool)
+        runs ndi.binary_fill_holes if True. Defaults to True.
+
+    Returns:
+    --------
+    :class:`pyopia.pipeline.Data`
+        containing the following new keys:
+
+        :attr:`pyopia.pipeline.Data.imbw`
     '''
+
     def __init__(self,
                  minimum_area=12,
                  threshold=0.98,
@@ -555,10 +575,34 @@ class Segment():
 class CalculateStats():
     '''PyOpia pipline-compatible class for calling statextract
 
-    Args:
-        max_coverage (int, optional): percentage of the image that is allowed to be filled by particles. Defaults to 30.
-        max_particles (int, optional): maximum allowed number of particles in an image.
-          exceeding this will discard the image from analysis. Defaults to 5000.
+    Pipeline input data:
+    ---------
+    :class:`pyopia.pipeline.Data`
+
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.imbw`
+
+        :attr:`pyopia.pipeline.Data.timestamp`
+
+        :attr:`pyopia.pipeline.Data.imc`
+
+        :attr:`pyopia.pipeline.Data.cl`
+
+    Parameters:
+    ----------
+    max_coverage : (int, optional)
+        percentage of the image that is allowed to be filled by particles. Defaults to 30.
+    max_particles : (int, optional)
+        maximum allowed number of particles in an image.
+        Exceeding this will discard the image from analysis. Defaults to 5000.
+
+    Returns:
+    --------
+    :class:`pyopia.pipeline.Data`
+        containing the following new keys:
+
+        :attr:`pyopia.pipeline.Data.stats`
     '''
     def __init__(self,
                  max_coverage=30,
