@@ -43,7 +43,7 @@ def test_pipeline():
 
         steps = {'classifier': Classify(model_path=model_path),
                  'load': SilCamLoad(),
-                 'imageprep': ImagePrep(),
+                 'imageprep': ImagePrep(image_level='imraw'),
                  'segmentation': pyopia.process.Segment(threshold=threshold),
                  'statextract': pyopia.process.CalculateStats(),
                  'output': pyopia.io.StatsH5(datafile_hdf)}
