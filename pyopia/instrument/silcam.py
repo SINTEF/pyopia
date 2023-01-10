@@ -23,8 +23,28 @@ def timestamp_from_filename(filename):
     return timestamp
 
 
+def load_image(filename):
+    '''load a .silc file from disc
+
+    Parameters
+    ----------
+    filename : string
+        filename to load
+
+    Returns
+    -------
+    array
+        raw image
+    '''
+    img = np.load(filename, allow_pickle=False)
+    return img
+
+
 class SilCamLoad():
     '''PyOpia pipline-compatible class for loading a single silcam image
+    using :func:`pyopia.instrument.silcam.load_image`
+    and extracting the timestamp using
+    :func:`pyopia.instrument.silcam.timestamp_from_filename`
 
     Parameters
     ----------
@@ -44,24 +64,27 @@ class SilCamLoad():
 
     def __call__(self, data):
         timestamp = timestamp_from_filename(data['filename'])
-        img = np.load(data['filename'], allow_pickle=False)
+        img = load_image(data['filename'])
         data['timestamp'] = timestamp
-        data['img'] = img
+        data['imraw'] = img
         return data
 
 
 class ImagePrep():
+    '''Simplify processing by squeezing the image dimensions into a 2D array
 
-    def __init__(self):
+    This will keep the original "imc" in the data dict as a new key: "imref", for later use
+    but compress "imc" into a grayscale image for the rest of the processing
+    '''
+
+    def __init__(self, image_level=['imc']):
+        self.image_level = image_level
         pass
 
     def __call__(self, data):
-        # @todo
-        # #imbg = data['imbg']
-        # background correction
-        print('WARNING: Background correction not implemented!')
-        imraw = data['img']
-        imc = np.float64(imraw)
+        image = data[self.image_level]
+        data['imref'] = image
+        imc = np.float64(image)
 
         # simplify processing by squeezing the image dimensions into a 2D array
         # min is used for squeezing to represent the highest attenuation of all wavelengths
