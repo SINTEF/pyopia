@@ -80,6 +80,9 @@ class Pipeline():
         # initialise the pipeline with a only the 'classifier' initialisation step:
         processing_pipeline = Pipeline(steps, initial_steps=['classifier'])
 
+    A standard set of silcam analysis setps can be loaded using:
+    :func:`pyopia.instrument.silcam.silcam_steps`
+
     Running a pipeline:
     """""""""""""""""""
 
