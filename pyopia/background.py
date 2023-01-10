@@ -27,6 +27,22 @@ def ini_background(bgfiles, load_function):
     return bgstack, imbg
 
 
+def pass_bgstack(bgstack, imbg, imraw):
+    '''
+    Pass through variables for use when wanted as static instead of shifting background
+
+    Args:
+        bgstack (list)                  : list of all images in the background stack
+        imbg (uint8)                    : background image
+        imraw (uint8)                   : raw image
+
+    Returns:
+        bgstack (list)                  : unmodified list of all images in the background stack
+        imbg (uint8)                    : unmodified background averaged image
+    '''
+    return bgstack, imbg
+
+
 def shift_bgstack_accurate(bgstack, imbg, imnew):
     '''
     Shifts the background by popping the oldest and added a new image
@@ -250,31 +266,45 @@ class CreateBackground():
         return data
 
 
-def pass_bgstack(bgstack, imbg, imraw):
-    '''
-    Pass through variables for use when wanted as static instead of shifting background
-
-    Args:
-        bgstack (list)                  : list of all images in the background stack
-        imbg (uint8)                    : background image
-        imraw (uint8)                   : raw image
-
-    Returns:
-        bgstack (list)                  : unmodified list of all images in the background stack
-        imbg (uint8)                    : unmodified background averaged image
-    '''
-    return bgstack, imbg
-
-
 class CorrectBackgroundAccurate():
     '''
     :class:`pyopia.pipeline` compatible class that calls: :func:`pyopia.background.correct_im_accurate`
+    and will shift the background using a moving average function if given
 
-    requires these data dict keys:
-    "img"
-    "imbg"
+    Pipeline input data:
+    --------------------
+    :class:`pyopia.pipeline.Data`
 
-    and adds "imc" to the data dict.
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.imc`
+
+        :attr:`pyopia.pipeline.Data.bgstack`
+
+        :attr:`pyopia.pipeline.Data.imraw`
+
+        :attr:`pyopia.pipeline.Data.imbg`
+
+    Parameters:
+    -----------
+    bgshift_function : (function object, optional)
+        Function used to shift the background. Defaults to passing (i.e. static background)
+        Available functions are:
+
+        :func:`pyopia.background.shift_bgstack_accurate`
+
+        :func:`pyopia.background.shift_bgstack_fast`
+
+    Returns:
+    --------
+    :class:`pyopia.pipeline.Data`
+        containing the following new keys:
+
+        :attr:`pyopia.pipeline.Data.imc`
+
+        :attr:`pyopia.pipeline.Data.bgstack`
+
+        :attr:`pyopia.pipeline.Data.imbg`
     '''
 
     def __init__(self, bgshift_function=pass_bgstack):
