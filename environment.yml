@@ -23,4 +23,5 @@ dependencies:    # These are the conda packages
         - tensorflow-cpu==2.10.1
         - numpy==1.23.4
         - ipykernel==6.19.4
+        - gdown
 

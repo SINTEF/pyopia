@@ -1,6 +1,8 @@
 import urllib.request
 import zipfile
 import os
+import gdown
+
 
 
 def get_file_from_pysilcam_blob(filename):
@@ -71,3 +73,25 @@ def get_example_hologram_and_background():
     get_file_from_pysilcam_blob(holo_filename)
     get_file_from_pysilcam_blob(holo_background_filename)
     return holo_filename, holo_background_filename
+
+def get_folder_from_holo_repository(foldername="holo_test_data_01"):
+    '''Downloads a specified folder from the holo testing repository into the working dir. if it doesn't already exist
+
+    only works for known folders that are on the GoogleDrive repository
+    by default will 
+
+    Parameters
+    ----------
+    foldername : string
+        known filename on the blob
+
+    '''
+    if foldername == "holo_test_data_01":
+        url = 'https://drive.google.com/drive/folders/1yNatOaKdWwYQp-5WVEDItoibr-k0lGsP?usp=share_link'
+    
+    else:
+        foldername == "holo_test_data_01"
+        url = 'https://drive.google.com/drive/folders/1yNatOaKdWwYQp-5WVEDItoibr-k0lGsP?usp=share_link'
+    
+    gdown.download_folder(url, quiet=True, use_cookies=False)
+    return foldername
