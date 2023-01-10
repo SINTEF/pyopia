@@ -58,7 +58,7 @@ class SilCamLoad():
     :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
-        :attr:`pyopia.pipeline.Data.timestamp`  
+        :attr:`pyopia.pipeline.Data.timestamp`
 
         :attr:`pyopia.pipeline.Data.img`
     '''
