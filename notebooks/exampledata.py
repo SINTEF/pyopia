@@ -4,7 +4,6 @@ import os
 import gdown
 
 
-
 def get_file_from_pysilcam_blob(filename):
     '''Downloads a specified filename from the pysilcam.blob into the working dir. if it doesn't already exist
 
@@ -79,7 +78,7 @@ def get_folder_from_holo_repository(foldername="holo_test_data_01"):
     '''Downloads a specified folder from the holo testing repository into the working dir. if it doesn't already exist
 
     only works for known folders that are on the GoogleDrive repository
-    by default will 
+    by default will
 
     Parameters
     ----------
