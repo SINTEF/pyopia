@@ -176,7 +176,18 @@ class Data(TypedDict):
     img: float
     '''Raw uncorrected image. To be deprecatied and changed to imraw'''
     imc: float
-    '''Corrected image'''
+    '''Corrected image
+    Obtained from e.g. :class:`pyopia.background.CorrectBackgroundAccurate`
+    '''
+    bgstack: float
+    '''List of images making up the background (either static or moving)
+    Obtained from :class:`pyopia.background.CreateBackground`
+    '''
+    imbg: float
+    '''Background image that can be used to correct :attr:`pyopia.pipeline.Data.imraw`
+    and calcaulte :attr:`pyopia.pipeline.Data.imc`
+    Obtained from :class:`pyopia.background.CreateBackground`
+    '''
     filename: str
     '''Filename string'''
     steps_string: str
@@ -220,8 +231,26 @@ class ReturnData():
     '''Pipeline compatible class that can be used for debugging
     if inserted as the last step in the steps dict.
 
+
+    Pipeline input data:
+    --------------------
+    :class:`pyopia.pipeline.Data`
+
+    containing any set of keys
+
+    Returns:
+    --------
+    :class:`pyopia.pipeline.Data`
+
+    Example use:
+    ------------
+
     This will allow you to call pipeline.run() like this:
-    `data = pipeline.run(filename)`
+
+    .. code-block:: python
+
+        data = pipeline.run(filename)
+
     where `data` will be the available data dictionary available at the point of calling this
     '''
 

@@ -250,7 +250,41 @@ class CreateBackground():
     '''
     :class:`pyopia.pipeline` compatible class that calls: :func:`pyopia.background.ini_background`
 
-    adds "bgstack" and "imbg" to the data dict.
+    Pipeline input data:
+    --------------------
+    :class:`pyopia.pipeline.Data`
+
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.imc`
+
+        :attr:`pyopia.pipeline.Data.bgstack`
+
+        :attr:`pyopia.pipeline.Data.imraw`
+
+        :attr:`pyopia.pipeline.Data.imbg`
+
+    Parameters:
+    -----------
+    bgfiles : (list[str])
+        List of strings of filenames to be used in creating the background.
+        Lhe number of files in this list determines the average window over which
+        the background is created, and any subsequent moving background based on this.
+
+    load_function : (function object)
+        Function used to load a raw image from a filename.
+        Example load_function for silcam is:
+            :func:`pyopia.instrument.silcam.load_image`
+
+    Returns:
+    --------
+    :class:`pyopia.pipeline.Data`
+        containing the following new keys:
+
+        :attr:`pyopia.pipeline.Data.bgstack`
+
+        :attr:`pyopia.pipeline.Data.imbg`
+
     '''
 
     def __init__(self, bgfiles, load_function):
@@ -305,6 +339,24 @@ class CorrectBackgroundAccurate():
         :attr:`pyopia.pipeline.Data.bgstack`
 
         :attr:`pyopia.pipeline.Data.imbg`
+
+
+    Example pipeline uses:
+    ----------------------
+    Apply moving average using :func:`pyopia.background.shift_bgstack_accurate` :
+
+    .. code-block:: python
+
+        step = {'correct background': CorrectBackgroundAccurate(shift_bgstack_accurate)}
+
+    Apply static background correction:
+
+    .. code-block:: python
+
+        step = {'correct background': CorrectBackgroundAccurate()}
+
+    Remove the step completely if you do not want to do background correction.
+
     '''
 
     def __init__(self, bgshift_function=pass_bgstack):
