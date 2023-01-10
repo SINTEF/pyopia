@@ -26,17 +26,20 @@ def timestamp_from_filename(filename):
 class SilCamLoad():
     '''PyOpia pipline-compatible class for loading a single silcam image
 
-    Args:
-    --------
-        :class:`pyopia.pipeline.Data`
+    Pipeline input data:
+    ---------
+    :class:`pyopia.pipeline.Data`
         containing the following keys:
+
         :attr:`pyopia.pipeline.Data.filename`
 
     Returns:
     --------
-        :class:`pyopia.pipeline.Data`
+    :class:`pyopia.pipeline.Data`
         containing the following new keys:
-        :attr:`pyopia.pipeline.Data.timestamp`
+
+        :attr:`pyopia.pipeline.Data.timestamp`  
+
         :attr:`pyopia.pipeline.Data.img`
     '''
 
@@ -52,7 +55,22 @@ class SilCamLoad():
 
 
 class ImagePrep():
+    '''PyOpia pipline-compatible class for preparing silcam images for further analysis
 
+    Pipeline input data:
+    ---------
+    :class:`pyopia.pipeline.Data`
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.img`
+
+    Returns:
+    --------
+    :class:`pyopia.pipeline.Data`
+        containing the following new keys:
+
+        :attr:`pyopia.pipeline.Data.imc`
+    '''
     def __init__(self):
         pass
 

@@ -5,6 +5,7 @@ Refer to :class:`Pipeline` for examples of how to process datasets and images
 '''
 from typing import TypedDict
 import datetime
+import pandas as pd
 
 
 class Pipeline():
@@ -157,6 +158,10 @@ class Pipeline():
 class Data(TypedDict):
     '''Data dictionary which is passed between :class:`pyopia.pipeline` steps.
 
+    For debugging, you can use :class:`pyopia.pipeline.ReturnData`
+    at the end of a steps dictionary to return of this Data dictionary
+    for exploratory purposes.
+
     In future this may be better as a data class with slots (from python 3.10).
 
     This is an example of a link to the imc key doc:
@@ -165,6 +170,8 @@ class Data(TypedDict):
 
     imraw: float
     '''Raw uncorrected image'''
+    img: float
+    '''Raw uncorrected image. To be deprecatied and changed to imraw'''
     imc: float
     '''Corrected image'''
     filename: str
@@ -176,7 +183,15 @@ class Data(TypedDict):
     cl: object
     '''classifier object from :class:`pyopia.classify.Classify`'''
     timestamp: datetime.datetime
-    '''timestamp from timestamp_from_filename()'''
+    '''timestamp from e.g. :func:`pyopia.instrument.silcam.timestamp_from_filename()`'''
+    imbw: float
+    '''Segmented binary image identifying particles from water
+    Obtained from e.g. :class:`pyopia.process.Segment`
+    '''
+    stats: pd.DataFrame
+    '''stats DataFrame containing particle statistics of every particle
+    Obtained from e.g. :class:`pyopia.process.CalculateStats`
+    '''
 
 
 def steps_to_string(steps):
