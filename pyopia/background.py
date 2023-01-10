@@ -27,7 +27,7 @@ def ini_background(bgfiles, load_function):
     return bgstack, imbg
 
 
-def shift_bgstack_accurate(bgstack, imbg, imnew, stacklength):
+def shift_bgstack_accurate(bgstack, imbg, imnew):
     '''
     Shifts the background by popping the oldest and added a new image
 
@@ -38,7 +38,6 @@ def shift_bgstack_accurate(bgstack, imbg, imnew, stacklength):
         bgstack (list)      : list of all images in the background stack
         imbg (uint8)        : background image
         imnew (unit8)       : new image to be added to stack
-        stacklength (int)   : unsed here - it is just there to maintain the same behaviour as shift_bgstack_fast()
 
     Returns:
         bgstack (updated list of all background images)
@@ -50,7 +49,7 @@ def shift_bgstack_accurate(bgstack, imbg, imnew, stacklength):
     return bgstack, imbg
 
 
-def shift_bgstack_fast(bgstack, imbg, imnew, stacklength):
+def shift_bgstack_fast(bgstack, imbg, imnew):
     '''
     Shifts the background by popping the oldest and added a new image
 
@@ -62,12 +61,12 @@ def shift_bgstack_fast(bgstack, imbg, imnew, stacklength):
         bgstack (list)      : list of all images in the background stack
         imbg (uint8)        : background image
         imnew (unit8)       : new image to be added to stack
-        stacklength (int)   : unsed int here - just there to maintain the same behaviour as shift_bgstack_fast()
 
     Returns:
         bgstack (updated list of all background images)
         imbg (updated actual background image)
     '''
+    stacklength = len(bgstack)
     imold = bgstack.pop(0)  # pop the oldest image from the stack,
     # subtract the old image from the average (scaled by the average window)
     imbg -= (imold / stacklength)
@@ -251,6 +250,22 @@ class CreateBackground():
         return data
 
 
+def pass_bgstack(bgstack, imbg, imraw):
+    '''
+    Pass through variables for use when wanted as static instead of shifting background
+
+    Args:
+        bgstack (list)                  : list of all images in the background stack
+        imbg (uint8)                    : background image
+        imraw (uint8)                   : raw image
+
+    Returns:
+        bgstack (list)                  : unmodified list of all images in the background stack
+        imbg (uint8)                    : unmodified background averaged image
+    '''
+    return bgstack, imbg
+
+
 class CorrectBackgroundAccurate():
     '''
     :class:`pyopia.pipeline` compatible class that calls: :func:`pyopia.background.correct_im_accurate`
@@ -262,14 +277,14 @@ class CorrectBackgroundAccurate():
     and adds "imc" to the data dict.
     '''
 
-    def __init__(self):
+    def __init__(self, bgshift_function=pass_bgstack):
+        self.bgshift_function = bgshift_function
         pass
 
     def __call__(self, data):
-        imraw = data['imraw']
-        imbg = data['imbg']
+        data['imc'] = correct_im_accurate(data['imbg'], data['imraw'])
 
-        imc = correct_im_accurate(imbg, imraw)
-
-        data['imc'] = imc
+        data['bgstack'], data['imbg'] = self.bgshift_function(data['bgstack'],
+                                                              data['imbg'],
+                                                              data['imraw'])
         return data
