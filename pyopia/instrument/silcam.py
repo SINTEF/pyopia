@@ -88,17 +88,21 @@ class SilCamLoad():
     and extracting the timestamp using
     :func:`pyopia.instrument.silcam.timestamp_from_filename`
 
-    Parameters
-    ----------
-    filename : string
-        silcam filename (.silc)
+    Pipeline input data:
+    ---------
+    :class:`pyopia.pipeline.Data`
+        containing the following keys:
 
-    Returns
-    -------
-    timestamp : timestamp
-        timestamp from timestamp_from_filename()
-    img : np.array
-        raw silcam image
+        :attr:`pyopia.pipeline.Data.filename`
+
+    Returns:
+    --------
+    :class:`pyopia.pipeline.Data`
+        containing the following new keys:
+
+        :attr:`pyopia.pipeline.Data.timestamp`
+
+        :attr:`pyopia.pipeline.Data.img`
     '''
 
     def __init__(self):
@@ -113,12 +117,22 @@ class SilCamLoad():
 
 
 class ImagePrep():
-    '''Simplify processing by squeezing the image dimensions into a 2D array
+    '''PyOpia pipline-compatible class for preparing silcam images for further analysis
 
-    This will keep the original "imc" in the data dict as a new key: "imref", for later use
-    but compress "imc" into a grayscale image for the rest of the processing
+    Pipeline input data:
+    ---------
+    :class:`pyopia.pipeline.Data`
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.img`
+
+    Returns:
+    --------
+    :class:`pyopia.pipeline.Data`
+        containing the following new keys:
+
+        :attr:`pyopia.pipeline.Data.imc`
     '''
-
     def __init__(self, image_level=['imc']):
         self.image_level = image_level
         pass
