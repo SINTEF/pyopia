@@ -266,7 +266,7 @@ class CorrectBackgroundAccurate():
         pass
 
     def __call__(self, data):
-        imraw = data['img']
+        imraw = data['imraw']
         imbg = data['imbg']
 
         imc = correct_im_accurate(imbg, imraw)

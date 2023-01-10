@@ -66,7 +66,7 @@ class SilCamLoad():
         timestamp = timestamp_from_filename(data['filename'])
         img = load_image(data['filename'])
         data['timestamp'] = timestamp
-        data['img'] = img
+        data['imraw'] = img
         return data
 
 
@@ -77,13 +77,14 @@ class ImagePrep():
     but compress "imc" into a grayscale image for the rest of the processing
     '''
 
-    def __init__(self):
+    def __init__(self, image_level=['imc']):
+        self.image_level = image_level
         pass
 
     def __call__(self, data):
-        im_corrected = data['imc']
-        data['imref'] = im_corrected
-        imc = np.float64(im_corrected)
+        image = data[self.image_level]
+        data['imref'] = image
+        imc = np.float64(image)
 
         # simplify processing by squeezing the image dimensions into a 2D array
         # min is used for squeezing to represent the highest attenuation of all wavelengths
