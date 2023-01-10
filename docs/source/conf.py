@@ -124,6 +124,7 @@ html_sidebars = {
     ]
 }
 
+autodoc_member_order = 'bysource'
 
 # -- Options for HTMLHelp output ------------------------------------------
 
