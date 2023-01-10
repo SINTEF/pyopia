@@ -6,6 +6,48 @@ import os
 
 import numpy as np
 import pandas as pd
+import pyopia
+
+
+def silcam_steps(model_path, threshold, datafile_hdf):
+    '''generate a default / suggested steps dictionary for standard silcam analsysis
+
+    Parameters
+    ----------
+    model_path : str
+        path to classification model
+    threshold : float
+        threshold for segmentation
+    datafile_hdf : str
+        output data path
+
+    Returns
+    -------
+    steps : dict
+        dictionary of steps
+    initial_steps : list[str]
+        list of strings for initial steps
+
+    Example
+    """""""
+
+    .. code-block:: python
+
+        from pyopia.instrument.silcam import silcam_steps
+        default_steps, default_initial_steps = silcam_steps(model_path, threshold, datafile_hdf)
+
+        # initialise the pipeline
+        processing_pipeline = Pipeline(default_steps, initial_steps=default_initial_steps)
+
+    '''
+    steps = {'classifier': pyopia.classify.Classify(model_path=model_path),
+             'load': SilCamLoad(),
+             'imageprep': ImagePrep(),
+             'segmentation': pyopia.process.Segment(threshold=threshold),
+             'statextract': pyopia.process.CalculateStats(),
+             'output': pyopia.io.StatsH5(datafile_hdf)}
+    initial_steps = ['classifier']
+    return steps, initial_steps
 
 
 def timestamp_from_filename(filename):
@@ -46,17 +88,21 @@ class SilCamLoad():
     and extracting the timestamp using
     :func:`pyopia.instrument.silcam.timestamp_from_filename`
 
-    Parameters
-    ----------
-    filename : string
-        silcam filename (.silc)
+    Pipeline input data:
+    ---------
+    :class:`pyopia.pipeline.Data`
+        containing the following keys:
 
-    Returns
-    -------
-    timestamp : timestamp
-        timestamp from timestamp_from_filename()
-    img : np.array
-        raw silcam image
+        :attr:`pyopia.pipeline.Data.filename`
+
+    Returns:
+    --------
+    :class:`pyopia.pipeline.Data`
+        containing the following new keys:
+
+        :attr:`pyopia.pipeline.Data.timestamp`
+
+        :attr:`pyopia.pipeline.Data.img`
     '''
 
     def __init__(self):
@@ -71,12 +117,22 @@ class SilCamLoad():
 
 
 class ImagePrep():
-    '''Simplify processing by squeezing the image dimensions into a 2D array
+    '''PyOpia pipline-compatible class for preparing silcam images for further analysis
 
-    This will keep the original "imc" in the data dict as a new key: "imref", for later use
-    but compress "imc" into a grayscale image for the rest of the processing
+    Pipeline input data:
+    ---------
+    :class:`pyopia.pipeline.Data`
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.img`
+
+    Returns:
+    --------
+    :class:`pyopia.pipeline.Data`
+        containing the following new keys:
+
+        :attr:`pyopia.pipeline.Data.imc`
     '''
-
     def __init__(self, image_level=['imc']):
         self.image_level = image_level
         pass
