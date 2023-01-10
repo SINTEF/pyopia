@@ -347,13 +347,13 @@ class CorrectBackgroundAccurate():
 
     .. code-block:: python
 
-        step = {'correct background': CorrectBackgroundAccurate(shift_bgstack_accurate)}
+        step = {'correct background': pyopia.background.CorrectBackgroundAccurate(pyopia.background.shift_bgstack_accurate)}
 
     Apply static background correction:
 
     .. code-block:: python
 
-        step = {'correct background': CorrectBackgroundAccurate()}
+        step = {'correct background': pyopia.background.CorrectBackgroundAccurate()}
 
     Remove the step completely if you do not want to do background correction.
 
