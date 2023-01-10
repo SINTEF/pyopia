@@ -91,7 +91,8 @@ class ImagePrep():
 
         :attr:`pyopia.pipeline.Data.imc`
     '''
-    def __init__(self):
+    def __init__(self, image_level=['imc']):
+        self.image_level = image_level
         pass
 
     def __call__(self, data):
