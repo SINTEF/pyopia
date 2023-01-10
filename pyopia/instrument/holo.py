@@ -29,7 +29,7 @@ class Initial():
     Parameters
     ----------
     filename : string
-        background hologram filename (.pgm)
+        hologram filename to use for image size
 
     kernel settings : ....
         ....
@@ -37,8 +37,6 @@ class Initial():
     Returns
     -------
     @todo . This is an 'output' dict containing:
-    imbg : np.array
-        background image
     kern : np.arry
         reconstruction kernel
 
@@ -53,12 +51,11 @@ class Initial():
         self.stepZ = stepZ
 
     def __call__(self, data):
-        print('Load background from disc. \n WARNING: Proper background calculation not implemented here.')
-        imbg = imread(self.filename).astype(np.float64)
+        print('Using first raw file to determine image dimensions')
+        imtmp = imread(self.filename).astype(np.float64)
         print('Build kernel')
-        kern = create_kernel(imbg, self.pixel_size, self.wavelength, self.minZ, self.maxZ, self.stepZ)
+        kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.minZ, self.maxZ, self.stepZ)
         print('HoloInitial done', pd.datetime.now())
-        data['imbg'] = imbg
         data['kern'] = kern
         return data
 
