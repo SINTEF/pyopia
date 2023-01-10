@@ -20,7 +20,7 @@ dependencies:    # These are the conda packages
         - pytest-error-for-skips
         - sphinx_rtd_theme==0.5.0
         - sphinxcontrib-napoleon==0.7
-        - tensorflow-cpu==2.10.1
+        - tensorflow-cpu==2.10.0
         - numpy==1.23.4
         - ipykernel==6.19.4
 
