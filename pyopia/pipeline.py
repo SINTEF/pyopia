@@ -3,9 +3,8 @@ Module for managing the PyOpia processing pipeline
 
 Refer to :class:`Pipeline` for examples of how to process datasets and images
 '''
-
-import numpy as np
 from typing import TypedDict
+import datetime
 
 
 class Pipeline():
@@ -101,7 +100,7 @@ class Pipeline():
 
         self.initial_steps = initial_steps
         print('Initialising pipeline')
-        self.data: Data = dict()
+        self.data = Data()
         self.steps = steps
 
         for s in self.steps:
@@ -109,10 +108,10 @@ class Pipeline():
                 continue
             if s == 'classifier':
                 print('  Running', self.steps['classifier'])
-                self.data['cl']: Data = self.steps['classifier']()
+                self.data['cl'] = self.steps['classifier']()
             else:
                 print('  Running', self.steps[s])
-                self.data: Data = self.steps[s](self.data)
+                self.data = self.steps[s](self.data)
 
         print('Pipeline ready with these data: ', list(self.data.keys()))
 
@@ -154,18 +153,25 @@ class Pipeline():
         print('\n---------------------------------\n')
 
 
-class Data(TypedDict, total=False):
-    '''Data dict which is passed between :class:`pyopia.pipeline` steps.
+class Data(TypedDict):
+    '''Data dictionary which is passed between :class:`pyopia.pipeline` steps.
+
+    In future this may be better as a data class with slots (from python 3.10).
+
+    This is an example of a link to the imc key doc:
+    :attr:`pyopia.pipeline.Data.imc`
     '''
 
-    imc: np.uint8
+    imc: float
     '''Corrected image'''
-    filename: int
+    filename: str
     '''Filename string'''
     steps_string: str
     '''String documenting the steps given to :class:`pyopia.pipeline`'''
     cl: object
     '''classifier object from :class:`pyopia.classify.Classify`'''
+    timestamp: datetime.datetime
+    '''timestamp from timestamp_from_filename()'''
 
 
 def steps_to_string(steps):
@@ -185,3 +191,20 @@ def steps_to_string(steps):
                       + '\n   Vars: ' + str(vars(steps[key]))
                       + '\n')
     return steps_str
+
+
+class ReturnData():
+    '''Pipeline compatible class that can be used for debugging
+    if inserted as the last step in the steps dict.
+
+    This will allow you to call pipeline.run() like this:
+    `data = pipeline.run(filename)`
+    where `data` will be the available data dictionary available at the point of calling this
+    '''
+
+    def __init__(self):
+        pass
+
+    def __call__(self, data):
+        data['stats'] = data
+        return data
