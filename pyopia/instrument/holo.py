@@ -123,7 +123,7 @@ class Reconstruct():
         self.stack_clean = stack_clean
 
     def __call__(self, data):
-        imraw = data['img']
+        imraw = data['imc']
         imbg = data['imbg']
         kern = data['kern']
 
