@@ -85,22 +85,27 @@ def correct_im_accurate(imbg, imraw):
     highlights if the background or raw images are very poorly obtained
 
     Args:
-      imbg (uint8)  : background averaged image
-      imraw (uint8) : raw image
+      imbg (uint8 or float64)  : background averaged image
+      imraw (uint8 or float64) : raw image
 
     Returns:
-      imc (uint8)   : corrected image
+      imc (uint8 or float64)   : corrected image, same type as input
     '''
 
     imc = np.float64(imraw) - np.float64(imbg)
-    imc[:, :, 0] += (255 / 2 - np.percentile(imc[:, :, 0], 50))
-    imc[:, :, 1] += (255 / 2 - np.percentile(imc[:, :, 1], 50))
-    imc[:, :, 2] += (255 / 2 - np.percentile(imc[:, :, 2], 50))
+    if imc.ndim == 3:
+        imc[:, :, 0] += (255 / 2 - np.percentile(imc[:, :, 0], 50))
+        imc[:, :, 1] += (255 / 2 - np.percentile(imc[:, :, 1], 50))
+        imc[:, :, 2] += (255 / 2 - np.percentile(imc[:, :, 2], 50))
+    else:
+        imc += (255 / 2 - np.percentile(imc, 50))
+        
     imc += 255 - imc.max()
 
     imc[imc > 255] = 255
     imc[imc < 0] = 0
-    imc = np.uint8(imc)
+    if type(imbg) is int:
+        imc = np.uint8(imc)
 
     return imc
 
