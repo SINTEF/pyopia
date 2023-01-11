@@ -357,7 +357,7 @@ def segment(img, threshold=0.98, minimum_area=12, fill_holes=True):
     return imbw
 
 
-def statextract_light(imbw, timestamp, img, Classification,
+def statextract_light(imbw, timestamp, imc, Classification,
                       max_coverage=30,
                       max_particles=5000,
                       export_outputpath=None,
@@ -390,11 +390,15 @@ def statextract_light(imbw, timestamp, img, Classification,
 
     # build the stats and export to HDF5
     # stats = extractparticles_function(imc, timestamp, Classification, region_properties)
-    print('WARNING. exportparticles temporarily modified for 2-d images without color!')
-    imc = np.zeros((np.shape(img)[0], np.shape(img)[1], 3), dtype=np.uint8)
-    imc[:, :, 0] = img
-    imc[:, :, 1] = img
-    imc[:, :, 2] = img
+    s = np.shape(imc)
+    if not len(s) == 2:
+        imref = np.copy(imc)
+        imc = np.zeros((np.shape(imc)[0], np.shape(imc)[1], 3), dtype=np.uint8)
+        imc[:, :, 0] = imref
+        imc[:, :, 1] = imref
+        imc[:, :, 2] = imref
+        print('WARNING. exportparticles temporarily modified for 2-d images without color!')
+
     stats = extract_particles(imc, timestamp, Classification, region_properties,
                               export_outputpath=export_outputpath, min_length=min_length)
 
