@@ -1,6 +1,13 @@
 '''
 Module containing hologram specific tools to enable compatability with the :mod:`pyopia.pipeline`
+'''
 
+import numpy as np
+import pandas as pd
+from scipy import fftpack
+from skimage.io import imread
+
+'''
 This is an subpackage containing basic processing for reconstruction of in-line holographic images.
 
 See (and references therein):
@@ -11,17 +18,9 @@ Journal of Atmospheric and Oceanic Technology 32, (6) 1241-1256,
 https://doi.org/10.1175/JTECH-D-14-00157.1
 https://journals.ametsoc.org/view/journals/atot/32/6/jtech-d-14-00157_1.xml
 
-ToDo
-%%%%ADD Recommended settings here%%%%%
-
 2022-11-01 Alex Nimmo-Smith alex.nimmo.smith@plymouth.ac.uk
 '''
 
-import numpy as np
-import pandas as pd
-from scipy import fftpack
-from skimage.io import imread
-import pyopia.background
 
 class Initial():
     '''PyOpia pipline-compatible class for one-time setup of holograhic reconstruction
@@ -60,6 +59,23 @@ class Initial():
         return data
 
 
+def load_image(filename):
+    '''load a hologram image file from disc
+
+    Parameters
+    ----------
+    filename : string
+        filename to load
+
+    Returns
+    -------
+    array
+        raw image
+    '''
+    img = imread(filename).astype(np.float64)
+    return img
+
+
 class Load():
     '''PyOpia pipline-compatible class for loading a single holo image
 
@@ -84,7 +100,7 @@ class Load():
         timestamp = pd.datetime.now()
         im = imread(data['filename']).astype(np.float64)
         data['timestamp'] = timestamp
-        data['img'] = im
+        data['imraw'] = im
         return data
 
 
@@ -106,12 +122,9 @@ class Reconstruct():
         self.stack_clean = stack_clean
 
     def __call__(self, data):
-        imraw = data['img']
-        imbg = data['imbg']
+        imc = data['imc']
         kern = data['kern']
 
-        print('correct background')
-        imc = pyopia.background.subtract_background(imbg, imraw)
         print('forward transform')
         im_fft = forward_transform(imc)
         print('inverse transform')
@@ -120,7 +133,10 @@ class Reconstruct():
         im_stack = clean_stack(im_stack, self.stack_clean)
         print('summarise stack')
         stack_max = max_map(im_stack)
-        stack_max = rescale_stack(stack_max)
+        stack_max = np.max(stack_max) - stack_max
+        stack_max -= np.min(stack_max)
+        stack_max /= np.max(stack_max)
+        # im_stack_inv = holo.rescale_stack(im_stack)
         data['imc'] = stack_max
         return data
 
@@ -293,4 +309,4 @@ def rescale_stack(im_stack):
     im_min = np.min(im_stack)
     im_stack_inverted = 255 * (im_stack - im_min) / (im_max - im_min)
     im_stack_inverted = 255 - im_stack_inverted
-    return im_stack_inverted
+    return im_stack
