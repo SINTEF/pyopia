@@ -391,7 +391,7 @@ def statextract_light(imbw, timestamp, imc, Classification,
     # build the stats and export to HDF5
     # stats = extractparticles_function(imc, timestamp, Classification, region_properties)
     s = np.shape(imc)
-    if not len(s) == 2:
+    if not len(s) == 3:
         imref = np.copy(imc)
         imc = np.zeros((np.shape(imc)[0], np.shape(imc)[1], 3), dtype=np.uint8)
         imc[:, :, 0] = imref
@@ -621,7 +621,7 @@ class CalculateStats():
 
     def __call__(self, data):
         print('statextract_light')
-        stats, saturation = statextract_light(data['imbw'], data['timestamp'], data['imc'], data['cl'],
+        stats, saturation = statextract_light(data['imbw'], data['timestamp'], data['imref'], data['cl'],
                                               max_coverage=self.max_coverage,
                                               max_particles=self.max_particles,
                                               export_outputpath=self.export_outputpath,
