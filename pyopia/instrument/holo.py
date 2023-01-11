@@ -127,8 +127,6 @@ class Reconstruct():
         imbg = data['imbg']
         kern = data['kern']
 
-        print('correct background')
-        imc = pyopia.background.subtract_background(imbg, imraw)
         print('forward transform')
         im_fft = forward_transform(imc)
         print('inverse transform')
