@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from scipy import fftpack
 from skimage.io import imread
-import pyopia.background
 
 '''
 This is an subpackage containing basic processing for reconstruction of in-line holographic images.
@@ -123,8 +122,7 @@ class Reconstruct():
         self.stack_clean = stack_clean
 
     def __call__(self, data):
-        imraw = data['imc']
-        imbg = data['imbg']
+        imc = data['imc']
         kern = data['kern']
 
         print('forward transform')
