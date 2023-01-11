@@ -60,6 +60,23 @@ class Initial():
         return data
 
 
+def load_image(filename):
+    '''load a hologram image file from disc
+
+    Parameters
+    ----------
+    filename : string
+        filename to load
+
+    Returns
+    -------
+    array
+        raw image
+    '''
+    img = imread(filename).astype(np.float64)
+    return img
+
+
 class Load():
     '''PyOpia pipline-compatible class for loading a single holo image
 
@@ -84,7 +101,7 @@ class Load():
         timestamp = pd.datetime.now()
         im = imread(data['filename']).astype(np.float64)
         data['timestamp'] = timestamp
-        data['img'] = im
+        data['imraw'] = im
         return data
 
 
