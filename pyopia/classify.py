@@ -68,6 +68,7 @@ class Classify():
         header = pd.read_csv(os.path.join(path, 'header.tfl.txt'))
         self.class_labels = header.columns
         self.model = keras.models.load_model(model_path)
+        print('WARNING: Classification assumes loaded images have values in the range 0-255')
         return
 
     def preprocessing(self, img_input):
