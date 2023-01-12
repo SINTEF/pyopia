@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from scipy import fftpack
 from skimage.io import imread
-import pyopia.background
 
 '''
 This is an subpackage containing basic processing for reconstruction of in-line holographic images.
@@ -60,6 +59,23 @@ class Initial():
         return data
 
 
+def load_image(filename):
+    '''load a hologram image file from disc
+
+    Parameters
+    ----------
+    filename : string
+        filename to load
+
+    Returns
+    -------
+    array
+        raw image
+    '''
+    img = imread(filename).astype(np.float64)
+    return img
+
+
 class Load():
     '''PyOpia pipline-compatible class for loading a single holo image
 
@@ -84,7 +100,7 @@ class Load():
         timestamp = pd.datetime.now()
         im = imread(data['filename']).astype(np.float64)
         data['timestamp'] = timestamp
-        data['img'] = im
+        data['imraw'] = im
         return data
 
 
@@ -106,12 +122,9 @@ class Reconstruct():
         self.stack_clean = stack_clean
 
     def __call__(self, data):
-        imraw = data['img']
-        imbg = data['imbg']
+        imc = data['imc']
         kern = data['kern']
 
-        print('correct background')
-        imc = pyopia.background.subtract_background(imbg, imraw)
         print('forward transform')
         im_fft = forward_transform(imc)
         print('inverse transform')
