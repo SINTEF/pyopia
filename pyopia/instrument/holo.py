@@ -51,7 +51,7 @@ class Initial():
 
     def __call__(self, data):
         print('Using first raw file to determine image dimensions')
-        imtmp = imread(self.filename).astype(np.float64)
+        imtmp = load_image(self.filename)
         print('Build kernel')
         kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.minZ, self.maxZ, self.stepZ)
         print('HoloInitial done', pd.datetime.now())
@@ -98,7 +98,7 @@ class Load():
     def __call__(self, data):
         print('WARNING: timestamp not implemented for holo data! using current time to test workflow.')
         timestamp = pd.datetime.now()
-        im = imread(data['filename']).astype(np.float64)
+        im = load_image(data['filename'])
         data['timestamp'] = timestamp
         data['imraw'] = im
         return data
