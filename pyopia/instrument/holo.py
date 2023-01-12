@@ -88,7 +88,7 @@ class Load():
     -------
     timestamp : timestamp
         timestamp @todo
-    img : np.arraym (@todo - check this)
+    imraw : np.arraym
         hologram
     '''
 
@@ -109,8 +109,8 @@ class Reconstruct():
 
     Parameters
     ----------
-    im : np.array
-        hologram image
+    stack_clean : float
+        defines amount of cleaning of stack (fraction of max value below which to zero)
 
     Returns
     -------
