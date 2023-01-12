@@ -266,7 +266,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
                 # @todo also include particle stats here too.
 
             # run a prediction on what type of particle this might be
-            prediction = Classification.proc_predict(roi)
+            prediction = Classification.proc_predict(roi.astype(np.uint8))
             predictions[int(i), :] = prediction[0]
 
     if export_outputpath is not None:
