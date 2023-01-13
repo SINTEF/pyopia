@@ -393,16 +393,16 @@ class Focus():
         imss = rescale_image(imss)
         data['imss'] = imss
 
-        #segment imss to find particle x-y locations
+        # segment imss to find particle x-y locations
         imssbw = pyopia.process.segment(imss, self.threshold)
-        #identify particles
+        # identify particles
         region_properties = pyopia.process.measure_particles(imssbw)
-        #loop through bounding boxes to focus each particle and add to output imc
+        # loop through bounding boxes to focus each particle and add to output imc
         imc = np.zeros_like(im_stack[:, :, 0])
         for rp in region_properties:
             im_focus = find_focus(im_stack, rp.bbox)
             im_focus = 255 - im_focus
             imc[rp.bbox[0]:rp.bbox[2], rp.bbox[1]:rp.bbox[3]] = im_focus
-   
+
         data['imc'] = imc
         return data
