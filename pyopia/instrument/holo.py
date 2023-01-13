@@ -133,6 +133,42 @@ class Reconstruct():
         return data
 
 
+class Focus():
+    '''PyOpia pipline-compatible class for creating a focussed image from an image stack
+
+    Pipeline input data:
+    ---------
+    :class:`pyopia.pipeline.Data`
+
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.im_stack`
+
+    Parameters
+    ----------
+    stack_clean : float
+        defines amount of cleaning of stack (fraction of max value below which to zero)
+
+    Returns
+    -------
+    imc : np.array
+        single composite image of focussed particles ready for segmentation
+    '''
+
+    def __init__(self, stack_clean):
+        self.stack_clean = stack_clean
+
+    def __call__(self, data):
+        imc = data['imc']
+        kern = data['kern']
+
+        im_fft = forward_transform(imc)
+        im_stack = inverse_transform(im_fft, kern)
+        data['im_stack'] = clean_stack(im_stack, self.stack_clean)
+        
+        return data
+
+
 def forward_transform(im):
     '''Perform forward transform
     Remove the zero frequency components and then fftshift
