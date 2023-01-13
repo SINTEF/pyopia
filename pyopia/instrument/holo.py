@@ -133,42 +133,6 @@ class Reconstruct():
         return data
 
 
-class Focus():
-    '''PyOpia pipline-compatible class for creating a focussed image from an image stack
-
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
-
-        containing the following keys:
-
-        :attr:`pyopia.pipeline.Data.im_stack`
-
-    Parameters
-    ----------
-    stack_clean : float
-        defines amount of cleaning of stack (fraction of max value below which to zero)
-
-    Returns
-    -------
-    imc : np.array
-        single composite image of focussed particles ready for segmentation
-    '''
-
-    def __init__(self, stack_clean):
-        self.stack_clean = stack_clean
-
-    def __call__(self, data):
-        imc = data['imc']
-        kern = data['kern']
-
-        im_fft = forward_transform(imc)
-        im_stack = inverse_transform(im_fft, kern)
-        data['im_stack'] = clean_stack(im_stack, self.stack_clean)
-        
-        return data
-
-
 def forward_transform(im):
     '''Perform forward transform
     Remove the zero frequency components and then fftshift
@@ -281,7 +245,7 @@ def clean_stack(im_stack, stack_clean):
     np.array
         cleaned version of im_stack
     '''
-    if im_stack > 0.0:
+    if stack_clean > 0.0:
         im_max = np.amax(im_stack, axis=None)
         im_stack[im_stack < im_max * stack_clean] = 0
     return im_stack
@@ -339,3 +303,64 @@ def rescale_stack(im_stack):
     im_stack_inverted = 255 * (im_stack - im_min) / (im_max - im_min)
     im_stack_inverted = 255 - im_stack_inverted
     return im_stack_inverted
+
+
+def rescale_image(im):
+    '''rescale im (e.g. may be stack summary) to be dark particles on light background, 8 bit
+
+    Parameters
+    ----------
+    im : image
+        input image to be scaled
+
+    Returns
+    -------
+    im : image
+        scaled and inverted image
+    '''
+    im_max = np.max(im)
+    im_min = np.min(im)
+    im = 255 * (im - im_min) / (im_max - im_min)
+    im = 255 - im
+    return im
+
+
+class Focus():
+    '''PyOpia pipline-compatible class for creating a focussed image from an image stack
+
+    Pipeline input data:
+    ---------
+    :class:`pyopia.pipeline.Data`
+
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.im_stack`
+
+    Parameters
+    ----------
+    stacksummary_function : (function object, optional)
+        Function used to summarise the stack
+        Available functions are:
+
+        :func:`pyopia.instrument.holo.max_map`
+
+        :func:`pyopia.instrument.holo.std_map` (default)
+
+    Returns
+    -------
+    imc : np.array
+        single composite image of focussed particles ready for segmentation
+    imss : np.array
+        stack summary image used to locate possible particles
+    '''
+
+    def __init__(self, stacksummary_function=std_map):
+        self.stacksummary_function = stacksummary_function
+        pass
+
+    def __call__(self, data):
+        imss = self.stacksummary_function(data['im_stack'])
+        imss = rescale_image(imss)
+        data['imss'] = imss
+        data['imc'] = imss
+        return data
