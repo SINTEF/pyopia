@@ -97,6 +97,7 @@ class Load():
 
     def __call__(self, data):
         print('WARNING: timestamp not implemented for holo data! using current time to test workflow.')
+        print(data['filename'])
         timestamp = pd.datetime.now()
         im = imread(data['filename']).astype(np.float64)
         data['timestamp'] = timestamp
@@ -114,8 +115,8 @@ class Reconstruct():
 
     Returns
     -------
-    image : np.array
-        image ready for further segmentation and analysis
+    im_stack : np.array
+        image stack ready for focussing
     '''
 
     def __init__(self, stack_clean):
@@ -125,20 +126,10 @@ class Reconstruct():
         imc = data['imc']
         kern = data['kern']
 
-        print('forward transform')
         im_fft = forward_transform(imc)
-        print('inverse transform')
         im_stack = inverse_transform(im_fft, kern)
-        print('clean stack')
-        im_stack = clean_stack(im_stack, self.stack_clean)
-        print('summarise stack')
-        #im_stack_inv = rescale_stack(im_stack)
-        stack_max = max_map(im_stack)
-        stack_max = np.max(stack_max) - stack_max
-        stack_max -= np.min(stack_max)
-        stack_max /= np.max(stack_max)
+        data['im_stack'] = clean_stack(im_stack, self.stack_clean)
         
-        data['imc'] = stack_max * 255
         return data
 
 
