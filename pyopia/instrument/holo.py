@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy import fftpack
 from skimage.io import imread
+import pyopia.process
 
 '''
 This is an subpackage containing basic processing for reconstruction of in-line holographic images.
@@ -325,6 +326,30 @@ def rescale_image(im):
     return im
 
 
+def find_focus(im_stack,bbox):
+    '''finds and returns the focussed image for the bbox region within im_stack
+    using intensity of bbox area
+
+    Parameters
+    ----------
+    im_stack : nparray
+        image stack
+    
+    bbox : tuple
+        Bounding box (min_row, min_col, max_row, max_col)
+
+    Returns
+    -------
+    im : image
+        focussed image for bbox
+    '''
+    im_seg = im_stack[bbox[0]:bbox[2],bbox[1]:bbox[3],:]
+    focus = np.sum(im_seg,axis=(0,1))
+    ifocus = np.argmax(focus)
+
+    return im_seg[:,:,ifocus]
+
+
 class Focus():
     '''PyOpia pipline-compatible class for creating a focussed image from an image stack
 
@@ -346,6 +371,9 @@ class Focus():
 
         :func:`pyopia.instrument.holo.std_map` (default)
 
+    threshold : float
+        threshold to apply during initial segmentation
+
     Returns
     -------
     imc : np.array
@@ -354,13 +382,27 @@ class Focus():
         stack summary image used to locate possible particles
     '''
 
-    def __init__(self, stacksummary_function=std_map):
+    def __init__(self, stacksummary_function=std_map, threshold=0.9):
         self.stacksummary_function = stacksummary_function
+        self.threshold = threshold
         pass
 
     def __call__(self, data):
-        imss = self.stacksummary_function(data['im_stack'])
+        im_stack = data['im_stack']
+        imss = self.stacksummary_function(im_stack)
         imss = rescale_image(imss)
         data['imss'] = imss
-        data['imc'] = imss
+
+        #segment imss to find particle x-y locations
+        imssbw = pyopia.process.segment(imss, self.threshold)
+        #identify particles
+        region_properties = pyopia.process.measure_particles(imssbw)
+        #loop through bounding boxes to focus each particle and add to output imc
+        imc = np.zeros_like(im_stack[:,:,0])
+        for rp in region_properties:
+            im_focus = find_focus(im_stack,rp.bbox)
+            im_focus = 255 - im_focus
+            imc[rp.bbox[0]:rp.bbox[2],rp.bbox[1]:rp.bbox[3]] = im_focus
+            
+        data['imc'] = imc
         return data
