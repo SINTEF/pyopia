@@ -231,7 +231,7 @@ def inverse_transform(im_fft, kern):
 
 
 def clean_stack(im_stack, stack_clean):
-    '''clean the im_stack by removing low value pixels
+    '''clean the im_stack by removing low value pixels - set to 0 to disable
 
     Parameters
     ----------
@@ -245,8 +245,9 @@ def clean_stack(im_stack, stack_clean):
     np.array
         cleaned version of im_stack
     '''
-    im_max = np.amax(im_stack, axis=None)
-    im_stack[im_stack < im_max * stack_clean] = 0
+    if im_stack > 0.0:
+        im_max = np.amax(im_stack, axis=None)
+        im_stack[im_stack < im_max * stack_clean] = 0
     return im_stack
 
 
