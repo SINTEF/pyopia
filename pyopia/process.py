@@ -12,7 +12,6 @@ import pandas as pd
 from scipy import ndimage as ndi
 import skimage.exposure
 import h5py
-import os
 from skimage.io import imsave
 import traceback
 from datetime import datetime
@@ -227,7 +226,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         if not isExist:
             os.makedirs(export_outputpath)
             print("Export folder " + export_outputpath + " created.")
-            
+
         # Make the HDF5 file
         hdf_filename = os.path.join(export_outputpath, filename + ".h5")
         HDF5File = h5py.File(hdf_filename, "w")

@@ -130,7 +130,7 @@ class Reconstruct():
         im_fft = forward_transform(imc)
         im_stack = inverse_transform(im_fft, kern)
         data['im_stack'] = clean_stack(im_stack, self.stack_clean)
-        
+
         return data
 
 
@@ -326,7 +326,7 @@ def rescale_image(im):
     return im
 
 
-def find_focus(im_stack,bbox):
+def find_focus(im_stack, bbox):
     '''finds and returns the focussed image for the bbox region within im_stack
     using intensity of bbox area
 
@@ -334,7 +334,7 @@ def find_focus(im_stack,bbox):
     ----------
     im_stack : nparray
         image stack
-    
+
     bbox : tuple
         Bounding box (min_row, min_col, max_row, max_col)
 
@@ -343,11 +343,11 @@ def find_focus(im_stack,bbox):
     im : image
         focussed image for bbox
     '''
-    im_seg = im_stack[bbox[0]:bbox[2],bbox[1]:bbox[3],:]
-    focus = np.sum(im_seg,axis=(0,1))
+    im_seg = im_stack[bbox[0]:bbox[2], bbox[1]:bbox[3], :]
+    focus = np.sum(im_seg, axis=(0, 1))
     ifocus = np.argmax(focus)
 
-    return im_seg[:,:,ifocus]
+    return im_seg[:, :, ifocus]
 
 
 class Focus():
@@ -398,11 +398,11 @@ class Focus():
         #identify particles
         region_properties = pyopia.process.measure_particles(imssbw)
         #loop through bounding boxes to focus each particle and add to output imc
-        imc = np.zeros_like(im_stack[:,:,0])
+        imc = np.zeros_like(im_stack[:, :, 0])
         for rp in region_properties:
-            im_focus = find_focus(im_stack,rp.bbox)
+            im_focus = find_focus(im_stack, rp.bbox)
             im_focus = 255 - im_focus
-            imc[rp.bbox[0]:rp.bbox[2],rp.bbox[1]:rp.bbox[3]] = im_focus
-            
+            imc[rp.bbox[0]:rp.bbox[2], rp.bbox[1]:rp.bbox[3]] = im_focus
+   
         data['imc'] = imc
         return data
