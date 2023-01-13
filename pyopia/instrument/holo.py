@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy import fftpack
 from skimage.io import imread
+import pyopia.process
 
 '''
 This is an subpackage containing basic processing for reconstruction of in-line holographic images.
@@ -88,7 +89,7 @@ class Load():
     -------
     timestamp : timestamp
         timestamp @todo
-    img : np.arraym (@todo - check this)
+    imraw : np.arraym
         hologram
     '''
 
@@ -97,6 +98,7 @@ class Load():
 
     def __call__(self, data):
         print('WARNING: timestamp not implemented for holo data! using current time to test workflow.')
+        print(data['filename'])
         timestamp = pd.datetime.now()
         im = imread(data['filename']).astype(np.float64)
         data['timestamp'] = timestamp
@@ -109,13 +111,13 @@ class Reconstruct():
 
     Parameters
     ----------
-    im : np.array
-        hologram image
+    stack_clean : float
+        defines amount of cleaning of stack (fraction of max value below which to zero)
 
     Returns
     -------
-    image : np.array
-        image ready for further segmentation and analysis
+    im_stack : np.array
+        image stack ready for focussing
     '''
 
     def __init__(self, stack_clean):
@@ -125,19 +127,10 @@ class Reconstruct():
         imc = data['imc']
         kern = data['kern']
 
-        print('forward transform')
         im_fft = forward_transform(imc)
-        print('inverse transform')
         im_stack = inverse_transform(im_fft, kern)
-        print('clean stack')
-        im_stack = clean_stack(im_stack, self.stack_clean)
-        print('summarise stack')
-        stack_max = max_map(im_stack)
-        stack_max = np.max(stack_max) - stack_max
-        stack_max -= np.min(stack_max)
-        stack_max /= np.max(stack_max)
-        # im_stack_inv = holo.rescale_stack(im_stack)
-        data['imc'] = stack_max
+        data['im_stack'] = clean_stack(im_stack, self.stack_clean)
+
         return data
 
 
@@ -239,7 +232,7 @@ def inverse_transform(im_fft, kern):
 
 
 def clean_stack(im_stack, stack_clean):
-    '''clean the im_stack by removing low value pixels
+    '''clean the im_stack by removing low value pixels - set to 0 to disable
 
     Parameters
     ----------
@@ -253,8 +246,9 @@ def clean_stack(im_stack, stack_clean):
     np.array
         cleaned version of im_stack
     '''
-    im_max = np.amax(im_stack, axis=None)
-    im_stack[im_stack < im_max * stack_clean] = 0
+    if stack_clean > 0.0:
+        im_max = np.amax(im_stack, axis=None)
+        im_stack[im_stack < im_max * stack_clean] = 0
     return im_stack
 
 
@@ -309,4 +303,110 @@ def rescale_stack(im_stack):
     im_min = np.min(im_stack)
     im_stack_inverted = 255 * (im_stack - im_min) / (im_max - im_min)
     im_stack_inverted = 255 - im_stack_inverted
-    return im_stack
+    return im_stack_inverted
+
+
+def rescale_image(im):
+    '''rescale im (e.g. may be stack summary) to be dark particles on light background, 8 bit
+
+    Parameters
+    ----------
+    im : image
+        input image to be scaled
+
+    Returns
+    -------
+    im : image
+        scaled and inverted image
+    '''
+    im_max = np.max(im)
+    im_min = np.min(im)
+    im = 255 * (im - im_min) / (im_max - im_min)
+    im = 255 - im
+    return im
+
+
+def find_focus(im_stack, bbox):
+    '''finds and returns the focussed image for the bbox region within im_stack
+    using intensity of bbox area
+
+    Parameters
+    ----------
+    im_stack : nparray
+        image stack
+
+    bbox : tuple
+        Bounding box (min_row, min_col, max_row, max_col)
+
+    Returns
+    -------
+    im : image
+        focussed image for bbox
+    '''
+    im_seg = im_stack[bbox[0]:bbox[2], bbox[1]:bbox[3], :]
+    focus = np.sum(im_seg, axis=(0, 1))
+    ifocus = np.argmax(focus)
+
+    return im_seg[:, :, ifocus]
+
+
+class Focus():
+    '''PyOpia pipline-compatible class for creating a focussed image from an image stack
+
+    Pipeline input data:
+    ---------
+    :class:`pyopia.pipeline.Data`
+
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.im_stack`
+
+    Parameters
+    ----------
+    stacksummary_function : (function object, optional)
+        Function used to summarise the stack
+        Available functions are:
+
+        :func:`pyopia.instrument.holo.max_map`
+
+        :func:`pyopia.instrument.holo.std_map` (default)
+
+    threshold : float
+        threshold to apply during initial segmentation
+
+    Returns
+    -------
+    :class:`pyopia.pipeline.Data`
+
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.imc`
+
+        :attr:`pyopia.pipeline.Data.imss`
+
+    '''
+
+    def __init__(self, stacksummary_function=std_map, threshold=0.9):
+        self.stacksummary_function = stacksummary_function
+        self.threshold = threshold
+        pass
+
+    def __call__(self, data):
+        im_stack = data['im_stack']
+        imss = self.stacksummary_function(im_stack)
+        imss = rescale_image(imss)
+        data['imss'] = imss
+
+        # segment imss to find particle x-y locations
+        imssbw = pyopia.process.segment(imss, self.threshold)
+        # identify particles
+        region_properties = pyopia.process.measure_particles(imssbw)
+        # loop through bounding boxes to focus each particle and add to output imc
+        imc = np.zeros_like(im_stack[:, :, 0])
+        for rp in region_properties:
+            im_focus = find_focus(im_stack, rp.bbox)
+            im_focus = 255 - im_focus
+            imc[rp.bbox[0]:rp.bbox[2], rp.bbox[1]:rp.bbox[3]] = im_focus
+
+        data['imc'] = imc
+        return data
