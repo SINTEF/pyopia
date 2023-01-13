@@ -376,10 +376,14 @@ class Focus():
 
     Returns
     -------
-    imc : np.array
-        single composite image of focussed particles ready for segmentation
-    imss : np.array
-        stack summary image used to locate possible particles
+    :class:`pyopia.pipeline.Data`
+
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.imc`
+
+        :attr:`pyopia.pipeline.Data.imss`
+
     '''
 
     def __init__(self, stacksummary_function=std_map, threshold=0.9):
