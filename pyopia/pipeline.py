@@ -47,7 +47,7 @@ class Pipeline():
         average_window = 10  # number of images to use as background
 
         files = glob(os.path.join(foldername, '*.pgm')) # creates list of files in previously defined folder
-        bgfiles = files[:average_window] 
+        bgfiles = files[:average_window]
 
         holo_initial_settings = {'pixel_size': 4.4, # pixel size in um
                                 'wavelength': 658, # laser wavelength in nm
