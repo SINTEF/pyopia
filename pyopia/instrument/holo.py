@@ -335,7 +335,7 @@ def rescale_image(im):
     return im
 
 
-def find_focus(im_stack, bbox):
+def find_focus_imax(im_stack, bbox):
     '''finds and returns the focussed image for the bbox region within im_stack
     using intensity of bbox area
 
@@ -386,6 +386,12 @@ class Focus():
     threshold : float
         threshold to apply during initial segmentation
 
+    focus_function : (function object, optional)
+        Function used to focus particles within the stack
+        Available functions are:
+
+        :func:`pyopia.instrument.holo.find_focus_imax` (default)
+
     Returns
     -------
     :class:`pyopia.pipeline.Data`
@@ -401,9 +407,10 @@ class Focus():
         :attr:`pyopia.pipeline.Data.stack_ifocus`
     '''
 
-    def __init__(self, stacksummary_function=std_map, threshold=0.9):
+    def __init__(self, stacksummary_function=std_map, threshold=0.9, focus_function=find_focus_imax):
         self.stacksummary_function = stacksummary_function
         self.threshold = threshold
+        self.focus_function = focus_function
         pass
 
     def __call__(self, data):
@@ -420,7 +427,7 @@ class Focus():
         imc = np.zeros_like(im_stack[:, :, 0])
         ifocus = []
         for rp in region_properties:
-            focus_result = find_focus(im_stack, rp.bbox)
+            focus_result = self.focus_function(im_stack, rp.bbox)
             im_focus = 255 - focus_result[0]
             ifocus.append(focus_result[1])
             imc[rp.bbox[0]:rp.bbox[2], rp.bbox[1]:rp.bbox[3]] = im_focus
