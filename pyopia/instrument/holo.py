@@ -114,10 +114,19 @@ class Reconstruct():
     stack_clean : float
         defines amount of cleaning of stack (fraction of max value below which to zero)
 
-    Returns
-    -------
-    im_stack : np.array
-        image stack ready for focussing
+    Pipeline input data:
+    ---------
+    :class:`pyopia.pipeline.Data`
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.img`
+
+    Returns:
+    --------
+    :class:`pyopia.pipeline.Data`
+        containing the following new keys:
+
+        :attr:`pyopia.pipeline.Data.im_stack`
     '''
 
     def __init__(self, stack_clean):
