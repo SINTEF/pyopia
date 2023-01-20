@@ -129,7 +129,7 @@ class Reconstruct():
         :attr:`pyopia.pipeline.Data.im_stack`
     '''
 
-    def __init__(self, stack_clean):
+    def __init__(self, stack_clean = 0):
         self.stack_clean = stack_clean
 
     def __call__(self, data):
