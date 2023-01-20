@@ -351,12 +351,15 @@ def find_focus(im_stack, bbox):
     -------
     im : image
         focussed image for bbox
+
+    ifocus: int
+        index through stack of focussed image
     '''
     im_seg = im_stack[bbox[0]:bbox[2], bbox[1]:bbox[3], :]
     focus = np.sum(im_seg, axis=(0, 1))
     ifocus = np.argmax(focus)
 
-    return im_seg[:, :, ifocus]
+    return im_seg[:, :, ifocus], ifocus
 
 
 class Focus():
@@ -393,6 +396,9 @@ class Focus():
 
         :attr:`pyopia.pipeline.Data.imss`
 
+        :attr:`pyopia.pipeline.Data.stack_rp`
+
+        :attr:`pyopia.pipeline.Data.stack_ifocus`
     '''
 
     def __init__(self, stacksummary_function=std_map, threshold=0.9):
@@ -412,10 +418,14 @@ class Focus():
         region_properties = pyopia.process.measure_particles(imssbw)
         # loop through bounding boxes to focus each particle and add to output imc
         imc = np.zeros_like(im_stack[:, :, 0])
+        ifocus = []
         for rp in region_properties:
-            im_focus = find_focus(im_stack, rp.bbox)
-            im_focus = 255 - im_focus
+            focus_result = find_focus(im_stack, rp.bbox)
+            im_focus = 255 - focus_result[0]
+            ifocus.append(focus_result[1])
             imc[rp.bbox[0]:rp.bbox[2], rp.bbox[1]:rp.bbox[3]] = im_focus
 
         data['imc'] = imc
+        data['stack_rp'] = region_properties
+        data['stack_ifocus'] = ifocus
         return data
