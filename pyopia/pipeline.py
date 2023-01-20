@@ -176,7 +176,7 @@ class Data(TypedDict):
     img: float
     '''Raw uncorrected image. To be deprecatied and changed to imraw'''
     imc: float
-    '''Corrected image
+    '''Single composite image of focussed particles ready for segmentation
     Obtained from e.g. :class:`pyopia.background.CorrectBackgroundAccurate`
     '''
     bgstack: float
@@ -205,6 +205,14 @@ class Data(TypedDict):
     stats: pd.DataFrame
     '''stats DataFrame containing particle statistics of every particle
     Obtained from e.g. :class:`pyopia.process.CalculateStats`
+    '''
+    im_stack: float
+    '''3-d array of reconstructed real hologram images
+    Obtained from :class:`pyopia.instrument.holo.Reconstruct`
+    '''
+    imss: float
+    '''Stack summary image used to locate possible particles
+    Obtained from :class:`pyopia.instrument.holo.Focus`
     '''
 
 
