@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy import fftpack
 from skimage.io import imread
+from skimage.filters import sobel
 import pyopia.process
 
 '''
@@ -362,6 +363,37 @@ def find_focus_imax(im_stack, bbox):
     return im_seg[:, :, ifocus], ifocus
 
 
+def find_focus_sobel(im_stack, bbox):
+    '''finds and returns the focussed image for the bbox region within im_stack
+    using edge magnitude of bbox area
+
+    Parameters
+    ----------
+    im_stack : nparray
+        image stack
+
+    bbox : tuple
+        Bounding box (min_row, min_col, max_row, max_col)
+
+    Returns
+    -------
+    im : image
+        focussed image for bbox
+
+    ifocus: int
+        index through stack of focussed image
+    '''
+    im_bbox = im_stack[bbox[0]:bbox[2], bbox[1]:bbox[3], :]
+    im_seg = np.empty_like(im_bbox)
+    for zi in range(im_seg.shape[2]):
+        im_seg[:, :, zi] = sobel(im_bbox[:, :, zi])
+
+    focus = np.sum(im_seg, axis=(0, 1))
+    ifocus = np.argmax(focus)
+
+    return im_seg[:, :, ifocus], ifocus
+
+
 class Focus():
     '''PyOpia pipline-compatible class for creating a focussed image from an image stack
 
@@ -391,6 +423,8 @@ class Focus():
         Available functions are:
 
         :func:`pyopia.instrument.holo.find_focus_imax` (default)
+
+        :func:`pyopia.instrument.holo.find_focus_sobel`
 
     Returns
     -------
