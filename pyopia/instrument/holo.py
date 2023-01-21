@@ -471,12 +471,13 @@ class Focus():
         data['stack_ifocus'] = ifocus
         return data
 
+
 class MergeStats():
     '''PyOpia pipline-compatible class for merging holo-specific statistics into output stats
 
     Parameters
     ----------
-    
+
     Returns
     -------
     updated stats
@@ -491,13 +492,14 @@ class MergeStats():
         stack_rp = data['stack_rp']
         stack_ifocus = data['stack_ifocus']
 
-        bbox = np.empty((0,4), int)
+        bbox = np.empty((0, 4), int)
         for rp in stack_rp:
             bbox = np.append(bbox, [rp.bbox], axis=0)
 
         ifocus = []
         for idx, minr in enumerate(stats.minr):
-            total_diff = abs(bbox[:, 0] - stats.minr[idx]) + abs(bbox[:, 1] - stats.minc[idx]) + abs(bbox[:, 2] - stats.maxr[idx]) + abs(bbox[:, 3] - stats.maxc[idx])
+            total_diff = abs(bbox[:, 0] - stats.minr[idx]) + abs(bbox[:, 1] - stats.minc[idx]) 
+                + abs(bbox[:, 2] - stats.maxr[idx]) + abs(bbox[:, 3] - stats.maxc[idx])
             ifocus.append(stack_ifocus[np.argmin(total_diff)])
 
         stats['ifocus'] = ifocus
