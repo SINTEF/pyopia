@@ -499,7 +499,7 @@ class MergeStats():
         ifocus = []
         for idx, minr in enumerate(stats.minr):
             total_diff = (abs(bbox[:, 0] - stats.minr[idx]) + abs(bbox[:, 1] - stats.minc[idx])
-                            + abs(bbox[:, 2] - stats.maxr[idx]) + abs(bbox[:, 3] - stats.maxc[idx]))
+                          + abs(bbox[:, 2] - stats.maxr[idx]) + abs(bbox[:, 3] - stats.maxc[idx]))
             ifocus.append(stack_ifocus[np.argmin(total_diff)])
 
         stats['ifocus'] = ifocus
