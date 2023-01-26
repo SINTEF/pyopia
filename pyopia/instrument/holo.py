@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy import fftpack
 from skimage.io import imread
+from skimage.filters import sobel
 import pyopia.process
 
 '''
@@ -114,13 +115,22 @@ class Reconstruct():
     stack_clean : float
         defines amount of cleaning of stack (fraction of max value below which to zero)
 
-    Returns
-    -------
-    im_stack : np.array
-        image stack ready for focussing
+    Pipeline input data:
+    ---------
+    :class:`pyopia.pipeline.Data`
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.img`
+
+    Returns:
+    --------
+    :class:`pyopia.pipeline.Data`
+        containing the following new keys:
+
+        :attr:`pyopia.pipeline.Data.im_stack`
     '''
 
-    def __init__(self, stack_clean):
+    def __init__(self, stack_clean=0):
         self.stack_clean = stack_clean
 
     def __call__(self, data):
@@ -326,7 +336,7 @@ def rescale_image(im):
     return im
 
 
-def find_focus(im_stack, bbox):
+def find_focus_imax(im_stack, bbox):
     '''finds and returns the focussed image for the bbox region within im_stack
     using intensity of bbox area
 
@@ -342,12 +352,46 @@ def find_focus(im_stack, bbox):
     -------
     im : image
         focussed image for bbox
+
+    ifocus: int
+        index through stack of focussed image
     '''
     im_seg = im_stack[bbox[0]:bbox[2], bbox[1]:bbox[3], :]
     focus = np.sum(im_seg, axis=(0, 1))
     ifocus = np.argmax(focus)
 
-    return im_seg[:, :, ifocus]
+    return im_seg[:, :, ifocus], ifocus
+
+
+def find_focus_sobel(im_stack, bbox):
+    '''finds and returns the focussed image for the bbox region within im_stack
+    using edge magnitude of bbox area
+
+    Parameters
+    ----------
+    im_stack : nparray
+        image stack
+
+    bbox : tuple
+        Bounding box (min_row, min_col, max_row, max_col)
+
+    Returns
+    -------
+    im : image
+        focussed image for bbox
+
+    ifocus: int
+        index through stack of focussed image
+    '''
+    im_bbox = im_stack[bbox[0]:bbox[2], bbox[1]:bbox[3], :]
+    im_seg = np.empty_like(im_bbox)
+    for zi in range(im_seg.shape[2]):
+        im_seg[:, :, zi] = sobel(im_bbox[:, :, zi])
+
+    focus = np.sum(im_seg, axis=(0, 1))
+    ifocus = np.argmax(focus)
+
+    return im_seg[:, :, ifocus], ifocus
 
 
 class Focus():
@@ -374,6 +418,14 @@ class Focus():
     threshold : float
         threshold to apply during initial segmentation
 
+    focus_function : (function object, optional)
+        Function used to focus particles within the stack
+        Available functions are:
+
+        :func:`pyopia.instrument.holo.find_focus_imax` (default)
+
+        :func:`pyopia.instrument.holo.find_focus_sobel`
+
     Returns
     -------
     :class:`pyopia.pipeline.Data`
@@ -384,11 +436,15 @@ class Focus():
 
         :attr:`pyopia.pipeline.Data.imss`
 
+        :attr:`pyopia.pipeline.Data.stack_rp`
+
+        :attr:`pyopia.pipeline.Data.stack_ifocus`
     '''
 
-    def __init__(self, stacksummary_function=std_map, threshold=0.9):
+    def __init__(self, stacksummary_function=std_map, threshold=0.9, focus_function=find_focus_imax):
         self.stacksummary_function = stacksummary_function
         self.threshold = threshold
+        self.focus_function = focus_function
         pass
 
     def __call__(self, data):
@@ -403,10 +459,49 @@ class Focus():
         region_properties = pyopia.process.measure_particles(imssbw)
         # loop through bounding boxes to focus each particle and add to output imc
         imc = np.zeros_like(im_stack[:, :, 0])
+        ifocus = []
         for rp in region_properties:
-            im_focus = find_focus(im_stack, rp.bbox)
-            im_focus = 255 - im_focus
+            focus_result = self.focus_function(im_stack, rp.bbox)
+            im_focus = 255 - focus_result[0]
+            ifocus.append(focus_result[1])
             imc[rp.bbox[0]:rp.bbox[2], rp.bbox[1]:rp.bbox[3]] = im_focus
 
         data['imc'] = imc
+        data['stack_rp'] = region_properties
+        data['stack_ifocus'] = ifocus
+        return data
+
+
+class MergeStats():
+    '''PyOpia pipline-compatible class for merging holo-specific statistics into output stats
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    updated stats
+
+    '''
+
+    def __init__(self):
+        pass
+
+    def __call__(self, data):
+        stats = data['stats']
+        stack_rp = data['stack_rp']
+        stack_ifocus = data['stack_ifocus']
+
+        bbox = np.empty((0, 4), int)
+        for rp in stack_rp:
+            bbox = np.append(bbox, [rp.bbox], axis=0)
+
+        ifocus = []
+        for idx, minr in enumerate(stats.minr):
+            total_diff = (abs(bbox[:, 0] - stats.minr[idx]) + abs(bbox[:, 1] - stats.minc[idx])
+                          + abs(bbox[:, 2] - stats.maxr[idx]) + abs(bbox[:, 3] - stats.maxc[idx]))
+            ifocus.append(stack_ifocus[np.argmin(total_diff)])
+
+        stats['ifocus'] = ifocus
+        data['stats'] = stats
         return data
