@@ -43,10 +43,12 @@ class Initial():
 
     '''
 
-    def __init__(self, filename, pixel_size, wavelength, minZ, maxZ, stepZ):
+    def __init__(self, filename, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
         self.filename = filename
         self.pixel_size = pixel_size
         self.wavelength = wavelength
+        self.n = n
+        self.offset = offset
         self.minZ = minZ
         self.maxZ = maxZ
         self.stepZ = stepZ
@@ -55,7 +57,7 @@ class Initial():
         print('Using first raw file to determine image dimensions')
         imtmp = imread(self.filename).astype(np.float64)
         print('Build kernel')
-        kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.minZ, self.maxZ, self.stepZ)
+        kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.n, self.offset, self.minZ, self.maxZ, self.stepZ)
         print('HoloInitial done', pd.datetime.now())
         data['kern'] = kern
         return data
@@ -171,7 +173,7 @@ def forward_transform(im):
     return im_fft
 
 
-def create_kernel(im, pixel_size, wavelength, minZ, maxZ, stepZ):
+def create_kernel(im, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
     '''create reconstruction kernel
 
     Parameters
@@ -206,7 +208,7 @@ def create_kernel(im, pixel_size, wavelength, minZ, maxZ, stepZ):
 
     f = (np.pi / (pixel_size / 1e6)) * (f1**2 + f2**2)**0.5
 
-    z = np.arange(minZ * 1e-3, maxZ * 1e-3, stepZ * 1e-3)
+    z = (np.arange(minZ * 1e-3, maxZ * 1e-3, stepZ * 1e-3) / n) + (offset * 1e-3)
 
     wavelength_m = wavelength * 1e-9
     k = 2 * np.pi / wavelength_m
