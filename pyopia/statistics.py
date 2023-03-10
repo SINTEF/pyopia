@@ -5,6 +5,7 @@ Module containing tools for handling particle image statistics after processing
 import os
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from skimage.exposure import rescale_intensity
 import h5py
 from tqdm import tqdm
@@ -422,6 +423,24 @@ def make_montage(stats_file, pixel_size, roidir,
     montage = montage_maker(roifiles, roidir, pixel_size, msize, eyecandy=True)
 
     return montage
+
+def montage_plot(montage, pixel_size):
+    '''
+    Plots a particle montage with a 1mm scale reference
+    
+    Args:
+        montage (uint8)    : a montage created with make_montage
+        pixel_size (float) : the pixel size of the imaging system used
+    '''
+    msize = np.shape(montage)[0]
+    ex = pixel_size * np.float64(msize) / 1000.
+
+    ax = plt.gca()
+    ax.imshow(montage, extent=[0, ex, 0, ex])
+    ax.set_xticks([1, 2], [])
+    ax.set_xticklabels(['    1mm', ''])
+    ax.set_yticks([], [])
+    ax.xaxis.set_ticks_position('bottom')
 
 
 def gen_roifiles(stats, auto_scaler=500):
