@@ -443,10 +443,11 @@ class Focus():
         :attr:`pyopia.pipeline.Data.stack_ifocus`
     '''
 
-    def __init__(self, stacksummary_function=std_map, threshold=0.9, focus_function=find_focus_imax):
+    def __init__(self, stacksummary_function=std_map, threshold=0.9, focus_function=find_focus_imax, discard_end_slices=True):
         self.stacksummary_function = stacksummary_function
         self.threshold = threshold
         self.focus_function = focus_function
+        self.discard_end_slices = discard_end_slices
         pass
 
     def __call__(self, data):
@@ -462,14 +463,18 @@ class Focus():
         # loop through bounding boxes to focus each particle and add to output imc
         imc = np.zeros_like(im_stack[:, :, 0])
         ifocus = []
+        rp_out = []
         for rp in region_properties:
             focus_result = self.focus_function(im_stack, rp.bbox)
+            if self.discard_end_slices and (focus_result[1] == 0 or focus_result[1] == im_stack.shape[2]):
+                continue
             im_focus = 255 - focus_result[0]
             ifocus.append(focus_result[1])
+            rp_out.append(rp)
             imc[rp.bbox[0]:rp.bbox[2], rp.bbox[1]:rp.bbox[3]] = im_focus
 
         data['imc'] = imc
-        data['stack_rp'] = region_properties
+        data['stack_rp'] = rp_out
         data['stack_ifocus'] = ifocus
         return data
 
