@@ -89,6 +89,9 @@ def get_folder_from_holo_repository(foldername="holo_test_data_01"):
     if foldername == "holo_test_data_01":
         url = 'https://drive.google.com/drive/folders/1yNatOaKdWwYQp-5WVEDItoibr-k0lGsP?usp=share_link'
 
+    elif foldername == "holo_test_data_02":
+        url = "https://drive.google.com/drive/folders/1E5iNSyfeKcVMLVe4PNEwF2Q2mo3WVjF5?usp=share_link"
+
     else:
         foldername == "holo_test_data_01"
         url = 'https://drive.google.com/drive/folders/1yNatOaKdWwYQp-5WVEDItoibr-k0lGsP?usp=share_link'
