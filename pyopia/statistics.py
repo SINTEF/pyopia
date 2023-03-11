@@ -424,10 +424,11 @@ def make_montage(stats_file, pixel_size, roidir,
 
     return montage
 
+
 def montage_plot(montage, pixel_size):
     '''
     Plots a particle montage with a 1mm scale reference
-    
+
     Args:
         montage (uint8)    : a montage created with make_montage
         pixel_size (float) : the pixel size of the imaging system used
