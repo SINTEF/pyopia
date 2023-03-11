@@ -428,6 +428,9 @@ class Focus():
 
         :func:`pyopia.instrument.holo.find_focus_sobel`
 
+    discard_end_slices : (bool, optional)
+        set to True to discard particles that focus at either first or last slice
+
     Returns
     -------
     :class:`pyopia.pipeline.Data`
