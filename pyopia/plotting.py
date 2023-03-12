@@ -1,33 +1,25 @@
 # -*- coding: utf-8 -*-
 '''
-Particle plotting functionality: PSD, D50, etc.
+Particle plotting functionality for standardised figures
+e.g. image presentation, size distributions, montages etc.
 '''
 
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
-import pandas as pd
-sns.set_style('ticks')
 
 
-
-
-def show_imc(imc, mag=2):
+def show_imc(imc, pixel_size):
     '''
-    Plots a scaled figure of for s SilCam image for medium or low magnification systems
-    
+    Plots a scaled figure (in mm) of an image
+
     Args:
-        imc (uint8) : SilCam image (usually a corrected image, such as imc)
-        mag=2 (int) : mag=1 scales to the low mag SilCams; mag=2 (default) scales to the medium max SilCams
+        imc (uint8 or float) : Image (usually a corrected image, such as imc)
+        pixel_size (float) : the pixel size (um) of the imaging system used
     '''
-    PIX_SIZE = 35.2 / 2448 * 1000
     r, c = np.shape(imc[:, :, 0])
 
-    if mag == 1:
-        PIX_SIZE = 67.4 / 2448 * 1000
-
     plt.imshow(np.uint8(imc),
-               extent=[0, c * PIX_SIZE / 1000, 0, r * PIX_SIZE / 1000],
+               extent=[0, c * pixel_size / 1000, 0, r * pixel_size / 1000],
                interpolation='nearest')
     plt.xlabel('mm')
     plt.ylabel('mm')
@@ -38,7 +30,7 @@ def show_imc(imc, mag=2):
 def montage_plot(montage, pixel_size):
     '''
     Plots a SilCam particle montage with a 1mm scale reference
-    
+
     Args:
         montage (uint8)    : a SilCam montage created with scpp.make_montage
         pixel_size (float) : the pixel size of the SilCam used, obtained from settings.PostProcess.pix_size in the
