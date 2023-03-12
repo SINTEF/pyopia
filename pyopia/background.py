@@ -117,11 +117,6 @@ def correct_im_accurate(imbg, imraw):
 
     imc += 255 - imc.max()
 
-    imc[imc > 255] = 255
-    imc[imc < 0] = 0
-    if type(imbg) is int:
-        imc = np.uint8(imc)
-
     return imc
 
 
