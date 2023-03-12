@@ -80,6 +80,8 @@ pygments_style = 'sphinx'
 todo_include_todos = True
 
 
+autodoc_mock_imports = ['tensorflow', 'matplotlib']
+
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
