@@ -43,10 +43,12 @@ class Initial():
 
     '''
 
-    def __init__(self, filename, pixel_size, wavelength, minZ, maxZ, stepZ):
+    def __init__(self, filename, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
         self.filename = filename
         self.pixel_size = pixel_size
         self.wavelength = wavelength
+        self.n = n
+        self.offset = offset
         self.minZ = minZ
         self.maxZ = maxZ
         self.stepZ = stepZ
@@ -55,7 +57,7 @@ class Initial():
         print('Using first raw file to determine image dimensions')
         imtmp = load_image(self.filename)
         print('Build kernel')
-        kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.minZ, self.maxZ, self.stepZ)
+        kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.n, self.offset, self.minZ, self.maxZ, self.stepZ)
         print('HoloInitial done', pd.datetime.now())
         data['kern'] = kern
         return data
@@ -171,7 +173,7 @@ def forward_transform(im):
     return im_fft
 
 
-def create_kernel(im, pixel_size, wavelength, minZ, maxZ, stepZ):
+def create_kernel(im, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
     '''create reconstruction kernel
 
     Parameters
@@ -206,7 +208,7 @@ def create_kernel(im, pixel_size, wavelength, minZ, maxZ, stepZ):
 
     f = (np.pi / (pixel_size / 1e6)) * (f1**2 + f2**2)**0.5
 
-    z = np.arange(minZ * 1e-3, maxZ * 1e-3, stepZ * 1e-3)
+    z = (np.arange(minZ * 1e-3, maxZ * 1e-3, stepZ * 1e-3) / n) + (offset * 1e-3)
 
     wavelength_m = wavelength * 1e-9
     k = 2 * np.pi / wavelength_m
@@ -426,6 +428,9 @@ class Focus():
 
         :func:`pyopia.instrument.holo.find_focus_sobel`
 
+    discard_end_slices : (bool, optional)
+        set to True to discard particles that focus at either first or last slice
+
     Returns
     -------
     :class:`pyopia.pipeline.Data`
@@ -441,10 +446,11 @@ class Focus():
         :attr:`pyopia.pipeline.Data.stack_ifocus`
     '''
 
-    def __init__(self, stacksummary_function=std_map, threshold=0.9, focus_function=find_focus_imax):
+    def __init__(self, stacksummary_function=std_map, threshold=0.9, focus_function=find_focus_imax, discard_end_slices=True):
         self.stacksummary_function = stacksummary_function
         self.threshold = threshold
         self.focus_function = focus_function
+        self.discard_end_slices = discard_end_slices
         pass
 
     def __call__(self, data):
@@ -460,14 +466,18 @@ class Focus():
         # loop through bounding boxes to focus each particle and add to output imc
         imc = np.zeros_like(im_stack[:, :, 0])
         ifocus = []
+        rp_out = []
         for rp in region_properties:
             focus_result = self.focus_function(im_stack, rp.bbox)
+            if self.discard_end_slices and (focus_result[1] == 0 or focus_result[1] == im_stack.shape[2]):
+                continue
             im_focus = 255 - focus_result[0]
             ifocus.append(focus_result[1])
+            rp_out.append(rp)
             imc[rp.bbox[0]:rp.bbox[2], rp.bbox[1]:rp.bbox[3]] = im_focus
 
         data['imc'] = imc
-        data['stack_rp'] = region_properties
+        data['stack_rp'] = rp_out
         data['stack_ifocus'] = ifocus
         return data
 
