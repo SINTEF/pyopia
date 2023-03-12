@@ -390,7 +390,7 @@ def make_montage(stats_file, pixel_size, roidir,
     ''' wrapper function for montage_maker
 
     Args:
-        stats_file              : location of the stats_csv file that comes from silcam process
+        stats_file              : location of the stats hdf5 file that comes from silcam process
         pixel_size                  : pixel size of system defined by settings.PostProcess.pix_size
         roidir                      : location of roifiles usually defined by settings.ExportParticles.outputpath
         auto_scaler=500             : approximate number of particle that are attempted to be pack into montage

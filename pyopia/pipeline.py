@@ -40,24 +40,33 @@ class Pipeline():
 
     .. code-block:: python
 
-        filename, background_file = exampledata.get_example_hologram_and_background()
         datafile_hdf = 'proc/holotest'
         model_path = exampledata.get_example_model()
         threshold = 0.9
+
+        average_window = 10  # number of images to use as background
+
+        files = glob(os.path.join(foldername, '*.pgm')) # creates list of files in previously defined folder
+        bgfiles = files[:average_window]
 
         holo_initial_settings = {'pixel_size': 4.4, # pixel size in um
                                 'wavelength': 658, # laser wavelength in nm
                                 'minZ': 22, # minimum reconstruction distance in mm
                                 'maxZ': 60, # maximum reconstruction distance in mm
-                                'stepZ': 2} #step size in mm
+                                'stepZ': 0.5} #step size in mm
 
-        steps = {'initial': holo.Initial('imbg-001-2082.pgm', **holo_initial_settings),
-                 'classifier': Classify(model_path=model_path),
-                 'load': holo.Load(),
-                 'reconstruct': holo.Reconstruct(stack_clean=0),
-                 'segmentation': pyopia.process.Segment(threshold=threshold),
-                 'statextract': pyopia.process.CalculateStats(),
-                 'output': pyopia.io.StatsH5(datafile_hdf)}
+        steps = {'initial': holo.Initial(files[0], **holo_initial_settings), # initialisation step to create reconstruction kernel
+                'classifier': Classify(model_path=model_path),
+                'create background': pyopia.background.CreateBackground(bgfiles,
+                                                                        pyopia.instrument.holo.load_image),
+                'load': holo.Load(),
+                'correct background': pyopia.background.CorrectBackgroundAccurate(pyopia.background.shift_bgstack_accurate),
+                'reconstruct': holo.Reconstruct(stack_clean=0.02),
+                'focus': holo.Focus(pyopia.instrument.holo.std_map,threshold=threshold),
+                'segmentation': pyopia.process.Segment(threshold=threshold),
+                'statextract': pyopia.process.CalculateStats(export_outputpath="proc"),
+                'output': pyopia.io.StatsH5(datafile_hdf)
+                }
 
         processing_pipeline = Pipeline(steps)
 
@@ -176,7 +185,7 @@ class Data(TypedDict):
     img: float
     '''Raw uncorrected image. To be deprecatied and changed to imraw'''
     imc: float
-    '''Corrected image
+    '''Single composite image of focussed particles ready for segmentation
     Obtained from e.g. :class:`pyopia.background.CorrectBackgroundAccurate`
     '''
     bgstack: float
@@ -205,6 +214,14 @@ class Data(TypedDict):
     stats: pd.DataFrame
     '''stats DataFrame containing particle statistics of every particle
     Obtained from e.g. :class:`pyopia.process.CalculateStats`
+    '''
+    im_stack: float
+    '''3-d array of reconstructed real hologram images
+    Obtained from :class:`pyopia.instrument.holo.Reconstruct`
+    '''
+    imss: float
+    '''Stack summary image used to locate possible particles
+    Obtained from :class:`pyopia.instrument.holo.Focus`
     '''
 
 
