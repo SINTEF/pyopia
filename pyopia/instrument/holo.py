@@ -537,9 +537,9 @@ def read_lisst_holo_info(filename):
     assert bitdepth <= 255
     f.seek(width * height, 1)
 
-    timestamp = (pd.to_datetime(struct.unpack('i', f.read(4)),unit='s'))
+    timestamp = (pd.to_datetime(struct.unpack('i', f.read(4)), unit='s'))
     filenum = filename.rsplit('-', 1)[-1]
-    filenum = int(filenum.rsplit('.',1)[0])
+    filenum = int(filenum.rsplit('.', 1)[0])
     timestamp = timestamp + timedelta(microseconds=filenum)
 
     f.close()
