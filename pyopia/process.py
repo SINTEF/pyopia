@@ -622,7 +622,7 @@ class CalculateStats():
 
     def __call__(self, data):
         print('statextract_light')
-        stats, saturation = statextract_light(data['imbw'], data['timestamp'], data['imc'], data['cl'],
+        stats, saturation = statextract_light(data['imbw'], data['timestamp'], data['imref'], data['cl'],
                                               max_coverage=self.max_coverage,
                                               max_particles=self.max_particles,
                                               export_outputpath=self.export_outputpath,
