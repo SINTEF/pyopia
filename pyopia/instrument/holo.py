@@ -8,6 +8,8 @@ from scipy import fftpack
 from skimage.io import imread
 from skimage.filters import sobel
 import pyopia.process
+import struct
+from datetime import timedelta
 
 '''
 This is an subpackage containing basic processing for reconstruction of in-line holographic images.
@@ -100,9 +102,8 @@ class Load():
         pass
 
     def __call__(self, data):
-        print('WARNING: timestamp not implemented for holo data! using current time to test workflow.')
         print(data['filename'])
-        timestamp = pd.datetime.now()
+        timestamp = read_lisst_holo_info(data['filename'])
         im = load_image(data['filename'])
         data['timestamp'] = timestamp
         data['imraw'] = im
@@ -515,3 +516,32 @@ class MergeStats():
         stats['ifocus'] = ifocus
         data['stats'] = stats
         return data
+
+
+def read_lisst_holo_info(filename):
+    '''reads the non-image information (timestamp, etc) from LISST-HOLO holograms
+
+    Parameters
+    ----------
+    filename : string
+        filename to load
+
+    Returns
+    -------
+    timestamp : timestamp
+        timestamp
+    '''
+    f = open(filename, 'rb')
+    assert f.readline().decode('ascii').strip() == 'P5'
+    (width, height, bitdepth) = [int(i) for i in f.readline().split()]
+    assert bitdepth <= 255
+    f.seek(width * height, 1)
+
+    timestamp = (pd.to_datetime(struct.unpack('i', f.read(4)), unit='s'))
+    filenum = filename.rsplit('-', 1)[-1]
+    filenum = int(filenum.rsplit('.', 1)[0])
+    timestamp = timestamp + timedelta(microseconds=filenum)
+
+    f.close()
+
+    return timestamp
