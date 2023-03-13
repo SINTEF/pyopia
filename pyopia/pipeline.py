@@ -110,7 +110,7 @@ class Pipeline():
 
     '''
 
-    def __init__(self, steps, initial_steps=['initial', 'classifier']):
+    def __init__(self, steps, initial_steps=['initial', 'classifier', 'create background']):
 
         self.initial_steps = initial_steps
         print('Initialising pipeline')
