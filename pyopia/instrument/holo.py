@@ -541,7 +541,8 @@ def read_lisst_holo_info(filename):
     filenum = filename.rsplit('-', 1)[-1]
     filenum = int(filenum.rsplit('.', 1)[0])
     timestamp = timestamp + timedelta(microseconds=filenum)
-
+    timestamp = timestamp[0]
+    print(timestamp.strftime('D%Y%m%dT%H%M%S.%f'))
     f.close()
 
     return timestamp
