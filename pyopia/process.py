@@ -218,7 +218,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
     predictions *= np.nan
 
     # obtain the original image filename from the timestamp
-    filename = timestamp.strftime('D%Y%m%dT%H%M%S.%f')[0]
+    filename = timestamp.strftime('D%Y%m%dT%H%M%S.%f')
 
     if export_outputpath is not None:
         # check path exists and create if not
@@ -627,7 +627,7 @@ class CalculateStats():
                                               max_particles=self.max_particles,
                                               export_outputpath=self.export_outputpath,
                                               min_length=self.min_length)
-        stats['timestamp'] = data['timestamp'][0]
+        stats['timestamp'] = data['timestamp']
         stats['saturation'] = saturation
 
         data['stats'] = stats
