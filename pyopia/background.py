@@ -311,8 +311,6 @@ class CorrectBackgroundAccurate():
 
         containing the following keys:
 
-        :attr:`pyopia.pipeline.Data.imc`
-
         :attr:`pyopia.pipeline.Data.bgstack`
 
         :attr:`pyopia.pipeline.Data.imraw`
@@ -355,7 +353,7 @@ class CorrectBackgroundAccurate():
 
         step = {'correct background': pyopia.background.CorrectBackgroundAccurate()}
 
-    Remove the step completely if you do not want to do background correction.
+   Use CorrectBackgroundNone() if you do not want to do background correction.
 
     '''
 
