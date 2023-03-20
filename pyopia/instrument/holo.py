@@ -123,7 +123,7 @@ class Reconstruct():
     :class:`pyopia.pipeline.Data`
         containing the following keys:
 
-        :attr:`pyopia.pipeline.Data.img`
+        :attr:`pyopia.pipeline.Data.imc`
 
     Returns:
     --------
