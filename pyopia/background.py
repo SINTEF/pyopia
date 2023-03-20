@@ -311,8 +311,6 @@ class CorrectBackgroundAccurate():
 
         containing the following keys:
 
-        :attr:`pyopia.pipeline.Data.imc`
-
         :attr:`pyopia.pipeline.Data.bgstack`
 
         :attr:`pyopia.pipeline.Data.imraw`
@@ -355,7 +353,7 @@ class CorrectBackgroundAccurate():
 
         step = {'correct background': pyopia.background.CorrectBackgroundAccurate()}
 
-    Remove the step completely if you do not want to do background correction.
+   Use CorrectBackgroundNone() if you do not want to do background correction.
 
     '''
 
@@ -369,4 +367,47 @@ class CorrectBackgroundAccurate():
         data['bgstack'], data['imbg'] = self.bgshift_function(data['bgstack'],
                                                               data['imbg'],
                                                               data['imraw'])
+        return data
+
+
+class CorrectBackgroundNone():
+    '''
+    :class:`pyopia.pipeline` compatible class for use when no background correction is required
+
+    Pipeline input data:
+    --------------------
+    :class:`pyopia.pipeline.Data`
+
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.imraw`
+
+    Parameters:
+    -----------
+    none
+
+    Returns:
+    --------
+    :class:`pyopia.pipeline.Data`
+        containing the following new keys:
+
+        :attr:`pyopia.pipeline.Data.imc`
+
+
+    Example pipeline uses:
+    ----------------------
+    Don't apply any background correction after image load step :
+
+    .. code-block:: python
+
+        step = {'correct background': pyopia.background.CorrectBackgroundNone()}
+
+    '''
+
+    def __init__(self):
+        pass
+
+    def __call__(self, data):
+        data['imc'] = data['imraw']
+
         return data
