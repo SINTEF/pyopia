@@ -56,7 +56,7 @@ class Initial():
         self.stepZ = stepZ
 
     def __call__(self, data):
-        print('Using first raw file to determine image dimensions')
+        print('Using given raw file to determine image dimensions')
         imtmp = load_image(self.filename)
         print('Build kernel')
         kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.n, self.offset, self.minZ, self.maxZ, self.stepZ)
@@ -123,7 +123,7 @@ class Reconstruct():
     :class:`pyopia.pipeline.Data`
         containing the following keys:
 
-        :attr:`pyopia.pipeline.Data.img`
+        :attr:`pyopia.pipeline.Data.imc`
 
     Returns:
     --------
