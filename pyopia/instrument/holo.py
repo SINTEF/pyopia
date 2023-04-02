@@ -7,6 +7,7 @@ import pandas as pd
 from scipy import fftpack
 from skimage.io import imread
 from skimage.filters import sobel
+from skimage.morphology import disk, erosion, dilation
 import pyopia.process
 import struct
 from datetime import timedelta
@@ -452,6 +453,9 @@ class Focus():
     increase_depth_of_field : (bool, optional)
         set to True to use max values from planes either side of main focus plane to create focussed image (default False)
 
+    merge_adjacent_particles : (bool, optional)
+        set to 0 (default) to deactivate, set to positive integer to give radius in pixels of smoothing of stack summary image to merge adjacent particles
+
     Returns
     -------
     :class:`pyopia.pipeline.Data`
@@ -468,18 +472,23 @@ class Focus():
     '''
 
     def __init__(self, stacksummary_function=std_map, threshold=0.9, focus_function=find_focus_imax, \
-                 discard_end_slices=True, increase_depth_of_field=False):
+                 discard_end_slices=True, increase_depth_of_field=False, merge_adjacent_particles=0):
         self.stacksummary_function = stacksummary_function
         self.threshold = threshold
         self.focus_function = focus_function
         self.discard_end_slices = discard_end_slices
         self.increase_depth_of_field = increase_depth_of_field
+        self.merge_adjacent_particles = merge_adjacent_particles
         pass
 
     def __call__(self, data):
         im_stack = data['im_stack']
         imss = self.stacksummary_function(im_stack)
         imss = rescale_image(imss)
+        if self.merge_adjacent_particles:
+            se = disk(self.merge_adjacent_particles)
+            imss = dilation(imss,se)
+            imss = erosion(imss,se)
         data['imss'] = imss
 
         # segment imss to find particle x-y locations
