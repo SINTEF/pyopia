@@ -453,7 +453,7 @@ class Focus():
         set to True to use max values from planes either side of main focus plane to create focussed image (default False)
 
     merge_adjacent_particles : (bool, optional)
-        set to 0 (default) to deactivate, set to positive integer to give radius in pixels of smoothing of stack 
+        set to 0 (default) to deactivate, set to positive integer to give radius in pixels of smoothing of stack
         summary image to merge adjacent particles
 
     Returns
@@ -471,7 +471,7 @@ class Focus():
         :attr:`pyopia.pipeline.Data.stack_ifocus`
     '''
 
-    def __init__(self, stacksummary_function=std_map, threshold=0.9, focus_function=find_focus_imax, 
+    def __init__(self, stacksummary_function=std_map, threshold=0.9, focus_function=find_focus_imax,
                  discard_end_slices=True, increase_depth_of_field=False, merge_adjacent_particles=0):
         self.stacksummary_function = stacksummary_function
         self.threshold = threshold
