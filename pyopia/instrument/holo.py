@@ -414,7 +414,6 @@ def find_focus_sobel(im_stack, bbox, increase_depth_of_field):
     return im_focus, ifocus
 
 
-
 class Focus():
     '''PyOpia pipline-compatible class for creating a focussed image from an image stack
 
@@ -454,7 +453,8 @@ class Focus():
         set to True to use max values from planes either side of main focus plane to create focussed image (default False)
 
     merge_adjacent_particles : (bool, optional)
-        set to 0 (default) to deactivate, set to positive integer to give radius in pixels of smoothing of stack summary image to merge adjacent particles
+        set to 0 (default) to deactivate, set to positive integer to give radius in pixels of smoothing of stack 
+        summary image to merge adjacent particles
 
     Returns
     -------
@@ -471,7 +471,7 @@ class Focus():
         :attr:`pyopia.pipeline.Data.stack_ifocus`
     '''
 
-    def __init__(self, stacksummary_function=std_map, threshold=0.9, focus_function=find_focus_imax, \
+    def __init__(self, stacksummary_function=std_map, threshold=0.9, focus_function=find_focus_imax, 
                  discard_end_slices=True, increase_depth_of_field=False, merge_adjacent_particles=0):
         self.stacksummary_function = stacksummary_function
         self.threshold = threshold
@@ -487,8 +487,8 @@ class Focus():
         imss = rescale_image(imss)
         if self.merge_adjacent_particles:
             se = disk(self.merge_adjacent_particles)
-            imss = dilation(imss,se)
-            imss = erosion(imss,se)
+            imss = dilation(imss, se)
+            imss = erosion(imss, se)
         data['imss'] = imss
 
         # segment imss to find particle x-y locations
