@@ -7,6 +7,7 @@ import pandas as pd
 from scipy import fftpack
 from skimage.io import imread
 from skimage.filters import sobel
+from skimage.morphology import disk, erosion, dilation
 import pyopia.process
 import struct
 from datetime import timedelta
@@ -339,7 +340,7 @@ def rescale_image(im):
     return im
 
 
-def find_focus_imax(im_stack, bbox):
+def find_focus_imax(im_stack, bbox, increase_depth_of_field):
     '''finds and returns the focussed image for the bbox region within im_stack
     using intensity of bbox area
 
@@ -350,6 +351,9 @@ def find_focus_imax(im_stack, bbox):
 
     bbox : tuple
         Bounding box (min_row, min_col, max_row, max_col)
+
+    increase_depth_of_field : bool
+        set to True to use max values from planes either side of main focus plane to create focussed image (default False)
 
     Returns
     -------
@@ -363,10 +367,15 @@ def find_focus_imax(im_stack, bbox):
     focus = np.sum(im_seg, axis=(0, 1))
     ifocus = np.argmax(focus)
 
-    return im_seg[:, :, ifocus], ifocus
+    if increase_depth_of_field:
+        im_focus = np.max(im_seg[:, :, np.max([ifocus-1, 0]):np.min([ifocus+1, im_seg.shape[2]])], axis=2)
+    else:
+        im_focus = im_seg[:, :, ifocus]
+
+    return im_focus, ifocus
 
 
-def find_focus_sobel(im_stack, bbox):
+def find_focus_sobel(im_stack, bbox, increase_depth_of_field):
     '''finds and returns the focussed image for the bbox region within im_stack
     using edge magnitude of bbox area
 
@@ -377,6 +386,9 @@ def find_focus_sobel(im_stack, bbox):
 
     bbox : tuple
         Bounding box (min_row, min_col, max_row, max_col)
+
+    increase_depth_of_field : bool
+        set to True to use max values from planes either side of main focus plane to create focussed image (default False)
 
     Returns
     -------
@@ -394,7 +406,12 @@ def find_focus_sobel(im_stack, bbox):
     focus = np.sum(im_seg, axis=(0, 1))
     ifocus = np.argmax(focus)
 
-    return im_seg[:, :, ifocus], ifocus
+    if increase_depth_of_field:
+        im_focus = np.max(im_seg[:, :, np.max([ifocus-1, 0]):np.min([ifocus+1, im_seg.shape[2]])], axis=2)
+    else:
+        im_focus = im_seg[:, :, ifocus]
+
+    return im_focus, ifocus
 
 
 class Focus():
@@ -432,6 +449,13 @@ class Focus():
     discard_end_slices : (bool, optional)
         set to True to discard particles that focus at either first or last slice
 
+    increase_depth_of_field : (bool, optional)
+        set to True to use max values from planes either side of main focus plane to create focussed image (default False)
+
+    merge_adjacent_particles : (bool, optional)
+        set to 0 (default) to deactivate, set to positive integer to give radius in pixels of smoothing of stack
+        summary image to merge adjacent particles
+
     Returns
     -------
     :class:`pyopia.pipeline.Data`
@@ -447,17 +471,24 @@ class Focus():
         :attr:`pyopia.pipeline.Data.stack_ifocus`
     '''
 
-    def __init__(self, stacksummary_function=std_map, threshold=0.9, focus_function=find_focus_imax, discard_end_slices=True):
+    def __init__(self, stacksummary_function=std_map, threshold=0.9, focus_function=find_focus_imax,
+                 discard_end_slices=True, increase_depth_of_field=False, merge_adjacent_particles=0):
         self.stacksummary_function = stacksummary_function
         self.threshold = threshold
         self.focus_function = focus_function
         self.discard_end_slices = discard_end_slices
+        self.increase_depth_of_field = increase_depth_of_field
+        self.merge_adjacent_particles = merge_adjacent_particles
         pass
 
     def __call__(self, data):
         im_stack = data['im_stack']
         imss = self.stacksummary_function(im_stack)
         imss = rescale_image(imss)
+        if self.merge_adjacent_particles:
+            se = disk(self.merge_adjacent_particles)
+            imss = dilation(imss, se)
+            imss = erosion(imss, se)
         data['imss'] = imss
 
         # segment imss to find particle x-y locations
@@ -469,7 +500,7 @@ class Focus():
         ifocus = []
         rp_out = []
         for rp in region_properties:
-            focus_result = self.focus_function(im_stack, rp.bbox)
+            focus_result = self.focus_function(im_stack, rp.bbox, self.increase_depth_of_field)
             if self.discard_end_slices and (focus_result[1] == 0 or focus_result[1] == im_stack.shape[2]):
                 continue
             im_focus = 255 - focus_result[0]
