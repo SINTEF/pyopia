@@ -195,8 +195,7 @@ def write_segmented_images(imbw, imc, settings, timestamp):
 
 
 def extract_particles(imc, timestamp, Classification, region_properties,
-                      export_outputpath=None, min_length=0, propnames = ['major_axis_length', 'minor_axis_length',
-                 'equivalent_diameter', 'solidity']):
+                      export_outputpath=None, min_length=0, propnames=None):
     '''extracts the particles to build stats and export particle rois to HDF5 files
 
     Args:
@@ -240,6 +239,11 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         meta.attrs['Raw image name'] = filename
         # @todo include more useful information in this meta data, e.g. possibly raw image location and background
         #  stack file list.
+
+    # define default propnames
+    if not propnames:
+        propnames = ['major_axis_length', 'minor_axis_length',
+                    'equivalent_diameter', 'solidity']
 
     # pre-allocate some things
     data = np.zeros((len(region_properties), len(propnames)), dtype=np.float64)
@@ -361,7 +365,8 @@ def statextract_light(imbw, timestamp, imc, Classification,
                       max_coverage=30,
                       max_particles=5000,
                       export_outputpath=None,
-                      min_length=0):
+                      min_length=0,
+                      propnames=None):
     '''extracts statistics of particles in a binary images (imbw)
 
     Args:
@@ -400,7 +405,7 @@ def statextract_light(imbw, timestamp, imc, Classification,
         print('WARNING. exportparticles temporarily modified for 2-d images without color!')
 
     stats = extract_particles(imc, timestamp, Classification, region_properties,
-                              export_outputpath=export_outputpath, min_length=min_length)
+                              export_outputpath=export_outputpath, min_length=min_length, propnames=propnames)
 
     return stats, saturation
 
