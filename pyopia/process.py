@@ -195,7 +195,8 @@ def write_segmented_images(imbw, imc, settings, timestamp):
 
 
 def extract_particles(imc, timestamp, Classification, region_properties,
-                      export_outputpath=None, min_length=0):
+                      export_outputpath=None, min_length=0, propnames = ['major_axis_length', 'minor_axis_length',
+                 'equivalent_diameter', 'solidity']):
     '''extracts the particles to build stats and export particle rois to HDF5 files
 
     Args:
@@ -205,6 +206,8 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         region_properties           : region properties object returned from regionprops (measure.regionprops(iml,
                                                                                                            cache=False))
         export_outputpath           : path for writing h5 output files. Defaults to None, which switches off file writing
+        min_length                  : specifies minimum particle length in pixels to include
+        propnames                   : specifies a list of the Skimage regionprops to export to the output file
 
     Returns:
         stats                       : (list of particle statistics for every particle, according to Partstats class)
@@ -237,10 +240,6 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         meta.attrs['Raw image name'] = filename
         # @todo include more useful information in this meta data, e.g. possibly raw image location and background
         #  stack file list.
-
-    # define the geometrical properties to be calculated from regionprops
-    propnames = ['major_axis_length', 'minor_axis_length',
-                 'equivalent_diameter', 'solidity']
 
     # pre-allocate some things
     data = np.zeros((len(region_properties), len(propnames)), dtype=np.float64)
