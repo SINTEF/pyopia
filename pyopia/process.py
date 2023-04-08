@@ -206,7 +206,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
                                                                                                            cache=False))
         export_outputpath           : path for writing h5 output files. Defaults to None, which switches off file writing
         min_length                  : specifies minimum particle length in pixels to include
-        additional_propnames        : specifies a list of the Skimage regionprops to export to the output file in additional to default
+        additional_propnames        : specifies list of regionprops to export to the output file in additional to default
 
     Returns:
         stats                       : (list of particle statistics for every particle, according to Partstats class)
@@ -242,7 +242,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
 
     # define default propnames
     propnames = ['major_axis_length', 'minor_axis_length',
-                    'equivalent_diameter', 'solidity']
+                'equivalent_diameter', 'solidity']
     propnames.extend(additional_propnames)
 
     # pre-allocate some things
@@ -405,7 +405,8 @@ def statextract_light(imbw, timestamp, imc, Classification,
         print('WARNING. exportparticles temporarily modified for 2-d images without color!')
 
     stats = extract_particles(imc, timestamp, Classification, region_properties,
-                              export_outputpath=export_outputpath, min_length=min_length, additional_propnames=additional_propnames)
+                              export_outputpath=export_outputpath, min_length=min_length,
+                              additional_propnames=additional_propnames)
 
     return stats, saturation
 
