@@ -2,9 +2,10 @@
 Module containing hologram specific tools to enable compatability with the :mod:`pyopia.pipeline`
 '''
 
+import os
 import numpy as np
 import pandas as pd
-from scipy import fftpack
+from scipy import fft
 from skimage.io import imread
 from skimage.filters import sobel
 from skimage.morphology import disk, erosion, dilation
@@ -40,9 +41,10 @@ class Initial():
 
     Returns
     -------
-    @todo . This is an 'output' dict containing:
     kern : np.arry
         reconstruction kernel
+    im_stack : np.array
+        pre-allocated array to receive reconstruction
 
     '''
 
@@ -61,8 +63,10 @@ class Initial():
         imtmp = load_image(self.filename)
         print('Build kernel')
         kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.n, self.offset, self.minZ, self.maxZ, self.stepZ)
+        im_stack = np.zeros(np.shape(kern)).astype(np.float64)
         print('HoloInitial done', pd.datetime.now())
         data['kern'] = kern
+        data['im_stack'] = im_stack
         return data
 
 
@@ -140,9 +144,10 @@ class Reconstruct():
     def __call__(self, data):
         imc = data['imc']
         kern = data['kern']
+        im_stack = data['im_stack']
 
         im_fft = forward_transform(imc)
-        im_stack = inverse_transform(im_fft, kern)
+        im_stack = inverse_transform(im_fft, kern, im_stack)
         data['im_stack'] = clean_stack(im_stack, self.stack_clean)
 
         return data
@@ -162,15 +167,16 @@ def forward_transform(im):
     im_fft : np.array
         im_fft
     '''
+
     # Perform forward transform
-    im_fft = fftpack.fft2(im)
+    im_fft = fft.fft2(im, workers=os.cpu_count())
 
     # Remove the zero frequency components
     im_fft[:, 0] = 0
     im_fft[0, :] = 0
 
     # fftshift
-    im_fft = fftpack.fftshift(im_fft)
+    im_fft = fft.fftshift(im_fft)
 
     return im_fft
 
@@ -222,7 +228,7 @@ def create_kernel(im, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
     return kern
 
 
-def inverse_transform(im_fft, kern):
+def inverse_transform(im_fft, kern, im_stack):
     '''create the reconstructed hologram stack of real images
 
     Parameters
@@ -231,16 +237,18 @@ def inverse_transform(im_fft, kern):
         calculated from forward_transform
     kern : np.array
         calculated from create_kernel
+    im_stack : np.array
+        pre-allocated array to receive output
 
     Returns
     -------
     np.arry
         im_stack
     '''
-    im_stack = np.zeros(np.shape(kern)).astype(np.float64)
 
     for i in range(np.shape(kern)[2]):
-        im_stack[:, :, i] = (fftpack.ifft2(im_fft * kern[:, :, i]).real)**2
+        im_tmp = np.multiply(im_fft, kern[:, :, i])
+        im_stack[:, :, i] = (fft.ifft2(im_tmp, workers=os.cpu_count()).real)**2
 
     return im_stack
 
