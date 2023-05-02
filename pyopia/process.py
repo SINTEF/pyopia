@@ -195,7 +195,7 @@ def write_segmented_images(imbw, imc, settings, timestamp):
 
 
 def extract_particles(imc, timestamp, Classification, region_properties,
-                      export_outputpath=None, min_length=0, additional_propnames=None):
+                      export_outputpath=None, min_length=0, propnames = ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']):
     '''extracts the particles to build stats and export particle rois to HDF5 files
 
     Args:
@@ -206,7 +206,8 @@ def extract_particles(imc, timestamp, Classification, region_properties,
                                                                                                            cache=False))
         export_outputpath           : path for writing h5 output files. Defaults to None, which switches off file writing
         min_length                  : specifies minimum particle length in pixels to include
-        additional_propnames        : specifies list of regionprops to export to the output file in additional to default
+        propnames                   : specifies list of skimage regionprops to export to the output file - must contain 
+                                                                                    default values that can be appended to
 
     Returns:
         stats                       : (list of particle statistics for every particle, according to Partstats class)
@@ -239,12 +240,6 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         meta.attrs['Raw image name'] = filename
         # @todo include more useful information in this meta data, e.g. possibly raw image location and background
         #  stack file list.
-
-    # define default propnames
-    propnames = ['major_axis_length', 'minor_axis_length',
-                 'equivalent_diameter', 'solidity']
-    if additional_propnames is not None:
-        propnames.extend(additional_propnames)
 
     # pre-allocate some things
     data = np.zeros((len(region_properties), len(propnames)), dtype=np.float64)
@@ -367,7 +362,7 @@ def statextract_light(imbw, timestamp, imc, Classification,
                       max_particles=5000,
                       export_outputpath=None,
                       min_length=0,
-                      additional_propnames=None):
+                      propnames = ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']):
     '''extracts statistics of particles in a binary images (imbw)
 
     Args:
@@ -407,7 +402,7 @@ def statextract_light(imbw, timestamp, imc, Classification,
 
     stats = extract_particles(imc, timestamp, Classification, region_properties,
                               export_outputpath=export_outputpath, min_length=min_length,
-                              additional_propnames=additional_propnames)
+                              propnames=propnames)
 
     return stats, saturation
 
@@ -620,13 +615,13 @@ class CalculateStats():
                  max_particles=5000,
                  export_outputpath=None,
                  min_length=0,
-                 additional_propnames=None):
+                 propnames = ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']):
 
         self.max_coverage = max_coverage
         self.max_particles = max_particles
         self.export_outputpath = export_outputpath
         self.min_length = min_length
-        self.additional_propnames = additional_propnames
+        self.propnames = propnames
 
     def __call__(self, data):
         print('statextract_light')
@@ -635,7 +630,7 @@ class CalculateStats():
                                               max_particles=self.max_particles,
                                               export_outputpath=self.export_outputpath,
                                               min_length=self.min_length,
-                                              additional_propnames=self.additional_propnames)
+                                              propnames=self.propnames)
         stats['timestamp'] = data['timestamp']
         stats['saturation'] = saturation
 
