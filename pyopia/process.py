@@ -243,7 +243,8 @@ def extract_particles(imc, timestamp, Classification, region_properties,
     # define default propnames
     propnames = ['major_axis_length', 'minor_axis_length',
                  'equivalent_diameter', 'solidity']
-    propnames.extend(additional_propnames)
+    if additional_propnames is not None:
+        propnames.extend(additional_propnames)
 
     # pre-allocate some things
     data = np.zeros((len(region_properties), len(propnames)), dtype=np.float64)
