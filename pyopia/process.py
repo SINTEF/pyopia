@@ -3,7 +3,6 @@
 Module containing tools for processing particle image data
 '''
 import os
-import time
 import numpy as np
 from skimage import morphology
 from skimage import segmentation
@@ -13,7 +12,6 @@ from scipy import ndimage as ndi
 import skimage.exposure
 import h5py
 from skimage.io import imsave
-import traceback
 from datetime import datetime
 
 
