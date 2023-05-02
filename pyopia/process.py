@@ -195,7 +195,8 @@ def write_segmented_images(imbw, imc, settings, timestamp):
 
 
 def extract_particles(imc, timestamp, Classification, region_properties,
-                      export_outputpath=None, min_length=0, propnames = ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']):
+                      export_outputpath=None, min_length=0, propnames=['major_axis_length', 'minor_axis_length',
+                                                                       'equivalent_diameter']):
     '''extracts the particles to build stats and export particle rois to HDF5 files
 
     Args:
@@ -206,7 +207,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
                                                                                                            cache=False))
         export_outputpath           : path for writing h5 output files. Defaults to None, which switches off file writing
         min_length                  : specifies minimum particle length in pixels to include
-        propnames                   : specifies list of skimage regionprops to export to the output file - must contain 
+        propnames                   : specifies list of skimage regionprops to export to the output file - must contain
                                                                                     default values that can be appended to
 
     Returns:
@@ -362,7 +363,7 @@ def statextract_light(imbw, timestamp, imc, Classification,
                       max_particles=5000,
                       export_outputpath=None,
                       min_length=0,
-                      propnames = ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']):
+                      propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter']):
     '''extracts statistics of particles in a binary images (imbw)
 
     Args:
@@ -615,7 +616,7 @@ class CalculateStats():
                  max_particles=5000,
                  export_outputpath=None,
                  min_length=0,
-                 propnames = ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']):
+                 propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter']):
 
         self.max_coverage = max_coverage
         self.max_particles = max_particles
