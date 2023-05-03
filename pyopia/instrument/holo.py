@@ -553,6 +553,7 @@ class MergeStats():
             ifocus.append(stack_ifocus[np.argmin(total_diff)])
 
         stats['ifocus'] = ifocus
+        stats['holo_filename'] = data['filename']
         data['stats'] = stats
         return data
 
