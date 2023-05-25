@@ -110,7 +110,7 @@ class Load():
         print(data['filename'])
         try:
             timestamp = read_lisst_holo_info(data['filename'])
-        except:
+        except ValueError:
             timestamp = pd.to_datetime(os.path.splitext(os.path.basename(data['filename']))[0][1:])
         print(timestamp)
         im = load_image(data['filename'])
