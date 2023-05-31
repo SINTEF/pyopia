@@ -55,17 +55,35 @@ We welcome additions and improvements to the code! We request that you follow a 
 Installing
 ----------
 
-Install [Python](https://github.com/conda-forge/miniforge/#download)
+Install [Python](https://github.com/conda-forge/miniforge/#download).
 
 A prompt such as is provided by the [miniforge installation](https://github.com/conda-forge/miniforge/#download) may be used for the following:
 
-Create a virtual environment using the environment.yml (will create an environment called pyopia)
+1. Navigate to the folder where you want to install pyopia using the 'cd' command.
+
+If you use git:
+Download repository from github, and move into the new directory:
+
+```bash
+git clone https://github.com/SINTEF/pyopia.git
+cd pyopia
+```
+
+If you do not want to use git, you can manually download the repository from github. To do so, click on the green "<> CODE button" (top right-hand side) and select "Download zip". Unzip the files into your target folder, and move into the new directory (note the foldername may contain the branch name, such as 'main').
+
+```bash
+cd pyopia-main
+```
+
+For the next steps, you need to be located in the directory that contains the file 'environment.yml'.
+
+2. Create a virtual environment using the environment.yml (will create an environment called pyopia):
 
 ```bash
 conda env create -f environment.yml
 ```
 
-to update, we recommend a forced re-install:
+3. To update, we recommend a forced re-install:
 
 ```bash
 conda env create -f environment.yml --force
@@ -77,13 +95,13 @@ conda env create -f environment.yml --force
 conda env update --file environment.yml --prune
 ```
 
-to activate:
+4. To activate:
 
 ```bash
 conda activate pyopia
 ```
 
-Test that it works with
+5. Test that it works with:
 
 ```bash
 python setup.py develop
