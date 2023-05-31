@@ -108,7 +108,11 @@ class Load():
 
     def __call__(self, data):
         print(data['filename'])
-        timestamp = read_lisst_holo_info(data['filename'])
+        try:
+            timestamp = read_lisst_holo_info(data['filename'])
+        except ValueError:
+            timestamp = pd.to_datetime(os.path.splitext(os.path.basename(data['filename']))[0][1:])
+        print(timestamp)
         im = load_image(data['filename'])
         data['timestamp'] = timestamp
         data['imraw'] = im
@@ -553,6 +557,7 @@ class MergeStats():
             ifocus.append(stack_ifocus[np.argmin(total_diff)])
 
         stats['ifocus'] = ifocus
+        stats['holo_filename'] = data['filename']
         data['stats'] = stats
         return data
 
