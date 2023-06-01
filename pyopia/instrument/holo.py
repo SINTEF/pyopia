@@ -12,6 +12,7 @@ from skimage.morphology import disk, erosion, dilation
 import pyopia.process
 import struct
 from datetime import timedelta
+from datetime import datetime
 
 '''
 This is an subpackage containing basic processing for reconstruction of in-line holographic images.
@@ -64,7 +65,7 @@ class Initial():
         print('Build kernel')
         kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.n, self.offset, self.minZ, self.maxZ, self.stepZ)
         im_stack = np.zeros(np.shape(kern)).astype(np.float64)
-        print('HoloInitial done', pd.datetime.now())
+        print('HoloInitial done', datetime.now())
         data['kern'] = kern
         data['im_stack'] = im_stack
         return data
