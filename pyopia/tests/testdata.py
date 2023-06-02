@@ -75,8 +75,8 @@ def get_example_hologram_and_background(download_directory):
     holo_background_filename = 'imbg-' + holo_filename
     get_file_from_pysilcam_blob(holo_filename, download_directory)
     get_file_from_pysilcam_blob(holo_background_filename, download_directory)
-    
+
     holo_filename = os.path.join(download_directory, holo_filename)
     holo_background_filename = os.path.join(download_directory, holo_background_filename)
-    
+
     return holo_filename, holo_background_filename

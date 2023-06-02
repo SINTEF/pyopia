@@ -51,7 +51,7 @@ def test_holo_pipeline():
                                  'maxZ': 60,  # maximum reconstruction distance in mm
                                  'stepZ': 5}  # step size in mm (use a very large step size for speed in running this test)
 
-        steps = {'initial': holo.Initial(holo_filename, **holo_initial_settings),  # initialisation step to create reconstruction kernel
+        steps = {'initial': holo.Initial(holo_filename, **holo_initial_settings),
                  'classifier': Classify(model_path=model_path),
                  'create background': pyopia.background.CreateBackground([holo_background_filename],
                                                                          pyopia.instrument.holo.load_image),
@@ -65,8 +65,11 @@ def test_holo_pipeline():
                                      merge_adjacent_particles=0),
                  'segmentation': pyopia.process.Segment(threshold=threshold),
                  'statextract': pyopia.process.CalculateStats(export_outputpath=tempdir_proc,
-                                                              propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter', 
-                                                                         'feret_diameter_max', 'equivalent_diameter_area']),
+                                                              propnames=['major_axis_length',
+                                                                         'minor_axis_length',
+                                                                         'equivalent_diameter',
+                                                                         'feret_diameter_max',
+                                                                         'equivalent_diameter_area']),
                  'output': pyopia.io.StatsH5(datafile_hdf)
                  }
 
