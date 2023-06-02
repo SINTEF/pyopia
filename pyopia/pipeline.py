@@ -49,11 +49,13 @@ class Pipeline():
         files = glob(os.path.join(foldername, '*.pgm')) # creates list of files in previously defined folder
         bgfiles = files[:average_window]
 
-        holo_initial_settings = {'pixel_size': 4.4, # pixel size in um
-                                'wavelength': 658, # laser wavelength in nm
-                                'minZ': 22, # minimum reconstruction distance in mm
-                                'maxZ': 60, # maximum reconstruction distance in mm
-                                'stepZ': 0.5} #step size in mm
+        holo_initial_settings = {'pixel_size': 4.4,  # pixel size in um
+                                 'wavelength': 658,  # laser wavelength in nm
+                                 'n': 1.33,  # index of refraction of sample volume medium (1.33 for water)
+                                 'offset': 27,  # offset to start of sample volume in mm
+                                 'minZ': 22,  # minimum reconstruction distance in mm
+                                 'maxZ': 60,  # maximum reconstruction distance in mm
+                                 'stepZ': 0.5}  # step size in mm
 
         steps = {'initial': holo.Initial(files[0], **holo_initial_settings), # initialisation step to create reconstruction kernel
                 'classifier': Classify(model_path=model_path),
