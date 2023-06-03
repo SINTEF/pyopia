@@ -58,3 +58,25 @@ def get_example_model(download_directory):
         zipit.extractall(download_directory)
     model_filename = 'keras_model.h5'
     return os.path.join(download_directory, model_filename)
+
+
+def get_example_hologram_and_background(download_directory):
+    '''calls `get_file_from_pysilcam_blob` for a raw hologram, and its associated background image.
+
+    Returns
+    -------
+    string
+        holo_filename
+
+    string
+        holo_background_filename
+    '''
+    holo_filename = '001-2082.pgm'
+    holo_background_filename = 'imbg-' + holo_filename
+    get_file_from_pysilcam_blob(holo_filename, download_directory)
+    get_file_from_pysilcam_blob(holo_background_filename, download_directory)
+
+    holo_filename = os.path.join(download_directory, holo_filename)
+    holo_background_filename = os.path.join(download_directory, holo_background_filename)
+
+    return holo_filename, holo_background_filename
