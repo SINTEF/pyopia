@@ -1,9 +1,11 @@
 [build-system]
-
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
 
 
 [project]
 name = "PyOpia"
+version = "0.0.0"
 description = "A Python Ocean Particle Image Analysis toolbox."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -17,11 +19,3 @@ classifiers = [
 
 
 [project.optional-dependencies]
-dev = [
-    "pylint ~=2.14.0",
-    "toml ~=0.10.2",
-    "yapf ~=0.32.0",
-]
-test = [
-    "pytest-cov ~=3.0.0",
-]
