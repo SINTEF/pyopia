@@ -1,7 +1,7 @@
     flake8
-    numpy==1.23.4
+    numpy
     pandas
-    h5py==2.10.0
+    h5py
     scipy
     scikit-image
     pytest>=7.2.0

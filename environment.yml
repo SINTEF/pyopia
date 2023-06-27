@@ -1,6 +1,6 @@
 name: pyopia
 channels:
     - conda-forge
-dependencies:    # These are the conda packages
+dependencies:
     - python=3.10
     - pip
