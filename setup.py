@@ -3,7 +3,6 @@ import os
 import sys
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
-from setuptools.command.install import install
 from setuptools.command.develop import develop
 import distutils.cmd
 
@@ -80,4 +79,4 @@ if __name__ == "__main__":
           cmdclass={'test': PyTest,
                     'test_noskip': PyTestNoSkip,
                     'develop': PostDevelopCommand}
-        )
+          )
