@@ -1,6 +1,6 @@
     flake8
     numpy
-    pandas
+    pandas[hdf5]
     h5py
     scipy
     scikit-image
