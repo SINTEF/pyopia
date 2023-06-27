@@ -6,7 +6,6 @@ A Python Ocean Particle Image Analysis toolbox
 Current status of main branch:
 ------------
 [![Documentation](https://readthedocs.org/projects/pyopia/badge/?version=latest)](https://pyopia.readthedocs.io/en/latest/?badge=latest)
-[![Windows build and test](https://github.com/SINTEF/pyopia/actions/workflows/windows-build-and-test.yml/badge.svg)](https://github.com/SINTEF/pyopia/actions/workflows/windows-build-and-test.yml)
 
 
 - Under initial development. **NOT 'RESEARCH READY'**
