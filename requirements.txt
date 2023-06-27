@@ -15,5 +15,6 @@
     sphinxcontrib-napoleon>=0.7
     tensorflow-cpu==2.10.1
     ipykernel>=6.19.4
+    urllib3<2.0
     gdown
     cmocean
