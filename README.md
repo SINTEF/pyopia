@@ -24,9 +24,8 @@ Installing for users
 
 User are expected to be fmiliar with Python and have,for example, a version of [Python](https://github.com/conda-forge/miniforge/#download) and [pip](https://pypi.org/project/pip/) installed. You can then install Pyopia like this:
 
-Note, the below command should eventually be refer to https://github.com/SINTEF/pyopia.git@latest
 ```
-pip install git+https://github.com/SINTEF/pyopia.git@107-make-install-simple-for-users-non-developers
+pip install git+https://github.com/SINTEF/pyopia.git@main
 ```
 
 We would usually recommend installing within a virtual python environment, which you can read more about [here](https://jni.github.io/using-python-for-science/intro-to-environments.html).
