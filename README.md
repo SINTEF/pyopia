@@ -3,26 +3,34 @@ PyOpia
 
 A Python Ocean Particle Image Analysis toolbox
 
-Current status of main branch:
-------------
-[![Documentation](https://readthedocs.org/projects/pyopia/badge/?version=latest)](https://pyopia.readthedocs.io/en/latest/?badge=latest)
-
-
-- Under initial development. **NOT 'RESEARCH READY'**
-
-- Moving code from [PySilCam](https://github.com/SINTEF/PySilCam/wiki)
-
-- Building a structure for a standard [processing pipline](https://pyopia.readthedocs.io/en/latest/pyopia.pipeline.html)
-
-- Building a system for metadata and [output files](https://pyopia.readthedocs.io/en/latest/pyopia.io.html)
-
-- Working through [known issues](https://github.com/SINTEF/pyopia/issues)
-
 Documentation:
 ------------
 [https://pyopia.readthedocs.io](https://pyopia.readthedocs.io)
+[![Documentation](https://readthedocs.org/projects/pyopia/badge/?version=latest)](https://pyopia.readthedocs.io/en/latest/?badge=latest)
 
-Development requirements for PyOpia:
+
+Current development status:
+------------
+
+- Under development. See/regester issues, [here].(https://github.com/SINTEF/pyopia/issues)
+
+- Refining a structure for a standard [processing piplines](https://pyopia.readthedocs.io/en/latest/pyopia.pipeline.html)
+
+- Building a system for metadata and [output files](https://pyopia.readthedocs.io/en/latest/pyopia.io.html)
+
+
+Installing for users
+------------
+
+User are expected to be fmiliar with Python and have,for example, a version of [Python](https://github.com/conda-forge/miniforge/#download) and [pip](https://pypi.org/project/pip/) installed. You can then install Pyopia like this:
+
+```
+pip install git+https://github.com/SINTEF/pyopia.git@107-make-install-simple-for-users-non-developers
+```
+
+We would usually recommend installing within a virtual python environment, which you can read more about [here](https://jni.github.io/using-python-for-science/intro-to-environments.html).
+
+Development targets for PyOpia:
 ------------
 1) Allow nonfamiliar users to install and use PyOpia, and to contribute & commit code changes
 2) Not hardware specific
@@ -34,7 +42,7 @@ Development requirements for PyOpia:
 8) Tests
 
 Normal functions within PyOpia should:
-------------
+
 1) take inputs
 2) return new outputs
 3) don't modify state of input
@@ -51,7 +59,7 @@ We welcome additions and improvements to the code! We request that you follow a 
 4. All pull requests must be reviewed by a person. The benefits from code review are plenty, but we like to emphasise that code reviews help spreading the awarenes of code changes. Please note that code reviews should be a pleasant experience, so be plesant, polite and remember that there is a human being with good intentions on the other side of the screen.
 5. All contributions are linted with flake8. We recommend that you run flake8 on your code while developing to fix any issues as you go. We recommend using autopep8 to autoformat your Python code (but please check the code behaviour is not affected by autoformatting before pushing). This makes flake8 happy, and makes it easier for us all to maintain a consistent and readable code base.
 
-Installing
+Installing for developers
 ----------
 
 Install [Python](https://github.com/conda-forge/miniforge/#download).
