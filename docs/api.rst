@@ -1,5 +1,13 @@
-Code Reference
-=============
+API documentation
+=================
+
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
+   pyopia
+
+----
 
 **Content**
 
@@ -17,12 +25,13 @@ Code Reference
 * `Holo`_
 
 
-Indices and tables
-==================
+**Indices and tables**
 
 * :ref:`genindex`
 * :ref:`modindex`
 
+
+----
 
 Pipeline
 --------------

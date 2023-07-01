@@ -6,4 +6,5 @@ root: intro
 
 parts:
 - chapters:
+  - file: examples
   - file: api

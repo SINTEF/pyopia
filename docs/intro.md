@@ -32,8 +32,3 @@ We hope this can help more exploratory development and contributions to the PyOp
 If you are analysing data for publication, we recommend using the {class}`pyopia.pipeline.Pipeline` standard so that your analysis steps are documented and the output format is more easily shareable.
 
 Full documentation for the code is [here](api)
-
-PyOPIA by example
-==================================
-
-Coming soon. In the meantime, have a look at the [notebooks](https://github.com/SINTEF/pyopia/tree/main/notebooks)

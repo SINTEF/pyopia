@@ -153,6 +153,7 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+docs/_autosummary/
 docs/source/
 !docs/source/conf.py
 !docs/source/index.rst
@@ -245,6 +246,7 @@ tags
 *.png
 *.h5
 *.pgm
+!docs/logo.PNG
 
 # End of https://www.gitignore.io/api/vim,python,pycharm,visualstudiocode
 *.zip

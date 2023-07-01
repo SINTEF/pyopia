@@ -4,10 +4,11 @@
 # re-generate this one.
 ###############################################################################
 author = 'The PyOPIA Community'
+autosummary_generate = True
 comments_config = {'hypothesis': False, 'utterances': False}
 copyright = '2022'
 exclude_patterns = ['**.ipynb_checkpoints', '.DS_Store', 'Thumbs.db', '_build']
-extensions = ['sphinx_togglebutton', 'sphinx_copybutton', 'myst_nb', 'jupyter_book', 'sphinx_thebe', 'sphinx_comments', 'sphinx_external_toc', 'sphinx.ext.intersphinx', 'sphinx_design', 'sphinx_book_theme', 'sphinx.ext.autodoc', 'sphinxcontrib.napoleon', 'sphinx_jupyterbook_latex']
+extensions = ['sphinx_togglebutton', 'sphinx_copybutton', 'myst_nb', 'jupyter_book', 'sphinx_thebe', 'sphinx_comments', 'sphinx_external_toc', 'sphinx.ext.intersphinx', 'sphinx_design', 'sphinx_book_theme', 'sphinx.ext.autodoc', 'sphinxcontrib.napoleon', 'sphinx.ext.autosummary', 'sphinx_jupyterbook_latex']
 external_toc_exclude_missing = False
 external_toc_path = '_toc.yml'
 html_baseurl = ''
