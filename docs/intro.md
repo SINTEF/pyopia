@@ -36,4 +36,4 @@ Full documentation for the code is [here](api)
 PyOPIA by example
 ==================================
 
-Checkout this [notebook](notebooks.ipynb)
+Coming soon. In the meantime, have a look at the [notebooks](https://github.com/SINTEF/pyopia/tree/main/notebooks)
