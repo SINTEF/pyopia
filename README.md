@@ -21,7 +21,7 @@ A Python Ocean Particle Image Analysis toolbox
 
 # Installing for users
 
-User are expected to be fmiliar with Python, and have [Python](https://github.com/conda-forge/miniforge/#download), [pip](https://pypi.org/project/pip/) and [git](https://github.com/git-guides/install-git) installed. You can then install Pyopia like this:
+Users are expected to be familiar with Python, and have [Python](https://github.com/conda-forge/miniforge/#download), [pip](https://pypi.org/project/pip/) and [git](https://github.com/git-guides/install-git) installed. You can then install Pyopia like this:
 
 ```
 pip install git+https://github.com/SINTEF/pyopia.git@main
