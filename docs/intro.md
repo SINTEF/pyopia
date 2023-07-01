@@ -32,3 +32,14 @@ We hope this can help more exploratory development and contributions to the PyOp
 If you are analysing data for publication, we recommend using the {class}`pyopia.pipeline.Pipeline` standard so that your analysis steps are documented and the output format is more easily shareable.
 
 Full documentation for the code is [here](api)
+
+Installing
+==================================
+
+Users are expected to be familiar with Python, and have [Python](https://github.com/conda-forge/miniforge/#download), [pip](https://pypi.org/project/pip/) and [git](https://github.com/git-guides/install-git) installed. You can then install Pyopia like this:
+
+```
+pip install git+https://github.com/SINTEF/pyopia.git@main
+```
+
+We would usually recommend installing within a virtual python environment, which you can read more about [here](https://jni.github.io/using-python-for-science/intro-to-environments.html).
