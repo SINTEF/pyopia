@@ -252,3 +252,5 @@ notebooks/header.tfl.txt
 notebooks/keras_model.h5
 
 test-report/*
+docs/.DS_Store
+.DS_Store
