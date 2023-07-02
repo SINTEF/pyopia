@@ -7,4 +7,6 @@ root: intro
 parts:
 - chapters:
   - file: examples
+    sections:
+      - file: notebooks/stats
   - file: api
