@@ -5,8 +5,10 @@ format: jb-book
 root: intro
 
 parts:
-- chapters:
+- caption: Examples
+  chapters:
   - file: examples
-    sections:
-      - file: notebooks/stats
+  - file: notebooks/stats
+- caption: Code docs
+  chapters:
   - file: api
