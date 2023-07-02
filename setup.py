@@ -3,24 +3,18 @@ import os
 import sys
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
-from setuptools.command.install import install
 from setuptools.command.develop import develop
 import distutils.cmd
 
 
-# modifications to develop and install, based on post here:
-# https://stackoverflow.com/questions/20288711/post-install-script-with-python-setuptools
+with open("requirements.txt") as f:
+    requirements = f.readlines()
+
+
 class PostDevelopCommand(develop):
     """Post-installation for development mode."""
     def run(self):
         develop.run(self)
-
-
-class PostInstallCommand(install):
-    """Post-installation for installation mode."""
-    def run(self):
-        install.run(self)
-        Documentation.run(self)
 
 
 class PyTestNoSkip(TestCommand):
@@ -79,24 +73,10 @@ def read(fname):
     return content
 
 
-setup(
-    name='PyOpia',
-    description='A Python Ocean Particle Image Analysis toolbox',
-    long_description=read('README.md'),
-    author='PyOpia contributors',
-    author_email='emlyn.davies@sintef.no',
-    zip_safe=False,
-    keywords='Ocean Particle Image Analysis',
-    classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
-        'Intended Audience :: Developers',
-        'Natural Language :: English',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.8',
-    ],
-    packages=['pyopia', 'pyopia.instrument'],
-    cmdclass={'test': PyTest,
-              'test_noskip': PyTestNoSkip,
-              'develop': PostDevelopCommand,
-              'install': PostInstallCommand}
-)
+if __name__ == "__main__":
+    setup(install_requires=requirements,
+          packages=['pyopia', 'pyopia.instrument'],
+          cmdclass={'test': PyTest,
+                    'test_noskip': PyTestNoSkip,
+                    'develop': PostDevelopCommand}
+          )
