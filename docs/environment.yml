@@ -25,3 +25,4 @@ dependencies:    # These are the conda packages
         - ipykernel>=6.19.4
         - gdown
         - cmocean
+        - jupyter-book
