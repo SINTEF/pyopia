@@ -246,6 +246,7 @@ tags
 *.png
 *.h5
 *.pgm
+*.h5
 !docs/logo.PNG
 
 # End of https://www.gitignore.io/api/vim,python,pycharm,visualstudiocode
@@ -256,3 +257,4 @@ notebooks/keras_model.h5
 test-report/*
 docs/.DS_Store
 .DS_Store
+docs/notebooks/header.tfl.txt
