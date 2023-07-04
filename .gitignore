@@ -153,6 +153,7 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+docs/_autosummary/
 docs/source/
 !docs/source/conf.py
 !docs/source/index.rst
@@ -245,6 +246,8 @@ tags
 *.png
 *.h5
 *.pgm
+*.h5
+!docs/logo.PNG
 
 # End of https://www.gitignore.io/api/vim,python,pycharm,visualstudiocode
 *.zip
@@ -252,3 +255,6 @@ notebooks/header.tfl.txt
 notebooks/keras_model.h5
 
 test-report/*
+docs/.DS_Store
+.DS_Store
+docs/notebooks/header.tfl.txt

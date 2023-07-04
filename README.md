@@ -5,10 +5,9 @@ A Python Ocean Particle Image Analysis toolbox
 
 # Documentation:
 
-[https://pyopia.readthedocs.io](https://pyopia.readthedocs.io)
-[![Documentation](https://readthedocs.org/projects/pyopia/badge/?version=latest)](https://pyopia.readthedocs.io/en/latest/?badge=latest)
+[![Jupyter Book Badge](https://jupyterbook.org/badge.svg)](https://pyopia.readthedocs.io) [![Documentation](https://readthedocs.org/projects/pyopia/badge/?version=latest)](https://pyopia.readthedocs.io/en/latest/?badge=latest)
 
-
+[pyopia.readthedocs.io](https://pyopia.readthedocs.io)
 # Current status:
 
 - Under development. See/regester issues, [here](https://github.com/SINTEF/pyopia/issues)

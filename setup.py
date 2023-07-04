@@ -78,5 +78,6 @@ if __name__ == "__main__":
           packages=['pyopia', 'pyopia.instrument'],
           cmdclass={'test': PyTest,
                     'test_noskip': PyTestNoSkip,
-                    'develop': PostDevelopCommand}
+                    'develop': PostDevelopCommand,
+                    'docbuild': Documentation}
           )
