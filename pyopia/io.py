@@ -50,6 +50,11 @@ def write_stats(
         meta.attrs['Pipeline steps'] = steps_string
 
 
+def load_stats(datafile_hdf):
+    stats = pd.read_hdf(datafile_hdf + '-STATS.h5', 'ParticleStats/stats')
+    return stats
+
+
 def show_h5_meta(h5file):
     '''
     prints metadata from an exported hdf5 file created from pyopia.process
