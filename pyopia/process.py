@@ -442,6 +442,13 @@ class Segment():
         self.threshold = threshold
         self.fill_holes = fill_holes
 
+    def __repr__(self) -> str:
+        output = f'{self.__module__}.{self.__class__.__name__}'
+        output += f'(minimum_area = {self.minimum_area},'
+        output += f'threshold = {self.threshold},'
+        output += f'fill_holes = {self.fill_holes})'
+        return output
+
     def __call__(self, data):
         data['imbw'] = segment(data['imc'], threshold=self.threshold, fill_holes=self.fill_holes)
         return data
