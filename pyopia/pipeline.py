@@ -6,7 +6,7 @@ Refer to :class:`Pipeline` for examples of how to process datasets and images
 from typing import TypedDict
 import datetime
 import pandas as pd
-from operator import methodcaller,
+from operator import methodcaller
 import toml
 import sys
 
