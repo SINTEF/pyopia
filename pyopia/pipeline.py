@@ -10,6 +10,7 @@ from operator import methodcaller
 import toml
 import sys
 
+
 class Pipeline():
     '''The processing pipeline class
     ================================
