@@ -1,0 +1,19 @@
+[steps]
+
+    [steps.classifier]
+    pipeline_class = 'pyopia.classify.Classify'
+    model_path = 'keras_model.h5'
+
+    [steps.load]
+    pipeline_class = 'pyopia.instrument.silcam.SilCamLoad'
+
+    [steps.imageprep]
+    pipeline_class = 'pyopia.instrument.silcam.ImagePrep'
+    image_level = 'imraw'
+
+    [steps.segmentation]
+    pipeline_class = 'pyopia.process.Segment'
+    threshold = 0.85
+
+    [steps.statextract]
+    pipeline_class = 'pyopia.process.CalculateStats'

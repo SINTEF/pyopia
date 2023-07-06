@@ -18,3 +18,5 @@
     urllib3<2.0
     gdown
     cmocean
+    toml
+    xarray
