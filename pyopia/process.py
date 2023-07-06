@@ -362,18 +362,26 @@ def statextract(imbw, timestamp, imc, Classification,
                 export_outputpath=None,
                 min_length=0,
                 propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter']):
-    '''extracts statistics of particles in a binary images (imbw)
+    '''Extracts statistics of particles in a binary images (imbw)
 
     Args:
         imbw                        : segmented binary image
         img                         : background-corrected image
         timestamp                   : timestamp of image collection
         Classification              : initialised classification class from pyiopia.classify
-        measure_function            : function for measuring particles that must conform to measure_particles
-                                        defaults to measure_particles
+        max_coverage                : maximum percentge of image that is acceptable as covered by particles.
+                                      Image skipped if exceeded.
+        max_particles               : maximum number of particles accepted in the image
+                                      Image skipped if exceeded.
+        region_properties           : region properties object returned from regionprops (measure.regionprops(iml,
+                                                                                                           cache=False))
+        export_outputpath           : path for writing h5 output files. Defaults to None, which switches off file writing
+        min_length                  : specifies minimum particle length in pixels to include
+        propnames                   : specifies list of skimage regionprops to export to the output file - must contain
+                                                                                    default values that can be appended to
 
     Returns:
-        stats                       : (list of particle statistics for every particle, according to Partstats class)
+        stats                       : pandas DataFrame of particle statistics for every particle
         saturation                  : percentage saturation of image
     '''
 
