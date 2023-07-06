@@ -7,9 +7,6 @@ from datetime import datetime
 import h5py
 import pandas as pd
 import toml
-import xarray
-from operator import methodcaller, attrgetter
-import sys
 
 from pyopia import __version__ as pyopia_version
 
@@ -63,6 +60,20 @@ def write_stats(
 
 
 def make_xstats(stats, toml_steps):
+    '''Converts a stats dataframe into xarray DataSet, with metadata
+
+    Parameters
+    ----------
+    stats : Pandas DataFrame
+        particle statistics
+    toml_steps : dict
+        TOML-based steps dictionary
+
+    Returns
+    -------
+    xarray.DataSet
+        Xarray version of stats dataframe, including metadata
+    '''
     xstats = stats.to_xarray()
     xstats.attrs["steps"] = toml.dumps(toml_steps)
     xstats.attrs['Modified'] = str(datetime.now())
@@ -111,32 +122,3 @@ def load_toml(toml_file):
     with open(toml_file, 'r') as f:
         settings = toml.load(f)
     return settings
-
-
-def steps_from_xstats(xstats):
-    return toml.loads(xstats.__getattr__('steps'))
-
-
-def build_repr(toml_steps, step_name):
-    pipeline_class = toml_steps[step_name]['pipeline_class']
-    classname = pipeline_class.split('.')[-1]
-    modulename = pipeline_class.replace(classname, '')[:-1]
-
-    keys = [k for k in toml_steps[step_name] if k != 'pipeline_class']
-
-    arguments = dict()
-    for k in keys:
-        arguments[k] = toml_steps[step_name][k]
-
-    m = methodcaller(classname, **arguments)
-    callobj = m(sys.modules[modulename])
-    return callobj
-
-
-def build_steps(toml_steps):
-    step_names = list(toml_steps.keys())
-    steps = dict()
-    for step_name in step_names:
-        steps[step_name] = build_repr(toml_steps, step_name)
-
-    return steps

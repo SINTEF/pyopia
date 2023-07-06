@@ -6,7 +6,9 @@ Refer to :class:`Pipeline` for examples of how to process datasets and images
 from typing import TypedDict
 import datetime
 import pandas as pd
-
+from operator import methodcaller,
+import toml
+import sys
 
 class Pipeline():
     '''The processing pipeline class
@@ -279,3 +281,70 @@ class ReturnData():
     def __call__(self, data):
         data['stats'] = data
         return data
+
+
+def steps_from_xstats(xstats):
+    '''Get the steps attribute from xarray version of the particle stats into a dictionary
+
+    Parameters
+    ----------
+    xstats : xarray.DataSet
+        xarray version of the particle stats dataframe, containing metadata
+
+    Returns
+    -------
+    dict
+        TOML-formatted dictionary of pipeline steps
+    '''
+    return toml.loads(xstats.__getattr__('steps'))
+
+
+def build_repr(toml_steps, step_name):
+    '''Build a callable object from settings, which can be used to construct the pipeline steps dict
+
+    Parameters
+    ----------
+    toml_steps : dict
+        TOML-formatted steps
+    step_name : str
+        the key of the TOML-formatted steps which should be use to create a callable object
+
+    Returns
+    -------
+    obj
+        callable object, useable in a pipeline steps dict
+    '''
+    pipeline_class = toml_steps[step_name]['pipeline_class']
+    classname = pipeline_class.split('.')[-1]
+    modulename = pipeline_class.replace(classname, '')[:-1]
+
+    keys = [k for k in toml_steps[step_name] if k != 'pipeline_class']
+
+    arguments = dict()
+    for k in keys:
+        arguments[k] = toml_steps[step_name][k]
+
+    m = methodcaller(classname, **arguments)
+    callobj = m(sys.modules[modulename])
+    return callobj
+
+
+def build_steps(toml_steps):
+    '''Build a steps dictionary, ready for pipeline use, from a TOML-formatted steps dict
+
+    Parameters
+    ----------
+    toml_steps : dict
+        TOML-formatted steps (usually loaded from a config.toml file)
+
+    Returns
+    -------
+    dict
+        steps dict that is useable by `pyopia.pipeline.Pipeline`
+    '''
+    step_names = list(toml_steps.keys())
+    steps = dict()
+    for step_name in step_names:
+        steps[step_name] = build_repr(toml_steps, step_name)
+
+    return steps
