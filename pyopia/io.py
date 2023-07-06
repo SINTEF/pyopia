@@ -8,6 +8,8 @@ import h5py
 import pandas as pd
 import toml
 import xarray
+from operator import methodcaller, attrgetter
+import sys
 
 from pyopia import __version__ as pyopia_version
 
@@ -53,15 +55,20 @@ def write_stats(
             meta.attrs['PyOpia version'] = pyopia_version
             meta.attrs['Pipeline steps'] = steps_string
     elif format == 'nc':
-        xstats = stats.to_xarray()
-        xstats.attrs["steps"] = steps_string
-        xstats.attrs['Modified'] = str(datetime.now())
-        xstats.attrs['PyOpia version'] = pyopia_version
-        xstats = xstats.assign_coords(time=xstats.timestamp)
+        xstats = make_xstats(stats, steps_string)
         xstats.to_netcdf(datafilename + '-STATS.nc')
 
         if append:
-            raise Exception("append not implemented for nc output yet") 
+            raise Exception("append not implemented for nc output yet")
+
+
+def make_xstats(stats, toml_steps):
+    xstats = stats.to_xarray()
+    xstats.attrs["steps"] = toml.dumps(toml_steps)
+    xstats.attrs['Modified'] = str(datetime.now())
+    xstats.attrs['PyOpia version'] = pyopia_version
+    xstats = xstats.assign_coords(time=xstats.timestamp)
+    return xstats
 
 
 def load_stats(datafile_hdf):
@@ -106,32 +113,30 @@ def load_toml(toml_file):
     return settings
 
 
-def build_repr(settings, step_name):
-    repr_string = settings['steps'][step_name]['pipeline_class'] + '('
-    arg_names = [k for k in list(settings['steps'][step_name].keys()) if k != 'pipeline_class']
-    for i, a in enumerate(arg_names):
-        v = settings['steps'][step_name][a]
-        repr_string += f'{a}='
-        if type(v) is str:
-            repr_string += f'\'{v}\', '
-        else:
-            repr_string += f'{v}, '
-
-    if len(arg_names) > 0:
-        repr_string = repr_string[:-2]
-    repr_string += ')'
-
-    output = f'\'{step_name}\': {repr_string}'
-    return output
+def steps_from_xstats(xstats):
+    return toml.loads(xstats.__getattr__('steps'))
 
 
-def build_step_string(settings):
-    step_names = list(settings['steps'].keys())
-    step_str = '{'
+def build_repr(toml_steps, step_name):
+    pipeline_class = toml_steps[step_name]['pipeline_class']
+    classname = pipeline_class.split('.')[-1]
+    modulename = pipeline_class.replace(classname, '')[:-1]
+
+    keys = [k for k in toml_steps[step_name] if k != 'pipeline_class']
+
+    arguments = dict()
+    for k in keys:
+        arguments[k] = toml_steps[step_name][k]
+
+    m = methodcaller(classname, **arguments)
+    callobj = m(sys.modules[modulename])
+    return callobj
+
+
+def build_steps(toml_steps):
+    step_names = list(toml_steps.keys())
+    steps = dict()
     for step_name in step_names:
-        step_str += build_repr(settings, step_name)
-        step_str += ', '
-    step_str = step_str[:-2]
-    step_str += '}'
+        steps[step_name] = build_repr(toml_steps, step_name)
 
-    return step_str
+    return steps
