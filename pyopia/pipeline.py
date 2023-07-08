@@ -9,6 +9,8 @@ import pandas as pd
 from operator import methodcaller
 import toml
 import sys
+import importlib
+from skimage.io import imread
 
 
 class Pipeline():
@@ -349,3 +351,12 @@ def build_steps(toml_steps):
         steps[step_name] = build_repr(toml_steps, step_name)
 
     return steps
+
+
+def get_load_function(instrument_module: str) -> str:
+    if instrument_module == 'imread':
+        return imread
+    else:
+        instrument = importlib.import_module(f'pyopia.instrument.{instrument_module}')
+        return instrument.load_image
+    
