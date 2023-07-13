@@ -177,8 +177,8 @@ def forward_transform(im):
     im_fft = fft.fft2(im, workers=os.cpu_count())
 
     # Remove the zero frequency components
-    im_fft[:, 0] = 0
-    im_fft[0, :] = 0
+    # im_fft[:, 0] = 0
+    # im_fft[0, :] = 0
 
     # fftshift
     im_fft = fft.fftshift(im_fft)
@@ -253,7 +253,8 @@ def inverse_transform(im_fft, kern, im_stack):
 
     for i in range(np.shape(kern)[2]):
         im_tmp = np.multiply(im_fft, kern[:, :, i])
-        im_stack[:, :, i] = (fft.ifft2(im_tmp, workers=os.cpu_count()).real)**2
+        # im_stack[:, :, i] = (fft.ifft2(im_tmp, workers=os.cpu_count()).real)**2
+        im_stack[:, :, i] = fft.ifft2(im_tmp, workers=os.cpu_count()).real
 
     return im_stack
 
