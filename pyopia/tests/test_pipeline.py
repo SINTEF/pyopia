@@ -48,7 +48,7 @@ def test_holo_pipeline():
                                  'n': 1.33,  # index of refraction of sample volume medium (1.33 for water)
                                  'offset': 27,  # offset to start of sample volume in mm
                                  'minZ': 22,  # minimum reconstruction distance in mm
-                                 'maxZ': 60,  # maximum reconstruction distance in mm
+                                 'maxZ': 55,  # maximum reconstruction distance in mm
                                  'stepZ': 5}  # step size in mm (use a very large step size for speed in running this test)
 
         steps = {'initial': holo.Initial(holo_filename, **holo_initial_settings),
