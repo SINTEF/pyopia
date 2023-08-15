@@ -3,6 +3,7 @@ Background correction module (inherited from PySilCam)
 '''
 
 import numpy as np
+from glob import glob
 from pyopia.pipeline import get_load_function
 
 
@@ -289,12 +290,14 @@ class CreateBackground():
     '''
 
     def __init__(self, average_window, load_function=get_load_function('imread')):
-        self.bgfiles = self.files[:average_window]
+        self.average_window = average_window
         self.load_function = load_function
         pass
 
     def __call__(self, data):
-        bgstack, imbg = ini_background(self.bgfiles, self.load_function)
+        files = glob(data['raw_files'])
+        bgfiles = files[:self.average_window]
+        bgstack, imbg = ini_background(bgfiles, self.load_function)
 
         data['bgstack'] = bgstack
         data['imbg'] = imbg

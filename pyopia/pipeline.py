@@ -121,22 +121,24 @@ class Pipeline():
                  initial_steps=['initial', 'classifier', 'createbackground']):
 
         self.settings = settings
-        self.pass_general_settings()
-        print('raw_files:', self.raw_files)
-        
         self.stepnames = list(settings['steps'].keys())
 
         self.initial_steps = initial_steps
         print('Initialising pipeline')
         self.data = Data()
 
+        self.pass_general_settings()
+        print('raw_files:', self.data['raw_files'])
+
         for stepname in self.stepnames:
             if not self.initial_steps.__contains__(stepname):
                 continue
             if stepname == 'classifier':
-                self.data['cl'] = self.execute_step(stepname)
+                callobj = self.step_callobj(stepname)
+                self.data['cl'] = callobj()
             else:
-                self.data = self.execute_step(stepname)
+                callobj = self.step_callobj(stepname)
+                self.data = callobj(self.data)
 
         print('Pipeline ready with these data: ', list(self.data.keys()))
 
@@ -156,13 +158,14 @@ class Pipeline():
             if self.initial_steps.__contains__(stepname):
                 continue
 
-            self.data = self.execute_step(stepname)
+            callobj = self.step_callobj(stepname)
+            self.data = callobj(self.data)
 
         stats = self.data['stats']
 
         return stats
 
-    def execute_step(self, stepname):
+    def step_callobj(self, stepname):
 
         pipeline_class = self.settings['steps'][stepname]['pipeline_class']
         classname = pipeline_class.split('.')[-1]
@@ -176,11 +179,11 @@ class Pipeline():
 
         m = methodcaller(classname, **arguments)
         callobj = m(sys.modules[modulename])
-        print('calling:', classname, ' with:', arguments)
-        return callobj()
+        print(classname, ' ready with:', arguments)
+        return callobj
 
     def pass_general_settings(self):
-        self.raw_files = self.settings['General']['raw_files']
+        self.data['raw_files'] = self.settings['General']['raw_files']
 
     def print_steps(self):
         '''Print the steps dictionary
@@ -374,7 +377,7 @@ def build_steps(toml_steps):
     return steps
 
 
-def get_load_function(instrument_module: str) -> str:
+def get_load_function(instrument_module):
     if instrument_module == 'imread':
         return imread
     else:
