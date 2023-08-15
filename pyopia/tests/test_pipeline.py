@@ -57,7 +57,7 @@ def test_holo_pipeline():
                                                                          pyopia.instrument.holo.load_image),
                  'load': holo.Load(),
                  'correct background': pyopia.background.CorrectBackgroundAccurate(pyopia.background.shift_bgstack_accurate),
-                 'reconstruct': holo.Reconstruct(stack_clean=0.02, forward_filter_option=0, inverse_output_option=0),
+                 'reconstruct': holo.Reconstruct(stack_clean=0.02, forward_filter_option=2, inverse_output_option=0),
                  'focus': holo.Focus(pyopia.instrument.holo.std_map,
                                      threshold=threshold,
                                      focus_function=pyopia.instrument.holo.find_focus_sobel,

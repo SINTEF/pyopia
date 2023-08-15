@@ -128,7 +128,7 @@ class Reconstruct():
     stack_clean : float
         defines amount of cleaning of stack (fraction of max value below which to zero)
     forward_filter_option : int
-        switch to control filtering in frequency domain (0=none/default,1=DC only,2=zero ferquency)
+        switch to control filtering in frequency domain (0=none,1=DC only,2=zero ferquency/default)
     inverse_output_option :  int
         switch to control optional scaling of output intensity (0=square/default,1=linear)
 
