@@ -117,22 +117,26 @@ class Pipeline():
 
     '''
 
-    def __init__(self, steps, initial_steps=['initial', 'classifier', 'create background']):
+    def __init__(self, settings,
+                 initial_steps=['initial', 'classifier', 'createbackground']):
+
+        self.settings = settings
+        self.pass_general_settings()
+        print('raw_files:', self.raw_files)
+        
+        self.stepnames = list(settings['steps'].keys())
 
         self.initial_steps = initial_steps
         print('Initialising pipeline')
         self.data = Data()
-        self.steps = steps
 
-        for s in self.steps:
-            if not self.initial_steps.__contains__(s):
+        for stepname in self.stepnames:
+            if not self.initial_steps.__contains__(stepname):
                 continue
-            if s == 'classifier':
-                print('  Running', self.steps['classifier'])
-                self.data['cl'] = self.steps['classifier']()
+            if stepname == 'classifier':
+                self.data['cl'] = self.execute_step(stepname)
             else:
-                print('  Running', self.steps[s])
-                self.data = self.steps[s](self.data)
+                self.data = self.execute_step(stepname)
 
         print('Pipeline ready with these data: ', list(self.data.keys()))
 
@@ -148,18 +152,35 @@ class Pipeline():
 
         self.data['filename'] = filename
 
-        self.data['steps_string'] = steps_to_string(self.steps)
-
-        for s in self.steps:
-            if self.initial_steps.__contains__(s):
+        for stepname in self.stepnames:
+            if self.initial_steps.__contains__(stepname):
                 continue
 
-            print('calling: ', str(type(self.steps[s])), ' with: ', list(self.data.keys()))
-            self.data = self.steps[s](self.data)
+            self.data = self.execute_step(stepname)
 
         stats = self.data['stats']
 
         return stats
+
+    def execute_step(self, stepname):
+
+        pipeline_class = self.settings['steps'][stepname]['pipeline_class']
+        classname = pipeline_class.split('.')[-1]
+        modulename = pipeline_class.replace(classname, '')[:-1]
+
+        keys = [k for k in self.settings['steps'][stepname] if k != 'pipeline_class']
+
+        arguments = dict()
+        for k in keys:
+            arguments[k] = self.settings['steps'][stepname][k]
+
+        m = methodcaller(classname, **arguments)
+        callobj = m(sys.modules[modulename])
+        print('calling:', classname, ' with:', arguments)
+        return callobj()
+
+    def pass_general_settings(self):
+        self.raw_files = self.settings['General']['raw_files']
 
     def print_steps(self):
         '''Print the steps dictionary
@@ -359,4 +380,3 @@ def get_load_function(instrument_module: str) -> str:
     else:
         instrument = importlib.import_module(f'pyopia.instrument.{instrument_module}')
         return instrument.load_image
-    

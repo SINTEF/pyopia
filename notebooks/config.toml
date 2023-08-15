@@ -1,8 +1,16 @@
+[General]
+raw_files = 'raw_data/*.silc'
+
 [steps]
 
     [steps.classifier]
     pipeline_class = 'pyopia.classify.Classify'
     model_path = 'keras_model.h5'
+
+    [steps.createbackground]
+    pipeline_class = 'pyopia.background.CreateBackground'
+    average_window = 10 
+    load_function = 'pyopia.instrument.silcam.load_image'
 
     [steps.load]
     pipeline_class = 'pyopia.instrument.silcam.SilCamLoad'

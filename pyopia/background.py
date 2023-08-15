@@ -288,8 +288,8 @@ class CreateBackground():
 
     '''
 
-    def __init__(self, bgfiles, load_function=get_load_function('imread')):
-        self.bgfiles = bgfiles
+    def __init__(self, average_window, load_function=get_load_function('imread')):
+        self.bgfiles = self.files[:average_window]
         self.load_function = load_function
         pass
 
