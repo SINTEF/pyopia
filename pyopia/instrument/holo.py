@@ -158,14 +158,15 @@ class Reconstruct():
         return data
 
 
-def forward_transform(im):
-    '''Perform forward transform
-    Remove the zero frequency components and then fftshift
+def forward_transform(im, filter_option=2):
+    '''Perform forward transform with optional filtering
 
     Parameters
     ----------
     im : np.array
         hologram (usually background-corrected)
+    filter_option : int
+        filtering in frequency domain (0=none/default,1=DC only,2=zero ferquency)
 
     Returns
     -------
@@ -176,9 +177,15 @@ def forward_transform(im):
     # Perform forward transform
     im_fft = fft.fft2(im, workers=os.cpu_count())
 
-    # Remove the zero frequency components
-    # im_fft[:, 0] = 0
-    # im_fft[0, :] = 0
+    # apply filtering if required
+    match filter_option:
+        case 1:
+            im_fft[0, 0] = 0
+        case 2:
+            im_fft[:, 0] = 0
+            im_fft[0, :] = 0
+        case _:
+            pass
 
     # fftshift
     im_fft = fft.fftshift(im_fft)
