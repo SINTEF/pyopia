@@ -240,7 +240,7 @@ def create_kernel(im, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
     return kern
 
 
-def inverse_transform(im_fft, kern, im_stack):
+def inverse_transform(im_fft, kern, im_stack, output_option=0):
     '''create the reconstructed hologram stack of real images
 
     Parameters
@@ -251,6 +251,8 @@ def inverse_transform(im_fft, kern, im_stack):
         calculated from create_kernel
     im_stack : np.array
         pre-allocated array to receive output
+    output_option: int
+        optional scaling of output intensity (0=square/default,1=linear)
 
     Returns
     -------
@@ -260,8 +262,11 @@ def inverse_transform(im_fft, kern, im_stack):
 
     for i in range(np.shape(kern)[2]):
         im_tmp = np.multiply(im_fft, kern[:, :, i])
-        # im_stack[:, :, i] = (fft.ifft2(im_tmp, workers=os.cpu_count()).real)**2
-        im_stack[:, :, i] = fft.ifft2(im_tmp, workers=os.cpu_count()).real
+        match output_option:
+            case 1:
+                im_stack[:, :, i] = fft.ifft2(im_tmp, workers=os.cpu_count()).real
+            case _:
+                im_stack[:, :, i] = (fft.ifft2(im_tmp, workers=os.cpu_count()).real)**2
 
     return im_stack
 
