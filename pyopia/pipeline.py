@@ -323,7 +323,8 @@ def steps_from_xstats(xstats):
     dict
         TOML-formatted dictionary of pipeline steps
     '''
-    return toml.loads(xstats.__getattr__('steps'))
+    steps = toml.loads(xstats.__getattr__('steps'))
+    return steps
 
 
 def build_repr(toml_steps, step_name):

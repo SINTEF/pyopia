@@ -14,7 +14,7 @@ from pyopia import __version__ as pyopia_version
 def write_stats(
         datafilename,
         stats,
-        steps_string=None,
+        settings=None,
         append=True,
         export_name_len=40,
         format='h5'):
@@ -50,9 +50,9 @@ def write_stats(
             meta = fh.require_group('Meta')
             meta.attrs['Modified'] = str(datetime.now())
             meta.attrs['PyOpia version'] = pyopia_version
-            meta.attrs['Pipeline steps'] = steps_string
+            meta.attrs['Pipeline steps'] = settings
     elif format == 'nc':
-        xstats = make_xstats(stats, steps_string)
+        xstats = make_xstats(stats, settings)
         xstats.to_netcdf(datafilename + '-STATS.nc')
 
         if append:
