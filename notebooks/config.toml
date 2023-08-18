@@ -9,7 +9,8 @@ raw_files = 'raw_data/*.silc'
 
     [steps.createbackground]
     pipeline_class = 'pyopia.background.CreateBackground'
-    average_window = 10 
+    average_window = 10
+    instrument_module = 'silcam'
 
     [steps.load]
     pipeline_class = 'pyopia.instrument.silcam.SilCamLoad'

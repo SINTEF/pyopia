@@ -378,7 +378,7 @@ def build_steps(toml_steps):
     return steps
 
 
-def get_load_function(instrument_module):
+def get_load_function(instrument_module='imread'):
     if instrument_module == 'imread':
         return imread
     else:

@@ -289,9 +289,9 @@ class CreateBackground():
 
     '''
 
-    def __init__(self, average_window, load_function=get_load_function('imread')):
+    def __init__(self, average_window, instrument_module='imread'):
         self.average_window = average_window
-        self.load_function = load_function
+        self.load_function = get_load_function(instrument_module)
         pass
 
     def __call__(self, data):
