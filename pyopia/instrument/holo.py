@@ -221,7 +221,7 @@ def create_kernel(im, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
 
     f = (np.pi / (pixel_size / 1e6)) * (f1**2 + f2**2)**0.5
 
-    z = (np.linspace(minZ * 1e-3, maxZ * 1e-3, np.int32((maxZ - minZ)/stepZ + 1)) / n) + (offset * 1e-3)
+    z = (np.arange(minZ * 1e-3, maxZ * 1e-3, stepZ * 1e-3) / n) + (offset * 1e-3)
 
     wavelength_m = wavelength * 1e-9
     k = 2 * np.pi / wavelength_m
