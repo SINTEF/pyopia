@@ -2,7 +2,7 @@ name: pyopia
 channels:
     - conda-forge
 dependencies:    # These are the conda packages
-    - python=3.8
+    - python=3.10
     - pip
     - flake8
     - numpy>=1.20.1
