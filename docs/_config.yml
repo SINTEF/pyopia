@@ -35,7 +35,7 @@ html:
 sphinx:
   extra_extensions:
   - 'sphinx.ext.autodoc'
-  - 'sphinxcontrib.napoleon'
+  - 'sphinx.ext.napoleon'
   - 'sphinx.ext.autosummary'
   config:
     autosummary_generate: True
