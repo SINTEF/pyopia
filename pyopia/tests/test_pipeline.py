@@ -83,7 +83,7 @@ def test_holo_pipeline():
         print('stats header: ', stats.columns)
         print('Total number of particles: ', len(stats))
         assert len(stats) == 42, ('Number of particles expected in this test is 42.' +
-                                  'This test counted' + len(stats) +
+                                  'This test counted' + str(len(stats)) +
                                   'Something has altered the number of particles detected')
 
 
@@ -137,7 +137,7 @@ def test_silcam_pipeline():
         assert num_images == 1, ('Number of images expected is 1.' +
                                  'This test counted' + str(num_images))
         assert len(stats) == 870, ('Number of particles expected in this test is 870.' +
-                                   'This test counted' + len(stats) +
+                                   'This test counted' + str(len(stats)) +
                                    'Something has altered the number of particles detected')
 
 
