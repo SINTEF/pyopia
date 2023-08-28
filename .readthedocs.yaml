@@ -10,9 +10,7 @@ build:
     tools:
         python: "3.10"
     commands:
-      - conda env create -f environment.yml
-      - conda activate pyopia
-      - python setup.py develop
+      - python setup.py docbuild
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
