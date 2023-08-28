@@ -29,22 +29,6 @@ def ini_background(bgfiles, load_function):
     return bgstack, imbg
 
 
-def pass_bgstack(bgstack, imbg, imraw):
-    '''
-    Pass through variables for use when wanted as static instead of shifting background
-
-    Args:
-        bgstack (list)                  : list of all images in the background stack
-        imbg (uint8)                    : background image
-        imraw (uint8)                   : raw image
-
-    Returns:
-        bgstack (list)                  : unmodified list of all images in the background stack
-        imbg (uint8)                    : unmodified background averaged image
-    '''
-    return bgstack, imbg
-
-
 def shift_bgstack_accurate(bgstack, imbg, imnew):
     '''
     Shifts the background by popping the oldest and added a new image
@@ -323,9 +307,9 @@ class CorrectBackgroundAccurate():
 
     Parameters:
     -----------
-    bgshift_function : (function object, optional)
+    bgshift_function : (string, optional)
         Function used to shift the background. Defaults to passing (i.e. static background)
-        Available functions are:
+        Available options are 'accurate' or 'fast':
 
         :func:`pyopia.background.shift_bgstack_accurate`
 
@@ -361,16 +345,24 @@ class CorrectBackgroundAccurate():
 
     '''
 
-    def __init__(self, bgshift_function=pass_bgstack):
+    def __init__(self, bgshift_function='pass'):
         self.bgshift_function = bgshift_function
         pass
 
     def __call__(self, data):
         data['imc'] = correct_im_accurate(data['imbg'], data['imraw'])
 
-        data['bgstack'], data['imbg'] = self.bgshift_function(data['bgstack'],
-                                                              data['imbg'],
-                                                              data['imraw'])
+        match self.bgshift_function:
+            case 'pass':
+                return data
+            case 'accurate':
+                data['bgstack'], data['imbg'] = shift_bgstack_accurate(data['bgstack'],
+                                                                       data['imbg'],
+                                                                       data['imraw'])
+            case 'fast':
+                data['bgstack'], data['imbg'] = shift_bgstack_fast(data['bgstack'],
+                                                                   data['imbg'],
+                                                                   data['imraw'])
         return data
 
 

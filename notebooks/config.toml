@@ -15,6 +15,10 @@ raw_files = 'raw_data/*.silc'
     [steps.load]
     pipeline_class = 'pyopia.instrument.silcam.SilCamLoad'
 
+    [steps.correctbackground]
+    pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
+    bgshift_function = 'accurate'
+
     [steps.imageprep]
     pipeline_class = 'pyopia.instrument.silcam.ImagePrep'
     image_level = 'imraw'
