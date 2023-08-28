@@ -184,7 +184,7 @@ class Pipeline():
         return callobj
 
     def pass_general_settings(self):
-        self.data['raw_files'] = self.settings['General']['raw_files']
+        self.data['raw_files'] = self.settings['general']['raw_files']
 
     def print_steps(self):
         '''Print the steps dictionary

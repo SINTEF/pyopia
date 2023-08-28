@@ -1,5 +1,6 @@
-[General]
+[general]
 raw_files = 'raw_data/*.silc'
+pixel_size = 24
 
 [steps]
 
