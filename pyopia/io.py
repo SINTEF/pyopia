@@ -12,12 +12,12 @@ from pyopia import __version__ as pyopia_version
 
 
 def write_stats(
-        datafilename,
         stats,
+        datafilename,
         settings=None,
         append=True,
         export_name_len=40,
-        format='h5'):
+        dataformat='h5'):
     '''
     Writes particle stats into the ouput file
 
@@ -39,7 +39,7 @@ def write_stats(
     else:
         min_itemsize = None
 
-    if format == 'h5':
+    if dataformat == 'h5':
         with pd.HDFStore(datafilename + '-STATS.h5', 'a') as fh:
             stats.to_hdf(
                 fh, 'ParticleStats/stats', append=append, format='t',
@@ -51,7 +51,7 @@ def write_stats(
             meta.attrs['Modified'] = str(datetime.now())
             meta.attrs['PyOpia version'] = pyopia_version
             meta.attrs['Pipeline steps'] = settings
-    elif format == 'nc':
+    elif dataformat == 'nc':
         xstats = make_xstats(stats, settings)
         xstats.to_netcdf(datafilename + '-STATS.nc')
 
@@ -106,15 +106,25 @@ def show_h5_meta(h5file):
 class StatsH5():
     '''PyOpia pipline-compatible class for calling write_stats()
     '''
-    def __init__(self, datafilename):
-        self.datafilename = datafilename
-
-    def __call__(self,
-                 data,
-                 append=True,
+    def __init__(self,
+                 output_datafile='data',
+                 dataformat='nc',
+                 append=False,
                  export_name_len=40):
-        write_stats(self.datafilename, data['stats'], steps_string=data['steps_string'],
-                    append=append, export_name_len=export_name_len)
+
+        self.output_datafile = output_datafile
+        self.dataformat = dataformat
+        self.append = append
+        self.export_name_len = export_name_len
+
+    def __call__(self, data):
+
+        write_stats(data['stats'], self.output_datafile,
+                    settings=data['settings'],
+                    dataformat=self.dataformat,
+                    append=self.append,
+                    export_name_len=self.export_name_len)
+
         return data
 
 

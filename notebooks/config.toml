@@ -17,7 +17,7 @@ raw_files = 'raw_data/*.silc'
 
     [steps.correctbackground]
     pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
-    bgshift_function = 'accurate'
+    bgshift_function = 'fast'
 
     [steps.imageprep]
     pipeline_class = 'pyopia.instrument.silcam.ImagePrep'
@@ -29,3 +29,7 @@ raw_files = 'raw_data/*.silc'
 
     [steps.statextract]
     pipeline_class = 'pyopia.process.CalculateStats'
+
+    [steps.output]
+    pipeline_class = 'pyopia.io.StatsH5'
+    output_datafile = 'proc/test'
