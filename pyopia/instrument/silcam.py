@@ -133,7 +133,7 @@ class ImagePrep():
 
         :attr:`pyopia.pipeline.Data.imc`
     '''
-    def __init__(self, image_level=['imc']):
+    def __init__(self, image_level='imc'):
         self.image_level = image_level
         pass
 
