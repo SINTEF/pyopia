@@ -180,7 +180,7 @@ class Pipeline():
 
         m = methodcaller(classname, **arguments)
         callobj = m(sys.modules[modulename])
-        print(classname, ' ready with:', arguments)
+        print(classname, ' ready with:', arguments, ' and data', self.data.keys())
         return callobj
 
     def pass_general_settings(self):
