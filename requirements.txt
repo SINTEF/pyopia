@@ -11,10 +11,12 @@
     tqdm
     setuptools
     pytest-error-for-skips
+    sphinx
     sphinx_rtd_theme>=0.5.0
     sphinxcontrib-napoleon>=0.7
     sphinx-togglebutton
     sphinx-copybutton
+    readthedocs-sphinx-search
     myst-nb
     jupyter_book
     tensorflow-cpu==2.10.1
