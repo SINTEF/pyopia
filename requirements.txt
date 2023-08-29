@@ -13,6 +13,7 @@
     pytest-error-for-skips
     sphinx_rtd_theme>=0.5.0
     sphinxcontrib-napoleon>=0.7
+    sphinx-togglebutton
     tensorflow-cpu==2.10.1
     ipykernel>=6.19.4
     urllib3<2.0
