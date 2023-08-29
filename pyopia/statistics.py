@@ -418,7 +418,7 @@ def gen_roifiles(stats, auto_scaler=500):
 
     # subsample the particles if necessary
     print('rofiles: {0}'.format(len(roifiles)))
-    IMSTEP = np.max([np.int(np.round(len(roifiles) / auto_scaler)), 1])
+    IMSTEP = np.max([int(np.round(len(roifiles) / auto_scaler)), 1])
     print('reducing particles by factor of {0}'.format(IMSTEP))
     roifiles = roifiles[np.arange(0, len(roifiles), IMSTEP)]
     print('rofiles: {0}'.format(len(roifiles)))
