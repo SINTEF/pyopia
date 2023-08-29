@@ -253,6 +253,7 @@ tags
 *.zip
 notebooks/header.tfl.txt
 notebooks/keras_model.h5
+notebooks/github-test-holo.ipynb
 
 test-report/*
 docs/.DS_Store
