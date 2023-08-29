@@ -127,6 +127,10 @@ class Reconstruct():
     ----------
     stack_clean : float
         defines amount of cleaning of stack (fraction of max value below which to zero)
+    forward_filter_option : int
+        switch to control filtering in frequency domain (0=none,1=DC only,2=zero ferquency/default)
+    inverse_output_option :  int
+        switch to control optional scaling of output intensity (0=square/default,1=linear)
 
     Pipeline input data:
     ---------
@@ -143,29 +147,32 @@ class Reconstruct():
         :attr:`pyopia.pipeline.Data.im_stack`
     '''
 
-    def __init__(self, stack_clean=0):
+    def __init__(self, stack_clean=0, forward_filter_option=0, inverse_output_option=0):
         self.stack_clean = stack_clean
+        self.forward_filter_option = forward_filter_option
+        self.inverse_output_option = inverse_output_option
 
     def __call__(self, data):
         imc = data['imc']
         kern = data['kern']
         im_stack = data['im_stack']
 
-        im_fft = forward_transform(imc)
-        im_stack = inverse_transform(im_fft, kern, im_stack)
+        im_fft = forward_transform(imc, self.forward_filter_option)
+        im_stack = inverse_transform(im_fft, kern, im_stack, self.inverse_output_option)
         data['im_stack'] = clean_stack(im_stack, self.stack_clean)
 
         return data
 
 
-def forward_transform(im):
-    '''Perform forward transform
-    Remove the zero frequency components and then fftshift
+def forward_transform(im, forward_filter_option=2):
+    '''Perform forward transform with optional filtering
 
     Parameters
     ----------
     im : np.array
         hologram (usually background-corrected)
+    forward_filter_option : int
+        filtering in frequency domain (0=none/default,1=DC only,2=zero ferquency)
 
     Returns
     -------
@@ -176,9 +183,15 @@ def forward_transform(im):
     # Perform forward transform
     im_fft = fft.fft2(im, workers=os.cpu_count())
 
-    # Remove the zero frequency components
-    im_fft[:, 0] = 0
-    im_fft[0, :] = 0
+    # apply filtering if required
+    match forward_filter_option:
+        case 1:
+            im_fft[0, 0] = 0
+        case 2:
+            im_fft[:, 0] = 0
+            im_fft[0, :] = 0
+        case _:
+            pass
 
     # fftshift
     im_fft = fft.fftshift(im_fft)
@@ -233,7 +246,7 @@ def create_kernel(im, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
     return kern
 
 
-def inverse_transform(im_fft, kern, im_stack):
+def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0):
     '''create the reconstructed hologram stack of real images
 
     Parameters
@@ -244,6 +257,8 @@ def inverse_transform(im_fft, kern, im_stack):
         calculated from create_kernel
     im_stack : np.array
         pre-allocated array to receive output
+    inverse_output_option: int
+        optional scaling of output intensity (0=square/default,1=linear)
 
     Returns
     -------
@@ -253,7 +268,11 @@ def inverse_transform(im_fft, kern, im_stack):
 
     for i in range(np.shape(kern)[2]):
         im_tmp = np.multiply(im_fft, kern[:, :, i])
-        im_stack[:, :, i] = (fft.ifft2(im_tmp, workers=os.cpu_count()).real)**2
+        match inverse_output_option:
+            case 1:
+                im_stack[:, :, i] = fft.ifft2(im_tmp, workers=os.cpu_count()).real
+            case _:
+                im_stack[:, :, i] = (fft.ifft2(im_tmp, workers=os.cpu_count()).real)**2
 
     return im_stack
 
