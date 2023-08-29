@@ -529,7 +529,7 @@ class Focus():
                     focus_result = find_focus_sobel(im_stack, rp.bbox, self.increase_depth_of_field)
                 case _:
                     raise ValueError('focus_function in pyopia.instrument.holo.Focus not recognised')
-            
+
             if self.discard_end_slices and (focus_result[1] == 0 or focus_result[1] == im_stack.shape[2]):
                 continue
             im_focus = 255 - focus_result[0]
