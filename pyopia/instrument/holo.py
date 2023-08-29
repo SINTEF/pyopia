@@ -440,7 +440,7 @@ class Focus():
 
     Parameters
     ----------
-    stacksummary_function : (function object, optional)
+    stacksummary_function : (string, optional)
         Function used to summarise the stack
         Available functions are:
 
@@ -451,7 +451,7 @@ class Focus():
     threshold : float
         threshold to apply during initial segmentation
 
-    focus_function : (function object, optional)
+    focus_function : (string, optional)
         Function used to focus particles within the stack
         Available functions are:
 
@@ -484,7 +484,7 @@ class Focus():
         :attr:`pyopia.pipeline.Data.stack_ifocus`
     '''
 
-    def __init__(self, stacksummary_function=std_map, threshold=0.9, focus_function=find_focus_imax,
+    def __init__(self, stacksummary_function='std_map', threshold=0.9, focus_function='find_focus_imax',
                  discard_end_slices=True, increase_depth_of_field=False, merge_adjacent_particles=0):
         self.stacksummary_function = stacksummary_function
         self.threshold = threshold
@@ -496,7 +496,15 @@ class Focus():
 
     def __call__(self, data):
         im_stack = data['im_stack']
-        imss = self.stacksummary_function(im_stack)
+
+        match self.stacksummary_function:
+            case 'std_map':
+                imss = std_map(im_stack)
+            case 'max_map':
+                imss = max_map(im_stack)
+            case _:
+                raise ValueError('stacksummary_function in pyopia.instrument.holo.Focus not recognised')
+
         imss = rescale_image(imss)
         if self.merge_adjacent_particles:
             se = disk(self.merge_adjacent_particles)
@@ -513,7 +521,15 @@ class Focus():
         ifocus = []
         rp_out = []
         for rp in region_properties:
-            focus_result = self.focus_function(im_stack, rp.bbox, self.increase_depth_of_field)
+
+            match self.focus_function:
+                case 'find_focus_imax':
+                    focus_result = find_focus_imax(im_stack, rp.bbox, self.increase_depth_of_field)
+                case 'find_focus_sobel':
+                    focus_result = find_focus_sobel(im_stack, rp.bbox, self.increase_depth_of_field)
+                case _:
+                    raise ValueError('focus_function in pyopia.instrument.holo.Focus not recognised')
+            
             if self.discard_end_slices and (focus_result[1] == 0 or focus_result[1] == im_stack.shape[2]):
                 continue
             im_focus = 255 - focus_result[0]

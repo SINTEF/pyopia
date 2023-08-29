@@ -38,6 +38,11 @@ pixel_size = 4.4 # pixel size of imaging system in microns'wavelength = 658, # l
 
     [steps.focus]
     pipeline_class = 'pyopia.instrument.holo.Focus'
+    stacksummary_function = 'max_map'
+    threshold = 0.9
+    increase_depth_of_field = true
+    focus_function = 'find_focus_sobel'
+    merge_adjacent_particles = 2
 
     [steps.segmentation]
     pipeline_class = 'pyopia.process.Segment'
