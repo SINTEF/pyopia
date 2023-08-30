@@ -63,8 +63,10 @@ class Pipeline():
                                                                         pyopia.instrument.holo.load_image),
                 'load': holo.Load(),
                 'correct background': pyopia.background.CorrectBackgroundAccurate(pyopia.background.shift_bgstack_accurate),
-                'reconstruct': holo.Reconstruct(stack_clean=0.02),
-                'focus': holo.Focus(pyopia.instrument.holo.std_map,threshold=threshold),
+                'reconstruct': holo.Reconstruct(stack_clean=0.02, forward_filter_option=2, inverse_output_option=0),
+                'focus': holo.Focus(pyopia.instrument.holo.std_map,threshold=threshold,
+                    focus_function=pyopia.instrument.holo.find_focus_sobel,
+                    increase_depth_of_field=True,merge_adjacent_particles=0),
                 'segmentation': pyopia.process.Segment(threshold=threshold),
                 'statextract': pyopia.process.CalculateStats(export_outputpath="proc"),
                 'output': pyopia.io.StatsH5(datafile_hdf)
