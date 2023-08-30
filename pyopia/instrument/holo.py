@@ -40,7 +40,7 @@ class Initial():
         refractive index of medium
     offset : float
         offset of focal plane from hologram plane in mm
-    minZ : float    
+    minZ : float
         minimum reconstruction distance in mm
     maxZ : float
         maximum reconstruction distance in mm
