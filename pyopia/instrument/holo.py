@@ -11,8 +11,8 @@ from skimage.filters import sobel
 from skimage.morphology import disk, erosion, dilation
 import pyopia.process
 import struct
-from datetime import timedelta
-from datetime import datetime
+from datetime import timedelta, datetime
+from glob import glob
 
 '''
 This is an subpackage containing basic processing for reconstruction of in-line holographic images.
@@ -49,8 +49,7 @@ class Initial():
 
     '''
 
-    def __init__(self, filename, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
-        self.filename = filename
+    def __init__(self, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
         self.pixel_size = pixel_size
         self.wavelength = wavelength
         self.n = n
@@ -60,7 +59,9 @@ class Initial():
         self.stepZ = stepZ
 
     def __call__(self, data):
-        print('Using given raw file to determine image dimensions')
+        print('Using first raw file from list in general settings to determine image dimensions')
+        raw_files = glob(data['settings']['general']['raw_files'])
+        self.filename = raw_files[0]
         imtmp = load_image(self.filename)
         print('Build kernel')
         kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.n, self.offset, self.minZ, self.maxZ, self.stepZ)
@@ -511,7 +512,6 @@ class Focus():
         self.discard_end_slices = discard_end_slices
         self.increase_depth_of_field = increase_depth_of_field
         self.merge_adjacent_particles = merge_adjacent_particles
-        pass
 
     def __call__(self, data):
         im_stack = data['im_stack']

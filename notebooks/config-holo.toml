@@ -7,7 +7,6 @@ pixel_size = 4.4 # pixel size of imaging system in microns'wavelength = 658, # l
     [steps.initial]
     pipeline_class = 'pyopia.instrument.holo.Initial'
     # hologram reconstruction settings
-    filename = 'holo_test_data_01/001-2043.pgm'
     pixel_size = 4.4 # pixel size in um
     wavelength = 658 # laser wavelength in nm
     n = 1.33 # index of refraction of sample volume medium (1.33 for water)
