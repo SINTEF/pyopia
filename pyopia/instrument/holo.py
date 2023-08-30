@@ -34,11 +34,18 @@ class Initial():
 
     Parameters
     ----------
-    filename : string
-        hologram filename to use for image size
-
-    kernel settings : ....
-        ....
+    wavelength : float
+        laser wavelength in nm
+    n : float
+        refractive index of medium
+    offset : float
+        offset of focal plane from hologram plane in mm
+    minZ : float    
+        minimum reconstruction distance in mm
+    maxZ : float
+        maximum reconstruction distance in mm
+    stepZ : float
+        step size in mm (i.e. resolution of reconstruction between minZ and maxZ)
 
     Returns
     -------
@@ -49,8 +56,7 @@ class Initial():
 
     '''
 
-    def __init__(self, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
-        self.pixel_size = pixel_size
+    def __init__(self, wavelength, n, offset, minZ, maxZ, stepZ):
         self.wavelength = wavelength
         self.n = n
         self.offset = offset
@@ -63,7 +69,8 @@ class Initial():
         raw_files = glob(data['settings']['general']['raw_files'])
         self.filename = raw_files[0]
         imtmp = load_image(self.filename)
-        print('Build kernel')
+        self.pixel_size = data['settings']['general']['pixel_size']
+        print('Build kernel with pixel_size = ', self.pixel_size, 'um')
         kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.n, self.offset, self.minZ, self.maxZ, self.stepZ)
         im_stack = np.zeros(np.shape(kern)).astype(np.float64)
         print('HoloInitial done', datetime.now())

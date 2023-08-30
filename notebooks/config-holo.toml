@@ -2,12 +2,10 @@
 raw_files = 'holo_test_data_01/*.pgm' # string used to obtain list of raw data files for processing
 pixel_size = 4.4 # pixel size of imaging system in microns'wavelength = 658, # laser wavelength in nm
 
-
 [steps] # setup of analysis pipeline order, functions, and parameters
     [steps.initial]
     pipeline_class = 'pyopia.instrument.holo.Initial'
     # hologram reconstruction settings
-    pixel_size = 4.4 # pixel size in um
     wavelength = 658 # laser wavelength in nm
     n = 1.33 # index of refraction of sample volume medium (1.33 for water)
     offset = 27 # offset to start of sample volume in mm
