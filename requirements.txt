@@ -11,6 +11,7 @@
     tqdm
     setuptools
     pytest-error-for-skips
+    nbclient==0.7
     sphinx==5.0
     sphinx_rtd_theme>=0.5.0
     sphinxcontrib-napoleon>=0.7
