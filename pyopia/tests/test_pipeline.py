@@ -13,7 +13,7 @@ import pyopia.classify
 from pyopia.pipeline import Pipeline
 import pyopia.process
 import pyopia.statistics
-import pyopia.background
+import pyopia.background  # noqa: F401
 import xarray
 
 
@@ -27,7 +27,7 @@ def test_holo_pipeline():
 
     Note: This does not properly test the background creation, and loads a pre-created background
     '''
-    import pyopia.instrument.holo
+    import pyopia.instrument.holo  # noqa: F401
     with tempfile.TemporaryDirectory() as tempdir:
         print('tmpdir created:', tempdir)
         os.makedirs(tempdir, exist_ok=True)
@@ -196,4 +196,4 @@ def test_silcam_pipeline():
 
 
 if __name__ == "__main__":
-    pass
+    test_holo_pipeline()
