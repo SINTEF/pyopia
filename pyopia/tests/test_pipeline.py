@@ -43,7 +43,7 @@ def test_holo_pipeline():
         # define the configuration to use in the processing pipeline - given as a dictionary - with some values defined above
         pipeline_config = {
             'general': {
-                'raw_files': tempdir,
+                'raw_files': os.path.join(tempdir, '*.pgm'),
                 'pixel_size': 4.4  # pixel size in um
             },
             'steps': {
@@ -108,6 +108,7 @@ def test_holo_pipeline():
 
         processing_pipeline = Pipeline(pipeline_config)
 
+        print('Run processing on: ', holo_filename)
         processing_pipeline.run(holo_filename)
         with xarray.open_dataset(datafile_prefix + '-STATS.nc') as stats:
             stats.load()
@@ -146,7 +147,7 @@ def test_silcam_pipeline():
 
         pipeline_config = {
             'general': {
-                'raw_files': tempdir,
+                'raw_files': files,
                 'pixel_size': 28  # pixel size in um
             },
             'steps': {
@@ -195,4 +196,4 @@ def test_silcam_pipeline():
 
 
 if __name__ == "__main__":
-    test_holo_pipeline()
+    pass
