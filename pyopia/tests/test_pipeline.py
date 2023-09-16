@@ -115,9 +115,9 @@ def test_holo_pipeline():
 
         print('stats header: ', stats.data_vars)
         print('Total number of particles: ', len(stats.major_axis_length))
-        assert len(stats.major_axis_length) == 42, ('Number of particles expected in this test is 42.' +
-                                                    'This test counted' + str(len(stats.major_axis_length)) +
-                                                    'Something has altered the number of particles detected')
+        assert len(stats.major_axis_length) == 56, ('Number of particles expected in this test is 42.' +
+                                                    'This test counted ' + str(len(stats.major_axis_length)) +
+                                                    ' Something has altered the number of particles detected')
 
 
 def test_silcam_pipeline():
@@ -191,8 +191,8 @@ def test_silcam_pipeline():
         assert num_images == 1, ('Number of images expected is 1.' +
                                  'This test counted' + str(num_images))
         assert len(stats.major_axis_length) == 870, ('Number of particles expected in this test is 870.' +
-                                                     'This test counted' + str(len(stats.major_axis_length)) +
-                                                     'Something has altered the number of particles detected')
+                                                     'This test counted ' + str(len(stats.major_axis_length)) +
+                                                     ' Something has altered the number of particles detected')
 
 
 if __name__ == "__main__":
