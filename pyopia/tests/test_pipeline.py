@@ -9,6 +9,7 @@ import os
 
 import pyopia.tests.testdata as testdata
 import pyopia.io
+import pyopia.classify
 from pyopia.pipeline import Pipeline
 import pyopia.process
 import pyopia.statistics
@@ -26,6 +27,7 @@ def test_holo_pipeline():
 
     Note: This does not properly test the background creation, and loads a pre-created background
     '''
+    import pyopia.instrument.holo
     with tempfile.TemporaryDirectory() as tempdir:
         print('tmpdir created:', tempdir)
         os.makedirs(tempdir, exist_ok=True)
@@ -110,11 +112,11 @@ def test_holo_pipeline():
         with xarray.open_dataset(datafile_prefix + '-STATS.nc') as stats:
             stats.load()
 
-        print('stats header: ', stats.columns)
-        print('Total number of particles: ', len(stats))
-        assert len(stats) == 42, ('Number of particles expected in this test is 42.' +
-                                  'This test counted' + str(len(stats)) +
-                                  'Something has altered the number of particles detected')
+        print('stats header: ', stats.data_vars)
+        print('Total number of particles: ', len(stats.major_axis_length))
+        assert len(stats.major_axis_length) == 42, ('Number of particles expected in this test is 42.' +
+                                                    'This test counted' + str(len(stats.major_axis_length)) +
+                                                    'Something has altered the number of particles detected')
 
 
 def test_silcam_pipeline():
@@ -124,6 +126,7 @@ def test_silcam_pipeline():
 
     This test is primarily to detect errors when running the pipeline.
     '''
+    import pyopia.instrument.silcam
     with tempfile.TemporaryDirectory() as tempdir:
         os.makedirs(tempdir, exist_ok=True)
         tempdir_proc = os.path.join(tempdir, 'proc')
@@ -180,16 +183,16 @@ def test_silcam_pipeline():
         with xarray.open_dataset(datafile_prefix + '-STATS.nc') as stats:
             stats.load()
 
-        print('stats header: ', stats.columns)
-        print('Total number of particles: ', len(stats))
+        print('stats header: ', stats.data_vars)
+        print('Total number of particles: ', len(stats.major_axis_length))
         num_images = pyopia.statistics.count_images_in_stats(stats)
         print('Number of raw images: ', num_images)
         assert num_images == 1, ('Number of images expected is 1.' +
                                  'This test counted' + str(num_images))
-        assert len(stats) == 870, ('Number of particles expected in this test is 870.' +
-                                   'This test counted' + str(len(stats)) +
-                                   'Something has altered the number of particles detected')
+        assert len(stats.major_axis_length) == 870, ('Number of particles expected in this test is 870.' +
+                                                     'This test counted' + str(len(stats.major_axis_length)) +
+                                                     'Something has altered the number of particles detected')
 
 
 if __name__ == "__main__":
-    pass
+    test_holo_pipeline()
