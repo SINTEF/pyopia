@@ -90,8 +90,8 @@ def test_holo_pipeline():
                 },
                 'statextract': {
                     'pipeline_class': 'pyopia.process.CalculateStats',
-                    'export_outputpath': tempdir_proc, 
-                    'propnames': ['major_axis_length', 'minor_axis_length', 'equivalent_diameter', 
+                    'export_outputpath': tempdir_proc,
+                    'propnames': ['major_axis_length', 'minor_axis_length', 'equivalent_diameter',
                                   'feret_diameter_max', 'equivalent_diameter_area']
                 },
                 'mergeholostats': {
@@ -156,7 +156,7 @@ def test_silcam_pipeline():
                 },
                 'imageprep': {
                     'pipeline_class': 'pyopia.instrument.silcam.ImagePrep',
-                    'image_level': 'imraw'  
+                    'image_level': 'imraw'
                 },
                 'segmentation': {
                     'pipeline_class': 'pyopia.process.Segment',
