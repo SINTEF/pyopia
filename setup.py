@@ -79,5 +79,7 @@ if __name__ == "__main__":
           cmdclass={'test': PyTest,
                     'test_noskip': PyTestNoSkip,
                     'develop': PostDevelopCommand,
-                    'docbuild': Documentation}
+                    'docbuild': Documentation},
+          entry_points={
+              "console_scripts": ["pyopia = pyopia.cli:app"]},
           )

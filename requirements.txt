@@ -1,6 +1,6 @@
     flake8
     numpy
-    pandas[hdf5, computation]
+    pandas[hdf5, computation]>=2.1
     h5py
     scipy
     scikit-image
@@ -27,3 +27,4 @@
     cmocean
     toml
     xarray
+    typer[all]
