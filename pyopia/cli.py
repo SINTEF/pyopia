@@ -5,6 +5,8 @@ PyOPIA top-level code primarily for managing cmd line entry points
 import typer
 import toml
 from glob import glob
+from rich.progress import track, Progress
+
 import pyopia.background
 import pyopia.classify
 import pyopia.instrument.silcam
@@ -61,13 +63,18 @@ def process(config_filename: str, ):
     from pyopia.io import load_toml
     from pyopia.pipeline import Pipeline
 
-    pipeline_config = load_toml(config_filename)
+    with Progress(transient=True) as progress:
+        progress.console.print("[blue]LOAD CONFIG")
+        pipeline_config = load_toml(config_filename)
 
-    files = sorted(glob(pipeline_config['general']['raw_files']))
+        progress.console.print("[blue]OBTAIN FILE LIST")
+        files = sorted(glob(pipeline_config['general']['raw_files']))
+        nfiles = len(files)
 
-    processing_pipeline = Pipeline(pipeline_config)
+        progress.console.print("[blue]INITIALISE PIPELINE")
+        processing_pipeline = Pipeline(pipeline_config)
 
-    for filename in files:
+    for filename in track(files, description=f'[blue]Processing progress through {nfiles} files:'):
         processing_pipeline.run(filename)
 
 
