@@ -13,6 +13,7 @@ import pyopia.process
 import struct
 from datetime import timedelta, datetime
 from glob import glob
+import toml
 
 '''
 This is an subpackage containing basic processing for reconstruction of in-line holographic images.
@@ -633,3 +634,121 @@ def read_lisst_holo_info(filename):
     f.close()
 
     return timestamp
+
+
+def generate_config(raw_files: str, model_path: str, outfolder: str, output_prefix: str):
+    '''Generaste example holo config.toml as a dict
+
+    Parameters
+    ----------
+    raw_files : str
+        raw_files
+    model_path : str
+        model_path
+    outfolder : str
+        outfolder
+    output_prefix : str
+        output_prefix
+
+    Returns:
+    --------
+    dict
+        pipeline_config toml dict
+    '''
+    # define the configuration to use in the processing pipeline - given as a dictionary - with some values defined above
+    pipeline_config = {
+        'general': {
+            'raw_files': raw_files,
+            'pixel_size': 4.4  # pixel size in um 
+        },
+        'steps': {
+            # start of steps run once on pipeline initialisation
+            # initial step to setup hologram reconstruction kernel - arguments are hologram reconstruction settings
+            'initial': {
+                'pipeline_class': 'pyopia.instrument.holo.Initial',
+                'wavelength': 658,  # laser wavelength in nm
+                'n': 1.33,  # index of refraction of sample volume medium (1.33 for water)
+                'offset': 27,  # offset to start of sample volume in mm
+                'minZ': 0,  # minimum reconstruction distance within sample volume in mm
+                'maxZ': 50,  # maximum reconstruction distance within sample volume in mm
+                'stepZ': 0.5  # step size in mm
+            },
+            # sets up classifier model, runs once on pipeline initialisation - argument is the path to the classification model to use from Step 03
+            'classifier': {
+                'pipeline_class': 'pyopia.classify.Classify',
+                'model_path': model_path
+            },
+            # creates initial background, runs once on pipeline initialisation - arguments are number of files to use for initial background and which instrument loading function to use
+            'createbackground': {
+                'pipeline_class': 'pyopia.background.CreateBackground',
+                'average_window': 10,
+                'instrument_module': 'holo'
+            },
+            # start of steps applied to every image
+            # load the image using instrument-specific loading function 
+            'load': {
+                'pipeline_class': 'pyopia.instrument.holo.Load'
+            },
+            # apply background correction - argument is which method to use:
+            # 'accurate' - recommended method for moving background
+            # 'fast' - faster method for realtime applications
+            # 'pass' - omit background correction
+            'correctbackground': {
+                'pipeline_class': 'pyopia.background.CorrectBackgroundAccurate',
+                'bgshift_function': 'accurate'
+            },
+            # hologram reconstruction step - arguments are:
+            # stack_clean - is how much stack cleaning (% dimmest pixels to remove) to apply - set to 0 to omit cleaning
+            # forward_filter_option - switch to control filtering in frequency domain (0=none,1=DC only,2=zero ferquency/default)
+            # inverse_output_option - switch to control optional scaling of output intensity (0=square/default,1=linear)
+            'reconstruct': {
+                'pipeline_class': 'pyopia.instrument.holo.Reconstruct',
+                'stack_clean': 0.02,
+                'forward_filter_option': 2,
+                'inverse_output_option': 0
+            },
+            # focussing step - arguments are:
+            # which summarisation method to use:
+            # 'std_map' (default) - takes standard deviation of values through stack
+            # 'max_map' - takes maximum intensity value through stack
+            # threshold is global segmentation threshold to apply to stack summary
+            # which focus function to use:
+            # 'find_focis_imax' (default) - finds focus using plane of maximum intensity
+            # 'find_focus_sobel' - finds focus using edge sharpness
+            # focus options are:
+            # increase_depth_of_field (bool, default False) - finds max of planes adjacent to optimum focus plane
+            # merge_adjacent_particles (int, default 0) - merges adjacent particles within stack summary using this pixel radius
+            'focus': {
+                'pipeline_class': 'pyopia.instrument.holo.Focus',
+                'stacksummary_function': 'max_map',
+                'threshold': 0.9,
+                'focus_function': 'find_focus_sobel',
+                'increase_depth_of_field': False,
+                'merge_adjacent_particles': 2
+            },
+            # segmentation of focussed particles - argument is threshold to apply (can be different to Focus step)
+            'segmentation': {
+                'pipeline_class': 'pyopia.process.Segment',
+                'threshold': 0.9
+            },
+            # extraction of particle statistics - arguments are:
+            # export_outputpath - is output folder for image-specific outputs for montage creation (can be omitted)
+            # propnames - is list of skimage regionprops to export to stats (optional - must contain default values that can be appended to)
+            'statextract': {
+                'pipeline_class': 'pyopia.process.CalculateStats',
+                'export_outputpath': outfolder,
+                'propnames': ['major_axis_length', 'minor_axis_length', 'equivalent_diameter',
+                              'feret_diameter_max', 'equivalent_diameter_area']
+            },
+            # step to merge hologram-specific information (currently focus depth & original filename) into output statistics file
+            'mergeholostats': {
+                'pipeline_class': 'pyopia.instrument.holo.MergeStats',
+            },
+            # write the output HDF5 statistics file
+            'output': {
+                'pipeline_class': 'pyopia.io.StatsH5',
+                'output_datafile': os.path.join(outfolder, output_prefix)
+            }
+        }
+    }
+    return pipeline_config

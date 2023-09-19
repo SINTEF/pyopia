@@ -7,6 +7,7 @@ import os
 import numpy as np
 import pandas as pd
 import pyopia
+import toml
 
 
 def silcam_steps(model_path, threshold, datafile_hdf):
@@ -150,3 +151,56 @@ class ImagePrep():
 
         data['imc'] = imc
         return data
+
+
+def generate_config(raw_files: str, model_path: str, outfolder: str, output_prefix: str):
+    '''Generate example silcam config.toml as a dict
+
+    Parameters
+    ----------
+    raw_files : str
+        raw_files
+    model_path : str
+        model_path
+    outfolder : str
+        outfolder
+    output_prefix : str
+        output_prefix
+
+    Returns:
+    --------
+    dict
+        pipeline_config toml dict
+    '''
+    # define the configuration to use in the processing pipeline - given as a dictionary - with some values defined above
+    pipeline_config = {
+        'general': {
+            'raw_files': raw_files,
+            'pixel_size': 28  # pixel size in um
+        },
+        'steps': {
+            'classifier': {
+                'pipeline_class': 'pyopia.classify.Classify',
+                'model_path': model_path
+            },
+            'load': {
+                'pipeline_class': 'pyopia.instrument.silcam.SilCamLoad'
+            },
+            'imageprep': {
+                'pipeline_class': 'pyopia.instrument.silcam.ImagePrep',
+                'image_level': 'imraw'
+            },
+            'segmentation': {
+                'pipeline_class': 'pyopia.process.Segment',
+                'threshold': 0.85
+            },
+            'statextract': {
+                'pipeline_class': 'pyopia.process.CalculateStats'
+            },
+            'output': {
+                'pipeline_class': 'pyopia.io.StatsH5',
+                'output_datafile': os.path.join(outfolder, output_prefix)
+            }
+        }
+    }
+    return pipeline_config
