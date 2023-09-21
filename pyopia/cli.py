@@ -35,7 +35,7 @@ def generate_config(instrument: str, raw_files: str, model_path: str, outfolder:
     Parameters
     ----------
     instrument : str
-        either <silcam> or <holo>
+        either `silcam` or `holo`
     raw_files : str
         raw_files
     model_path : str
