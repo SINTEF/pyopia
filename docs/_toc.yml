@@ -8,6 +8,7 @@ parts:
 - caption: Examples
   chapters:
   - file: examples
+  - file: notebooks/cli
   - file: notebooks/stats
 - caption: Code docs
   chapters:
