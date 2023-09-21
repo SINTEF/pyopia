@@ -25,11 +25,11 @@ jobs:
         shell: cmd /C CALL {0}
         run: >-
           activate pyopia &&
-          python setup.py develop
+          poetry install
 
       - name: Setup test
         shell: cmd /C CALL {0}
         run: >-
           dir &&
           activate pyopia &&
-          python setup.py test
+          poetry run pytest
