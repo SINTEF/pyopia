@@ -1,10 +1,10 @@
-name: Windows build and test
+name: Linux build and test
 
 on: [pull_request]
 
 jobs:
   test:
-    runs-on: windows-2019
+    runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
