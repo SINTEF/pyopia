@@ -10,6 +10,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: cache poetry install
+        uses: actions/cache@v2
+        with:
+          path: ~/.local
+          key: poetry-1.1.12-0
+
       - uses: snok/install-poetry@v1
         with:
           virtualenvs-create: true
