@@ -32,7 +32,7 @@ jobs:
       - name: Install poetry
         uses: abatilo/actions-poetry@v2
       - name: Install dependencies
-        run: pip install .
+        run: poetry install
       - name: Run the automated tests
         run: poetry run pytest -v
       
