@@ -10,7 +10,7 @@ packages = [{include = "pyopia"}]
 python = ">=3.10,<3.11"
 setuptools = "^65.7.0"
 flake8 = "^6.1.0"
-numpy = "^1.26.0"
+numpy = "^1.24.0"
 pandas = {version = ">=2.1", extras = ["computation", "hdf5"]}
 h5py = "^3.9.0"
 scipy = "^1.11.2"
@@ -37,6 +37,7 @@ cmocean = "^3.0.3"
 toml = "^0.10.2"
 xarray = "^2023.8.0"
 typer = {extras = ["all"], version = "^0.9.0"}
+poetry-version-plugin = "^0.2.0"
 
 [tool.poetry.scripts]
 pyopia = "pyopia.cli:app"
