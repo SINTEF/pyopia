@@ -2,34 +2,19 @@ name: Windows build and test
 
 on: [pull_request]
 
-env:
-  IMAGE_NAME: sintef/pyopia
-  IMAGE_TAG: github-ci
-
 jobs:
-  build:
+  test:
     runs-on: windows-2019
     timeout-minutes: 60
 
     steps:
-      - name: Check out code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-      - name: Install pyopia environment
-        uses: conda-incubator/setup-miniconda@v2
+      - uses: snok/install-poetry@v1
         with:
-          activate-environment: pyopia
-          environment-file: environment.yml
+          virtualenvs-create: true
+          virtualenvs-in-project: true
 
-      - name: Setup develop
-        shell: cmd /C CALL {0}
-        run: >-
-          activate pyopia &&
-          poetry install
+      - run: poetry install --no-interaction --no-root
 
-      - name: Setup test
-        shell: cmd /C CALL {0}
-        run: >-
-          dir &&
-          activate pyopia &&
-          poetry run pytest
+      - run: poetry run pytest
