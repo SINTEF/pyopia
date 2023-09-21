@@ -260,5 +260,3 @@ docs/.DS_Store
 .DS_Store
 docs/notebooks/header.tfl.txt
 *.nc
-
-poetry.lock
