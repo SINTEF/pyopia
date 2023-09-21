@@ -8,19 +8,18 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v2
-
-      - name: cache poetry install
-        uses: actions/cache@v2
+      - uses: actions/checkout@v3
+      - name: Install Python
+        uses: actions/setup-python@v4
         with:
-          path: ~/.local
-          key: poetry-1.1.12-0
-
-      - uses: snok/install-poetry@v1
-        with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-
-      - run: poetry install --no-interaction --no-root
-
-      - run: poetry run pytest
+          python-version: '3.10' 
+      - name: Install poetry
+        uses: abatilo/actions-poetry@v2
+      - name: Setup local virtual environment
+        run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+      - name: Install dependencies
+        run: poetry install
+      - name: Run the automated tests
+        run: poetry run pytest -v
