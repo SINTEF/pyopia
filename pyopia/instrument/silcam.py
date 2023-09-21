@@ -7,7 +7,6 @@ import os
 import numpy as np
 import pandas as pd
 import pyopia
-import toml
 
 
 def silcam_steps(model_path, threshold, datafile_hdf):
