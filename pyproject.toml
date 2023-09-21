@@ -17,7 +17,6 @@ scikit-image = "^0.21.0"
 pytest = ">=7.2.0"
 imageio = "^2.31.3"
 matplotlib = ">=3.7"
-docopt = "^0.6.2"
 tqdm = "^4.66.1"
 pytest-error-for-skips = "^2.0.2"
 nbclient = "0.7"
@@ -29,7 +28,7 @@ sphinx-copybutton = "^0.5.2"
 readthedocs-sphinx-search = "^0.3.1"
 myst-nb = "^0.17.2"
 jupyter-book = "^0.15.1"
-tensorflow-cpu = "^2.10.1"
+tensorflow-cpu = "^2.12.1"
 ipykernel = ">=6.19.4"
 urllib3 = "<2.0"
 gdown = "^4.7.1"
@@ -47,3 +46,5 @@ source = "init"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.setuptools_scm]
