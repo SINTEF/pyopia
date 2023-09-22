@@ -18,7 +18,6 @@
     sphinx-togglebutton
     sphinx-copybutton
     readthedocs-sphinx-search
-    myst-nb
     jupyter_book
     tensorflow-cpu==2.10.1
     ipykernel>=6.19.4
