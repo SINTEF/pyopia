@@ -36,6 +36,7 @@ toml = "^0.10.2"
 xarray = "^2023.8.0"
 typer = {extras = ["all"], version = "^0.9.0"}
 tensorflow-cpu = "2.10.1"
+tensorflow-io-gcs-filesystem = "0.31.0"
 
 [tool.poetry.scripts]
 pyopia = "pyopia.cli:app"
