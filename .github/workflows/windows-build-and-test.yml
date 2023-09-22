@@ -13,23 +13,15 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install pyopia environment
-        uses: conda-incubator/setup-miniconda@v2
+        uses: actions/setup-python@v4
         with:
-          activate-environment: pyopia
-          environment-file: environment.yml
+          python-version: '3.10'
 
-      - name: Setup develop
-        shell: cmd /C CALL {0}
-        run: >-
-          activate pyopia &&
-          python setup.py develop
+      - name: Setup install
+        run: python setup.py install
 
       - name: Setup test
-        shell: cmd /C CALL {0}
-        run: >-
-          dir &&
-          activate pyopia &&
-          python setup.py test
+        run: python setup.py test
