@@ -20,7 +20,7 @@ jobs:
       - name: Run the automated tests
         run: poetry run pytest -v
   Windows:
-    runs-on: windows-2019
+    runs-on: windows-latest
     timeout-minutes: 60
 
     steps:
