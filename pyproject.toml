@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyopia"
-version = "0.1.0"
+version = "0"
 description = "A Python Ocean Particle Image Analysis toolbox."
 authors = ["Emlyn Davies <emlyn.davies@sintef.no>"]
 readme = "README.md"
@@ -37,6 +37,9 @@ xarray = "^2023.8.0"
 typer = {extras = ["all"], version = "^0.9.0"}
 tensorflow-io-gcs-filesystem = "0.31.0"
 tensorflow-cpu = "^2.13.0"
+
+[tool.poetry-version-plugin]
+source = "init"
 
 [tool.poetry.scripts]
 pyopia = "pyopia.cli:app"
