@@ -3,6 +3,21 @@ name: Build and test
 on: [push, pull_request]
 
 jobs:
+  New:
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+        
+      - name: Install dependencies
+        run: pip install ./
   Ubuntu:
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -35,30 +50,4 @@ jobs:
         run: poetry install
       - name: Run the automated tests
         run: poetry run pytest -v
-  Old:
-    runs-on: windows-2019
-    timeout-minutes: 60
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-
-      - name: Install pyopia environment
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          activate-environment: pyopia
-          environment-file: environment.yml
-
-      - name: Install
-        shell: cmd /C CALL {0}
-        run: >-
-          activate pyopia &&
-          poetry install
-
-      - name: Test
-        shell: cmd /C CALL {0}
-        run: >-
-          dir &&
-          activate pyopia &&
-          poetry run pytest -v
-      
+  
