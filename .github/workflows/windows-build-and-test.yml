@@ -19,6 +19,9 @@ jobs:
       - name: Install poetry
         run: pip install poetry
 
+      - name: Install pyopia
+        run: poetry install
+
       - name: Test
         run: poetry run pytest -v
   Ubuntu:
