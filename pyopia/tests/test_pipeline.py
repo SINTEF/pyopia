@@ -115,7 +115,7 @@ def test_holo_pipeline():
 
         print('stats header: ', stats.data_vars)
         print('Total number of particles: ', len(stats.major_axis_length))
-        assert len(stats.major_axis_length) == 55, ('Number of particles expected in this test is 56.' +
+        assert len(stats.major_axis_length) == 56, ('Number of particles expected in this test is 56.' +
                                                     'This test counted ' + str(len(stats.major_axis_length)) +
                                                     ' Something has altered the number of particles detected')
 
