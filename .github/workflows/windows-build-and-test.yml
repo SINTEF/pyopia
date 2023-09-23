@@ -16,14 +16,11 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install poetry
-        run: pip install poetry
+      - name: Install pyopia
+        run: pip install ./
 
       - name: Install pyopia
-        run: poetry install
-
-      - name: Test
-        run: poetry run pytest -v
+        run: python -m pytest -v
   Ubuntu:
     runs-on: ubuntu-latest
     timeout-minutes: 60
