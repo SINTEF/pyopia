@@ -17,14 +17,14 @@ def write_stats(
         settings=None,
         append=True,
         export_name_len=40,
-        dataformat='h5'):
+        dataformat='nc'):
     '''
     Writes particle stats into the ouput file
 
     Args:
         datafilename (str):     filame prefix for -STATS.h5 file that may or may not include a path
         stats_all (DataFrame):  stats dataframe returned from processImage()
-        append (bool):          if to allow append
+        append (bool):          if to allow append to an existing STATS file
         export_name_len (int):  max number of chars allowed for col 'export name'
     '''
 
@@ -109,7 +109,7 @@ class StatsH5():
     def __init__(self,
                  output_datafile='data',
                  dataformat='nc',
-                 append=False,
+                 append=True,
                  export_name_len=40):
 
         self.output_datafile = output_datafile

@@ -81,13 +81,24 @@ class Pipeline():
         print('Pipeline ready with these data: ', list(self.data.keys()))
 
     def run(self, filename):
-        '''Method for executing the processing pipeline
+        '''Method for executing the processing pipeline.
 
         Args:
             filename (str): file to be processed
 
         Returns:
-            stats (DataFrame): stats DataFrame of particle statistics
+            stats (DataFrame): stats DataFrame of particle statistics associated with 'filename'
+
+        Note: the returned stats from this function are single-image only and not appended
+        if you loop through several filenames! It is recommended to use this step in the pipeline
+        for properly appending data into NetCDF format when processing several files.
+
+        .. code-block:: python
+
+            'output': {
+                'pipeline_class': 'pyopia.io.StatsH5',
+                'output_datafile': 'proc/test'
+            }
         '''
 
         self.data['filename'] = filename
