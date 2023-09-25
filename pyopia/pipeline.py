@@ -37,66 +37,9 @@ class Pipeline():
     This is intended for use in looping through several files during processing, so run can be
     called multiple times with different filenames.
 
-    Examples:
-    ^^^^^^^^^
-
-    A holographic processing pipeline:
-    """"""""""""""""""""""""""""""""""
-
-    .. code-block:: python
-
-        datafile_hdf = 'proc/holotest'
-        model_path = exampledata.get_example_model()
-        threshold = 0.9
-
-        average_window = 10  # number of images to use as background
-
-        files = glob(os.path.join(foldername, '*.pgm')) # creates list of files in previously defined folder
-        bgfiles = files[:average_window]
-
-        holo_initial_settings = {'pixel_size': 4.4,  # pixel size in um
-                                 'wavelength': 658,  # laser wavelength in nm
-                                 'n': 1.33,  # index of refraction of sample volume medium (1.33 for water)
-                                 'offset': 27,  # offset to start of sample volume in mm
-                                 'minZ': 22,  # minimum reconstruction distance in mm
-                                 'maxZ': 60,  # maximum reconstruction distance in mm
-                                 'stepZ': 0.5}  # step size in mm
-
-        steps = {'initial': holo.Initial(files[0], **holo_initial_settings), # initialisation step to create reconstruction kernel
-                'classifier': Classify(model_path=model_path),
-                'create background': pyopia.background.CreateBackground(bgfiles,
-                                                                        pyopia.instrument.holo.load_image),
-                'load': holo.Load(),
-                'correct background': pyopia.background.CorrectBackgroundAccurate(pyopia.background.shift_bgstack_accurate),
-                'reconstruct': holo.Reconstruct(stack_clean=0.02, forward_filter_option=2, inverse_output_option=0),
-                'focus': holo.Focus(pyopia.instrument.holo.std_map,threshold=threshold,
-                    focus_function=pyopia.instrument.holo.find_focus_sobel,
-                    increase_depth_of_field=True,merge_adjacent_particles=0),
-                'segmentation': pyopia.process.Segment(threshold=threshold),
-                'statextract': pyopia.process.CalculateStats(export_outputpath="proc"),
-                'output': pyopia.io.StatsH5(datafile_hdf)
-                }
-
-        processing_pipeline = Pipeline(steps)
-
-    A silcam processing pipeline:
-    """""""""""""""""""""""""""""
-
-    .. code-block:: python
-
-        datafile_hdf = 'proc/test'
-        model_path = exampledata.get_example_model()
-        threshold = 0.85
-
-        steps = {'classifier': Classify(model_path=model_path),
-                 'load': SilCamLoad(),
-                 'imageprep': ImagePrep(),
-                 'segmentation': pyopia.process.Segment(threshold=threshold),
-                 'statextract': pyopia.process.CalculateStats(),
-                 'output': pyopia.io.StatsH5(datafile_hdf)}
-
-        # initialise the pipeline with a only the 'classifier' initialisation step:
-        processing_pipeline = Pipeline(steps, initial_steps=['classifier'])
+    For examples of setting up and running a pipeline,
+    can be found for SilCam [here](https://github.com/SINTEF/pyopia/blob/main/notebooks/single-image-stats.ipynb)
+    and holographic analysis [here](https://github.com/SINTEF/pyopia/blob/main/notebooks/pipeline-holo.ipynb).
 
     A standard set of silcam analysis setps can be loaded using:
     :func:`pyopia.instrument.silcam.silcam_steps`
@@ -109,14 +52,11 @@ class Pipeline():
         stats = processing_pipeline.run(filename)
 
 
-    You can check the workflow used by reading the steps from the metadata in output file, like this:
-
-    .. code-block:: python
-
-        pyopia.io.show_h5_meta(datafile_hdf + '-STATS.h5')
+    You can check the workflow used by reading the steps from the metadata in the
+    output file using :func:`pyopia.pipeline.steps_from_xstats`
 
 
-
+    More examples and guides can be found at :doc:`/notebooks/`
     '''
 
     def __init__(self, settings,
@@ -214,6 +154,11 @@ class Data(TypedDict):
     :attr:`pyopia.pipeline.Data.imc`
     '''
 
+    raw_files: str
+    '''String used by glob to obtain file list of data to be processed
+    This is exracted automatically from 'general.raw_files' in the toml config
+    during pipeline initialisation.
+    '''
     imraw: float
     '''Raw uncorrected image'''
     img: float

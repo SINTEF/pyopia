@@ -234,13 +234,16 @@ def subtract_background(imbg, imraw):
 
 class CreateBackground():
     '''
-    :class:`pyopia.pipeline` compatible class that calls: :func:`pyopia.background.ini_background`
+    :class:`pyopia.pipeline` compatible class that calls: :func:`pyopia.background.ini_background`.
+    This runs by default in the pipeline initial steps if named as 'createbackground'.
 
     Pipeline input data:
     --------------------
     :class:`pyopia.pipeline.Data`
 
         containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.raw_files`
 
         :attr:`pyopia.pipeline.Data.imc`
 
@@ -252,15 +255,13 @@ class CreateBackground():
 
     Parameters:
     -----------
-    bgfiles : (list[str])
-        List of strings of filenames to be used in creating the background.
-        Lhe number of files in this list determines the average window over which
-        the background is created, and any subsequent moving background based on this.
+    average_window : int
+        number of images to use in the background image stack
 
-    load_function : (function object)
-        Function used to load a raw image from a filename.
-        Example load_function for silcam is:
-            :func:`pyopia.instrument.silcam.load_image`
+    instrument_module: (str, optional)
+        Defaults to 'imread'
+        Other alternatives are: 'holo' or 'silcam' if you want to use the `load_image`functions
+        implemented within the {mod}`pyopia.instrument` submodule.
 
     Returns:
     --------
@@ -270,6 +271,19 @@ class CreateBackground():
         :attr:`pyopia.pipeline.Data.bgstack`
 
         :attr:`pyopia.pipeline.Data.imbg`
+
+    Example pipeline uses:
+    ----------------------
+
+    .. code-block:: python
+
+        'steps': {
+            'createbackground': {
+                'pipeline_class': 'pyopia.background.CreateBackground',
+                'average_window': 10,
+                'instrument_module': 'holo'
+            }
+        }
 
     '''
 
@@ -291,7 +305,7 @@ class CreateBackground():
 class CorrectBackgroundAccurate():
     '''
     :class:`pyopia.pipeline` compatible class that calls: :func:`pyopia.background.correct_im_accurate`
-    and will shift the background using a moving average function if given
+    and will shift the background using a moving average function if given.
 
     Pipeline input data:
     --------------------
@@ -309,7 +323,7 @@ class CorrectBackgroundAccurate():
     -----------
     bgshift_function : (string, optional)
         Function used to shift the background. Defaults to passing (i.e. static background)
-        Available options are 'accurate' or 'fast':
+        Available options are 'accurate', 'fast', or 'pass' to apply a statick background correction:
 
         :func:`pyopia.background.shift_bgstack_accurate`
 
@@ -333,16 +347,27 @@ class CorrectBackgroundAccurate():
 
     .. code-block:: python
 
-        step = {'correct background': pyopia.background.CorrectBackgroundAccurate(pyopia.background.shift_bgstack_accurate)}
+        'steps': {
+            'correctbackground': {
+                'pipeline_class': 'pyopia.background.CorrectBackgroundAccurate',
+                'bgshift_function': 'accurate'
+            }
+        }
 
     Apply static background correction:
 
     .. code-block:: python
 
-        step = {'correct background': pyopia.background.CorrectBackgroundAccurate()}
+        'steps': {
+            'correctbackground': {
+                'pipeline_class': 'pyopia.background.CorrectBackgroundAccurate',
+                'bgshift_function': 'pass'
+            }
+        }
 
-   Use CorrectBackgroundNone() if you do not want to do background correction.
 
+    If you do not want to do background correction, leave this step out of the pipeline.
+    Then you could use :class:`pyopia.pipeline.CorrectBackgroundNone` if you need to instead.
     '''
 
     def __init__(self, bgshift_function='pass'):
@@ -368,7 +393,8 @@ class CorrectBackgroundAccurate():
 
 class CorrectBackgroundNone():
     '''
-    :class:`pyopia.pipeline` compatible class for use when no background correction is required
+    :class:`pyopia.pipeline` compatible class for use when no background correction is required.
+    This simply makes `data['imc'] = data['imraw'] in the pipeline.
 
     Pipeline input data:
     --------------------
@@ -396,8 +422,11 @@ class CorrectBackgroundNone():
 
     .. code-block:: python
 
-        step = {'correct background': pyopia.background.CorrectBackgroundNone()}
-
+        'steps': {
+            'nobackground': {
+                'pipeline_class': 'pyopia.background.CorrectBackgroundNone',
+            }
+        }
     '''
 
     def __init__(self):
