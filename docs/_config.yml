@@ -37,5 +37,6 @@ sphinx:
   - 'sphinx.ext.autodoc'
   - 'sphinx.ext.napoleon'
   - 'sphinx.ext.autosummary'
+  - 'sphinx.ext.sphinx_togglebutton'
   config:
     autosummary_generate: True
