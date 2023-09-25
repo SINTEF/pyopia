@@ -9,6 +9,7 @@ parts:
   chapters:
   - file: examples
   - file: notebooks/stats
+  - file: notebooks/STATSnc
 - caption: Code docs
   chapters:
   - file: api
