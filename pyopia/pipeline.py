@@ -44,11 +44,11 @@ class Pipeline():
     called multiple times with different filenames.
 
     Examples of setting up and running a pipeline,
-    can be found for SilCam, `here <https://github.com/SINTEF/pyopia/blob/main/notebooks/pipeline-holo.ipynb>`_,
-    and holographic analysis, `here <https://github.com/SINTEF/pyopia/blob/main/notebooks/pipeline-holo.ipynb>`_.
+    can be found for SilCam `here <https://github.com/SINTEF/pyopia/blob/main/notebooks/pipeline-holo.ipynb>`_,
+    and holographic analysis `here <https://github.com/SINTEF/pyopia/blob/main/notebooks/pipeline-holo.ipynb>`_.
 
-    Example config files can be found for SilCam, `here <https://github.com/SINTEF/pyopia/blob/main/notebooks/config.toml>`_
-    and for holographic analysis, `here <https://github.com/SINTEF/pyopia/blob/main/notebooks/config-holo.toml>`_
+    Example config files can be found for SilCam `here <https://github.com/SINTEF/pyopia/blob/main/notebooks/config.toml>`_,
+    and for holographic analysis `here <https://github.com/SINTEF/pyopia/blob/main/notebooks/config-holo.toml>`_.
 
     You can check the workflow used by reading the steps from the metadata in the
     output file using :func:`pyopia.pipeline.steps_from_xstats`
