@@ -46,12 +46,13 @@ class Pipeline():
     For examples of setting up and running a pipeline,
     can be found for SilCam (https://github.com/SINTEF/pyopia/blob/main/notebooks/single-image-stats.ipynb)
     and holographic analysis (https://github.com/SINTEF/pyopia/blob/main/notebooks/pipeline-holo.ipynb).
+    Example config files can be found for SilCam, here: https://github.com/SINTEF/pyopia/blob/main/notebooks/config.toml
+    and for holographic analysis, here: https://github.com/SINTEF/pyopia/blob/main/notebooks/config-holo.toml
 
     You can check the workflow used by reading the steps from the metadata in the
     output file using :func:`pyopia.pipeline.steps_from_xstats`
 
-
-    More examples and guides can be found [here](https://pyopia.readthedocs.io/en/latest/examples.html)
+    More examples and guides can be found here:(https://pyopia.readthedocs.io/en/latest/examples.html)
     '''
 
     def __init__(self, settings,
