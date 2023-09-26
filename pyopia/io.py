@@ -109,7 +109,7 @@ class StatsH5():
     def __init__(self,
                  output_datafile='data',
                  dataformat='nc',
-                 append=True,
+                 append=False,
                  export_name_len=40):
 
         self.output_datafile = output_datafile
