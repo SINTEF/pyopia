@@ -43,17 +43,17 @@ class Pipeline():
     This is intended for use in looping through several files during processing, so run can be
     called multiple times with different filenames.
 
-    | For examples of setting up and running a pipeline,
-    can be found for SilCam, here: https://github.com/SINTEF/pyopia/blob/main/notebooks/single-image-stats.ipynb
-    | and holographic analysis, here: https://github.com/SINTEF/pyopia/blob/main/notebooks/pipeline-holo.ipynb.
+    Examples of setting up and running a pipeline,
+    can be found for SilCam, `here <https://github.com/SINTEF/pyopia/blob/main/notebooks/pipeline-holo.ipynb>`_,
+    and holographic analysis, `here <https://github.com/SINTEF/pyopia/blob/main/notebooks/pipeline-holo.ipynb>`_.
 
-    | Example config files can be found for SilCam, here: https://github.com/SINTEF/pyopia/blob/main/notebooks/config.toml
-    | and for holographic analysis, here: https://github.com/SINTEF/pyopia/blob/main/notebooks/config-holo.toml
+    Example config files can be found for SilCam, `here <https://github.com/SINTEF/pyopia/blob/main/notebooks/config.toml>`_
+    and for holographic analysis, `here <https://github.com/SINTEF/pyopia/blob/main/notebooks/config-holo.toml>`_
 
     You can check the workflow used by reading the steps from the metadata in the
     output file using :func:`pyopia.pipeline.steps_from_xstats`
 
-    More examples and guides can be found here: (https://pyopia.readthedocs.io/en/latest/examples.html)
+    More examples and guides can be found on the `PyOIA By Example <https://pyopia.readthedocs.io/en/latest/examples.html>`_ page.
     '''
 
     def __init__(self, settings,
