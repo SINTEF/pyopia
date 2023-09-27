@@ -5,6 +5,8 @@ PyOPIA top-level code primarily for managing cmd line entry points
 import typer
 import toml
 from glob import glob
+import os
+import datetime
 from rich.progress import track, Progress
 
 import pyopia.background
@@ -70,6 +72,21 @@ def process(config_filename: str, ):
         progress.console.print("[blue]OBTAIN FILE LIST")
         files = sorted(glob(pipeline_config['general']['raw_files']))
         nfiles = len(files)
+
+        progress.console.print('[blue]PREPARE FOLDERS')
+        if 'output' not in pipeline_config['steps']:
+            raise Exception('The given config file is missing an "output" step.\n' +
+                            'This is needed to setup how to save data to disc.')
+        output_datafile = pipeline_config['steps']['output']['output_datafile']
+        os.makedirs(os.path.split(output_datafile)[:-1][0],
+                    exist_ok=True)
+
+        if os.path.isfile(output_datafile + '-STATS.nc'):
+            dt_now = datetime.datetime.now().strftime('D%Y%m%dT%H%M%S')
+            newname = output_datafile + '-conflict-' + str(dt_now) + '-STATS.nc'
+            progress.console.print('[red]Renaming conflicting file to: ' +
+                                   newname)
+            os.rename(output_datafile + '-STATS.nc', newname)
 
         progress.console.print("[blue]INITIALISE PIPELINE")
         processing_pipeline = Pipeline(pipeline_config)

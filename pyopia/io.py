@@ -8,6 +8,7 @@ import h5py
 import pandas as pd
 import toml
 import xarray
+import os
 
 from pyopia import __version__ as pyopia_version
 
@@ -16,25 +17,17 @@ def write_stats(
         stats,
         datafilename,
         settings=None,
-        append=True,
         export_name_len=40,
         dataformat='nc'):
     '''
-    Writes particle stats into the ouput file
+    Writes particle stats into the ouput file.
+    Appends if file already exists.
 
     Args:
         datafilename (str):     filame prefix for -STATS.h5 file that may or may not include a path
         stats_all (DataFrame):  stats dataframe returned from processImage()
-        append (bool):          if to allow append to an existing STATS file
         export_name_len (int):  max number of chars allowed for col 'export name'
     '''
-
-    # create or append particle statistics to output file
-    # if the output file does not already exist, create it
-    # otherwise data will be appended
-    # @todo accidentally appending to an existing file could be dangerous
-    # because data will be duplicated (and concentrations would therefore
-    # double) GUI promts user regarding this - directly-run functions are more dangerous.
     if 'export name' in stats.columns:
         min_itemsize = {'export name': export_name_len}
     else:
@@ -43,7 +36,7 @@ def write_stats(
     if dataformat == 'h5':
         with pd.HDFStore(datafilename + '-STATS.h5', 'a') as fh:
             stats.to_hdf(
-                fh, 'ParticleStats/stats', append=append, format='t',
+                fh, 'ParticleStats/stats', append=True, format='t',
                 data_columns=True, min_itemsize=min_itemsize)
 
         # metadata
@@ -54,7 +47,7 @@ def write_stats(
             meta.attrs['Pipeline steps'] = settings
     elif dataformat == 'nc':
         xstats = make_xstats(stats, settings)
-        if append:
+        if os.path.isfile(datafilename + '-STATS.nc'):
             existing_stats = load_stats(datafilename + '-STATS.nc')
             xstats = xarray.concat([existing_stats, xstats], 'index')
 
@@ -151,12 +144,10 @@ class StatsToDisc():
     def __init__(self,
                  output_datafile='data',
                  dataformat='nc',
-                 append=True,
                  export_name_len=40):
 
         self.output_datafile = output_datafile
         self.dataformat = dataformat
-        self.append = append
         self.export_name_len = export_name_len
 
     def __call__(self, data):
@@ -164,7 +155,6 @@ class StatsToDisc():
         write_stats(data['stats'], self.output_datafile,
                     settings=data['settings'],
                     dataformat=self.dataformat,
-                    append=self.append,
                     export_name_len=self.export_name_len)
 
         return data
