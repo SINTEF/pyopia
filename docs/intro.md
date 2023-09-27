@@ -43,3 +43,12 @@ pip install git+https://github.com/SINTEF/pyopia.git@main
 ```
 
 We would usually recommend installing within a virtual python environment, which you can read more about [here](https://jni.github.io/using-python-for-science/intro-to-environments.html).
+
+Links to libraries PyOPIA uses
+==================================
+
+PyOPIA is a high-level tool that makes use of several open source libraries. Please see the list of libraries listed in the pyproject.toml file if you are interested in what is used.
+
+Processing and plotting modeuls makes routine use of several functions provided by libraries including: [scikit-image](https://scikit-image.org/),
+[numpy](https://numpy.org/), [pandas](https://pandas.pydata.org/), [xarray](https://docs.xarray.dev), [matplotlib](https://matplotlib.org/),
+[cmocean](https://matplotlib.org/cmocean/), [tensorflow](https://www.tensorflow.org/), and [keras](https://keras.io/).
