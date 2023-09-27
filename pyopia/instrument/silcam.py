@@ -6,7 +6,6 @@ import os
 
 import numpy as np
 import pandas as pd
-import pyopia
 
 
 def timestamp_from_filename(filename):
