@@ -9,47 +9,6 @@ import pandas as pd
 import pyopia
 
 
-def silcam_steps(model_path, threshold, datafile_hdf):
-    '''generate a default / suggested steps dictionary for standard silcam analsysis
-
-    Parameters
-    ----------
-    model_path : str
-        path to classification model
-    threshold : float
-        threshold for segmentation
-    datafile_hdf : str
-        output data path
-
-    Returns
-    -------
-    steps : dict
-        dictionary of steps
-    initial_steps : list[str]
-        list of strings for initial steps
-
-    Example
-    """""""
-
-    .. code-block:: python
-
-        from pyopia.instrument.silcam import silcam_steps
-        default_steps, default_initial_steps = silcam_steps(model_path, threshold, datafile_hdf)
-
-        # initialise the pipeline
-        processing_pipeline = Pipeline(default_steps, initial_steps=default_initial_steps)
-
-    '''
-    steps = {'classifier': pyopia.classify.Classify(model_path=model_path),
-             'load': SilCamLoad(),
-             'imageprep': ImagePrep(),
-             'segmentation': pyopia.process.Segment(threshold=threshold),
-             'statextract': pyopia.process.CalculateStats(),
-             'output': pyopia.io.StatsH5(datafile_hdf)}
-    initial_steps = ['classifier']
-    return steps, initial_steps
-
-
 def timestamp_from_filename(filename):
     '''get a pandas timestamp from a silcam filename
 
