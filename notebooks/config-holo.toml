@@ -49,5 +49,5 @@ pixel_size = 4.4 # pixel size of imaging system in microns'wavelength = 658, # l
     pipeline_class = 'pyopia.process.CalculateStats'
 
     [steps.output]
-    pipeline_class = 'pyopia.io.StatsH5'
+    pipeline_class = 'pyopia.io.StatsToDisc'
     output_datafile = 'proc/test' # prefix path for output nc file

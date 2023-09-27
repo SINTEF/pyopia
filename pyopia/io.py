@@ -7,6 +7,7 @@ from datetime import datetime
 import h5py
 import pandas as pd
 import toml
+import xarray
 
 from pyopia import __version__ as pyopia_version
 
@@ -53,10 +54,11 @@ def write_stats(
             meta.attrs['Pipeline steps'] = settings
     elif dataformat == 'nc':
         xstats = make_xstats(stats, settings)
-        xstats.to_netcdf(datafilename + '-STATS.nc')
-
         if append:
-            raise Exception("append not implemented for nc output yet")
+            existing_stats = load_stats(datafilename + '-STATS.nc')
+            xstats = xarray.concat([existing_stats, xstats], 'index')
+
+        xstats.to_netcdf(datafilename + '-STATS.nc')
 
 
 def make_xstats(stats, toml_steps):
@@ -82,8 +84,29 @@ def make_xstats(stats, toml_steps):
     return xstats
 
 
-def load_stats(datafile_hdf):
-    stats = pd.read_hdf(datafile_hdf + '-STATS.h5', 'ParticleStats/stats')
+def load_stats(datafilename):
+    '''Load STATS file as a DataFrame
+
+    Parameters
+    ----------
+    datafilename : str
+        filename of -STATS.h5 or STATS.nc
+
+    Returns
+    -------
+    DataFrame
+        STATS SataFrame
+    '''
+
+    if datafilename.endswith('.nc'):
+        with xarray.open_dataset('proc/test-STATS.nc') as stats:
+            stats.load()
+    elif datafilename.endswith('.h5'):
+        stats = pd.read_hdf(datafilename, 'ParticleStats/stats')
+    else:
+        print('WARNING. File extension not specified.' +
+              'Assuming prefix of -STATS.h5 for backwards compatability.')
+        stats = pd.read_hdf(datafilename + '-STATS.h5', 'ParticleStats/stats')
     return stats
 
 
@@ -103,13 +126,32 @@ def show_h5_meta(h5file):
             print('    ' + f['Meta'].attrs[k])
 
 
-class StatsH5():
-    '''PyOpia pipline-compatible class for calling write_stats()
+class StatsToDisc():
+    '''PyOpia pipline-compatible class for calling write_stats() that created NetCDF files.
+
+    Replaces the old StatsH5 class
+
+    Args:
+        output_datafile (str): prefix path for output nc file
+        dataformat (str): either 'nc' or 'h5
+        append (bool): if to allow append to an existing STATS file. Defaults to True
+        export_name_len (int): max number of chars allowed for col 'export name'. Defaults to 40
+
+    Returns:
+        data (dict): data from pipeline
+
+    Example config for pipeline useage:
+
+    .. code-block:: python
+
+        [steps.output]
+        pipeline_class = 'pyopia.io.StatsToDisc'
+        output_datafile = './test' # prefix path for output nc file
     '''
     def __init__(self,
                  output_datafile='data',
                  dataformat='nc',
-                 append=False,
+                 append=True,
                  export_name_len=40):
 
         self.output_datafile = output_datafile
@@ -126,6 +168,9 @@ class StatsH5():
                     export_name_len=self.export_name_len)
 
         return data
+
+
+StatsH5 = StatsToDisc
 
 
 def load_toml(toml_file):
