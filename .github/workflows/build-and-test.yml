@@ -37,3 +37,19 @@ jobs:
         run: poetry install
       - name: Run the automated tests
         run: poetry run pytest -v
+  MacOS_poetry:
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10' 
+      - name: Install poetry
+        uses: abatilo/actions-poetry@v2
+      - name: Install dependencies
+        run: poetry install
+      - name: Run the automated tests
+        run: poetry run pytest -v
