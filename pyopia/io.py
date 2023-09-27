@@ -92,7 +92,7 @@ def load_stats(datafilename):
     '''
 
     if datafilename.endswith('.nc'):
-        with xarray.open_dataset('proc/test-STATS.nc') as stats:
+        with xarray.open_dataset(datafilename) as stats:
             stats.load()
     elif datafilename.endswith('.h5'):
         stats = pd.read_hdf(datafilename, 'ParticleStats/stats')
