@@ -33,7 +33,7 @@ cmocean = "^3.0.3"
 toml = "^0.10.2"
 xarray = "^2023.8.0"
 typer = {extras = ["all"], version = "^0.9.0"}
-pandas = {version = "^2.1.1", extras = ["hdf5,", "computation"]}
+pandas = {version = "^2.1.1", extras = ["hdf5", "computation"]}
 h5py = "^3.9.0"
 tensorflow = "2.13.0"
 
