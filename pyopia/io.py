@@ -98,8 +98,32 @@ def load_stats(datafilename):
         stats = pd.read_hdf(datafilename, 'ParticleStats/stats')
     else:
         print('WARNING. File extension not specified.' +
-              'Assuming prefix of -STATS.h5 for backwards compatability.')
+              'Assuming prefix of -STATS.h5 for backwards compatability.' +
+              'In future, this function will only take .nc files')
         stats = pd.read_hdf(datafilename + '-STATS.h5', 'ParticleStats/stats')
+    return stats
+
+
+def load_stats_as_dataframe(stats_file):
+    '''A loading function for stats files that forces stats into a pandas DataFrame
+
+    Parameters
+    ----------
+    stats_file : str
+        filename of NetCDF of H5 -STATS file
+
+    Returns
+    -------
+    DataFrame
+        stats pandas dataframe
+    '''
+    # obtain particle statistics from the stats file
+    stats = load_stats(stats_file)
+    try:
+        stats = stats.to_dataframe()
+    except AttributeError:
+        print('STATS was likely loaded from an old h5 format, which will be deprecated in future. Please use NetCDF in future.')
+        pass
     return stats
 
 

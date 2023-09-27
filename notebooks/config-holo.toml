@@ -47,7 +47,6 @@ pixel_size = 4.4 # pixel size of imaging system in microns'wavelength = 658, # l
 
     [steps.statextract]
     pipeline_class = 'pyopia.process.CalculateStats'
-    export_outputpath = 'export'
     propnames = ['major_axis_length', 'minor_axis_length', 'equivalent_diameter', 
                               'feret_diameter_max', 'equivalent_diameter_area']
 

@@ -8,7 +8,7 @@ import numpy as np
 from skimage.exposure import rescale_intensity
 import h5py
 from tqdm import tqdm
-from pyopia.io import write_stats
+from pyopia.io import write_stats, load_stats_as_dataframe
 
 
 def d50_from_stats(stats, pixel_size):
@@ -302,7 +302,7 @@ def make_montage(stats_file, pixel_size, roidir,
     makes nice looking montage from a directory of extracted particle images
 
     Args:
-        stats_file                  : location of the stats hdf5 file that comes from silcam process
+        stats_file                  : location of the stats hdf5 or nc file that comes from processing
         pixel_size                  : pixel size of system defined by settings.PostProcess.pix_size
         roidir                      : location of roifiles usually defined by settings.ExportParticles.outputpath
         auto_scaler=500             : approximate number of particle that are attempted to be packed into montage
@@ -318,8 +318,7 @@ def make_montage(stats_file, pixel_size, roidir,
                                       which can be plotted using plotting.montage_plot(montage, settings.PostProcess.pix_size)
     '''
 
-    # obtain particle statistics from the stats file
-    stats = pd.read_hdf(stats_file, 'ParticleStats/stats')
+    stats = load_stats_as_dataframe(stats_file)
 
     if crop_stats is not None:
         stats = crop_stats(stats, crop_stats)
