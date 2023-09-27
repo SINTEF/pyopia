@@ -15,7 +15,7 @@ from datetime import timedelta, datetime
 from glob import glob
 
 '''
-This is an subpackage containing basic processing for reconstruction of in-line holographic images.
+This is a module containing basic processing for reconstruction of in-line holographic images.
 
 See (and references therein):
 Davies EJ, Buscombe D, Graham GW & Nimmo-Smith WAM (2015)
@@ -633,3 +633,89 @@ def read_lisst_holo_info(filename):
     f.close()
 
     return timestamp
+
+
+def generate_config(raw_files: str, model_path: str, outfolder: str, output_prefix: str):
+    '''Generaste example holo config.toml as a dict
+
+    Parameters
+    ----------
+    raw_files : str
+        raw_files
+    model_path : str
+        model_path
+    outfolder : str
+        outfolder
+    output_prefix : str
+        output_prefix
+
+    Returns:
+    --------
+    dict
+        pipeline_config toml dict
+    '''
+    pipeline_config = {
+        'general': {
+            'raw_files': raw_files,
+            'pixel_size': 4.4  # pixel size in um
+        },
+        'steps': {
+            'initial': {
+                'pipeline_class': 'pyopia.instrument.holo.Initial',
+                'wavelength': 658,  # laser wavelength in nm
+                'n': 1.33,  # index of refraction of sample volume medium (1.33 for water)
+                'offset': 27,  # offset to start of sample volume in mm
+                'minZ': 0,  # minimum reconstruction distance within sample volume in mm
+                'maxZ': 50,  # maximum reconstruction distance within sample volume in mm
+                'stepZ': 0.5  # step size in mm
+            },
+            'classifier': {
+                'pipeline_class': 'pyopia.classify.Classify',
+                'model_path': model_path
+            },
+            'createbackground': {
+                'pipeline_class': 'pyopia.background.CreateBackground',
+                'average_window': 10,
+                'instrument_module': 'holo'
+            },
+            'load': {
+                'pipeline_class': 'pyopia.instrument.holo.Load'
+            },
+            'correctbackground': {
+                'pipeline_class': 'pyopia.background.CorrectBackgroundAccurate',
+                'bgshift_function': 'accurate'
+            },
+            'reconstruct': {
+                'pipeline_class': 'pyopia.instrument.holo.Reconstruct',
+                'stack_clean': 0.02,
+                'forward_filter_option': 2,
+                'inverse_output_option': 0
+            },
+            'focus': {
+                'pipeline_class': 'pyopia.instrument.holo.Focus',
+                'stacksummary_function': 'max_map',
+                'threshold': 0.9,
+                'focus_function': 'find_focus_sobel',
+                'increase_depth_of_field': False,
+                'merge_adjacent_particles': 2
+            },
+            'segmentation': {
+                'pipeline_class': 'pyopia.process.Segment',
+                'threshold': 0.9
+            },
+            'statextract': {
+                'pipeline_class': 'pyopia.process.CalculateStats',
+                'export_outputpath': outfolder,
+                'propnames': ['major_axis_length', 'minor_axis_length', 'equivalent_diameter',
+                              'feret_diameter_max', 'equivalent_diameter_area']
+            },
+            'mergeholostats': {
+                'pipeline_class': 'pyopia.instrument.holo.MergeStats',
+            },
+            'output': {
+                'pipeline_class': 'pyopia.io.StatsH5',
+                'output_datafile': os.path.join(outfolder, output_prefix)
+            }
+        }
+    }
+    return pipeline_config
