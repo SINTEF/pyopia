@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  app:
+  docker:
     build: .
     volumes:
       - .:/src

@@ -7,3 +7,5 @@ RUN pip install poetry
 COPY . .
 
 RUN poetry install
+
+ENTRYPOINT ["tail", "-f", "/dev/null"]
