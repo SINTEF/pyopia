@@ -479,6 +479,14 @@ class CalculateStats():
     max_particles : (int, optional)
         maximum allowed number of particles in an image.
         Exceeding this will discard the image from analysis. Defaults to 5000.
+    export_outputpath: (str, optional)
+        Path to folder to put extracted particle ROIs (in h5 files).
+        Required for making montages later.
+    min_length: (int, optional)
+        The minimum length of particles (in pixels) to includ in output ROIs
+    propnames: (list, optional)
+        Specifies properties wanted from skimage.regionprops.
+        Defaults to ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']
 
     Returns:
     --------
