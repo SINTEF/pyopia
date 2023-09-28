@@ -1,9 +1,9 @@
-FROM continuumio/miniconda3
+FROM python:3.11-buster
 
 WORKDIR /src
+
+RUN pip install poetry
+
 COPY . .
 
-RUN apt-get update && apt-get install -y --no-install-recommends git
-
-RUN conda env create -f environment.yml --force
-
+RUN poetry install
