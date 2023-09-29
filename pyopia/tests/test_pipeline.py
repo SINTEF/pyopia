@@ -196,4 +196,4 @@ def test_silcam_pipeline():
 
 
 if __name__ == "__main__":
-    pass
+    test_silcam_pipeline()
