@@ -104,6 +104,29 @@ poetry install
 poetry run pytest
 ```
 
+### Docker
+
+Use of docker assumes you know how to use docker-compose.
+The current docker configuration is very basic, and mainly for testing purposes.
+
+1. Setup docker image:
+
+```bash
+docker-compose up -d
+```
+
+2. Enter the docker container for interaction:
+
+```bash
+docker exec -it pyopia-docker-1 /bin/bash
+```
+
+3. Interact with cli pyopia using poetry e.g.:
+
+```bash
+poetry run pyopia --help
+```
+
 ----
 # License
 
