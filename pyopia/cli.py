@@ -31,6 +31,46 @@ def docs():
 
 
 @app.command()
+def modify_config(existing_filename: str, modified_filename: str,
+                  raw_files=None,
+                  step_name=None, modify_arg=None, modify_value=None):
+    '''Modify a existing config.toml file and write a new one to disc
+
+    Parameters
+    ----------
+    existing_filename : str
+        e.g. config.toml
+    modified_filename : str
+        e.g. config_new.toml
+    raw_files : str, optional
+        modify the raw file input in the `[general]` settings, by default None
+    step_name : str, optional
+        the name of the step to modify e.g. `segmentation`, by default None
+    modify_arg : str, optional
+        the name of the step to modify e.g. `threshold`.
+        existing arguments will be overwritten, non-existent arguments will be created, by default None
+    modify_value : str or floar, optional
+        new value to attach to the 'modify_arg' setting e.g. 0.85.
+        Accepts either string or float input, by default None
+    '''
+    toml_settings = pyopia.io.load_toml(existing_filename)
+
+    if raw_files is not None:
+        toml_settings['general']['raw_files'] = raw_files
+
+    if step_name is not None:
+        try:
+            modify_value = float(modify_value)
+        except ValueError:
+            pass
+
+        toml_settings['steps'][step_name][modify_arg] = modify_value
+
+    with open(modified_filename, "w") as toml_file:
+        toml.dump(toml_settings, toml_file)
+
+
+@app.command()
 def generate_config(instrument: str, raw_files: str, model_path: str, outfolder: str, output_prefix: str):
     '''Put an example config.toml file in the current directory
 
@@ -59,7 +99,7 @@ def generate_config(instrument: str, raw_files: str, model_path: str, outfolder:
 
 
 @app.command()
-def process(config_filename: str, ):
+def process(config_filename: str):
     '''Run a PyOPIA processing pipeline based on given a config.toml
     '''
     from pyopia.io import load_toml
