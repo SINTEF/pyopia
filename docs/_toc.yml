@@ -8,6 +8,7 @@ parts:
 - caption: Examples
   chapters:
   - file: examples
+  - file: notebooks/toml_config.ipynb
   - file: notebooks/cli
   - file: notebooks/stats
   - file: notebooks/STATSnc

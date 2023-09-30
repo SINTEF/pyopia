@@ -104,6 +104,14 @@ poetry install
 poetry run pytest
 ```
 
+## Build docs locally
+
+```
+sphinx-apidoc -f -o docs/source docs/ --separate
+
+sphinx-build -b html ./docs/ ./docs/build
+```
+
 ----
 # License
 
