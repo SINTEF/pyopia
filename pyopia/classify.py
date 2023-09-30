@@ -32,6 +32,14 @@ class Classify():
     on the process where it will be used and not passed between processers
     (i.e. cl must be initialised on that process).
 
+    The config setup looks like this:
+
+    .. code-block:: python
+
+        [steps.classifier]
+        pipeline_class = 'pyopia.classify.Classify'
+        model_path = 'keras_model.h5' # path to trained nn model
+
     '''
     def __init__(self, model_path=None):
         self.model_path = model_path
