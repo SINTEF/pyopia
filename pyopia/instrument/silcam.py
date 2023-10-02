@@ -103,8 +103,7 @@ class ImagePrep():
         # simplify processing by squeezing the image dimensions into a 2D array
         # min is used for squeezing to represent the highest attenuation of all wavelengths
         imc = np.min(imc, axis=2)
-        imc -= np.min(imc)
-        imc /= np.max(imc)
+        imc /= 255
 
         data['imc'] = imc
         return data
