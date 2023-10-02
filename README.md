@@ -81,37 +81,36 @@ cd pyopia-main
 
 For the next steps, you need to be located in the directory that contains the file 'environment.yml'.
 
-2. Create a virtual environment using the environment.yml (will create an environment called pyopia):
+1. (optional, but recommended) Create a virtual environment using the environment.yml. This will create an environment called pyopia, but with no dependencies installed. Dependencies are managed by poetry (in step 2):
 
 ```bash
 conda env create -f environment.yml
 ```
-
-3. To update, we recommend a forced re-install:
-
-```bash
-conda env create -f environment.yml --force
-```
-
-(but you could also try this, which might be quicker but a less reliable form of updating):
-
-```bash
-conda env update --file environment.yml --prune
-```
-
-4. To activate:
+and activate the environment:
 
 ```bash
 conda activate pyopia
 ```
 
-5. Test that it works with:
+2. Install dependencies using poetry:
 
 ```bash
-python setup.py develop
+poetry install
 ```
 
-Note that `pip install` or `python setup.py install` will probably cause you problems if you want to develop the code, and should only be used for deployment purposes.
+3. (optional) Run local tests:
+
+```bash
+poetry run pytest
+```
+
+## Build docs locally
+
+```
+sphinx-apidoc -f -o docs/source docs/build --separate
+
+sphinx-build -b html ./docs/ ./docs/build
+```
 
 ----
 # License

@@ -1,12 +1,12 @@
-    flake8
-    docopt
-    setuptools
-    pytest-error-for-skips
-    sphinx_rtd_theme>=0.5.0
-    sphinxcontrib-napoleon>=0.7
-    sphinx-togglebutton
-    sphinx-copybutton
-    readthedocs-sphinx-search
-    myst-nb
-    jupyter_book
-    ipykernel>=6.19.4
+flake8
+docopt
+setuptools
+pytest-error-for-skips
+sphinx_rtd_theme>=0.5.0
+sphinxcontrib-napoleon>=0.7
+sphinx-togglebutton
+sphinx-copybutton
+readthedocs-sphinx-search
+myst-nb
+jupyter_book
+ipykernel>=6.19.4

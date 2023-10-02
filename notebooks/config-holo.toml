@@ -1,0 +1,55 @@
+[general] # general setting independent of processing steps
+raw_files = 'holo_test_data_01/*.pgm' # string used to obtain list of raw data files for processing
+pixel_size = 4.4 # pixel size of imaging system in microns'wavelength = 658, # laser wavelength in nm
+
+[steps] # setup of analysis pipeline order, functions, and parameters
+    [steps.initial]
+    pipeline_class = 'pyopia.instrument.holo.Initial'
+    # hologram reconstruction settings
+    wavelength = 658 # laser wavelength in nm
+    n = 1.33 # index of refraction of sample volume medium (1.33 for water)
+    offset = 27 # offset to start of sample volume in mm
+    minZ = 0 # minimum reconstruction distance within sample volume in mm
+    maxZ = 50 # maximum reconstruction distance within sample volume in mm
+    stepZ = 0.5 #step size in mm
+
+    [steps.classifier]
+    pipeline_class = 'pyopia.classify.Classify'
+    model_path = 'keras_model.h5' # path to trained nn model
+
+    [steps.createbackground]
+    pipeline_class = 'pyopia.background.CreateBackground'
+    average_window = 10 # number of images used to create background
+    instrument_module = 'holo' # used to determina method for loading images. Either 'silcam', 'holo', or 'imread'
+
+    [steps.load]
+    pipeline_class = 'pyopia.instrument.holo.Load'
+
+    [steps.correctbackground]
+    pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
+    bgshift_function = 'accurate' # optional 'fast' or 'accurate' method for moving backgrounds. For static background use 'pass' or comment this line.
+
+    [steps.reconstruct]
+    pipeline_class = 'pyopia.instrument.holo.Reconstruct'
+    stack_clean = 0.02
+
+    [steps.focus]
+    pipeline_class = 'pyopia.instrument.holo.Focus'
+    stacksummary_function = 'max_map'
+    threshold = 0.9
+    increase_depth_of_field = true
+    focus_function = 'find_focus_sobel'
+    merge_adjacent_particles = 2
+
+    [steps.segmentation]
+    pipeline_class = 'pyopia.process.Segment'
+    threshold = 0.9 # threshold used for segmentation
+
+    [steps.statextract]
+    pipeline_class = 'pyopia.process.CalculateStats'
+    propnames = ['major_axis_length', 'minor_axis_length', 'equivalent_diameter', 
+                              'feret_diameter_max', 'equivalent_diameter_area']
+
+    [steps.output]
+    pipeline_class = 'pyopia.io.StatsToDisc'
+    output_datafile = 'proc/test' # prefix path for output nc file

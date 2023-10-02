@@ -11,7 +11,7 @@ from PIL import Image
 
 class Classify():
     '''
-    A classifier class for PyOpia workflow.
+    A classifier class for PyOPIA workflow.
     This is intended as a parent class that can be used as a template for flexible classification methods
 
     Args:
@@ -31,6 +31,14 @@ class Classify():
     If this is used in combination with multiprocessing then the model must be loaded
     on the process where it will be used and not passed between processers
     (i.e. cl must be initialised on that process).
+
+    The config setup looks like this:
+
+    .. code-block:: python
+
+        [steps.classifier]
+        pipeline_class = 'pyopia.classify.Classify'
+        model_path = 'keras_model.h5' # path to trained nn model
 
     '''
     def __init__(self, model_path=None):
