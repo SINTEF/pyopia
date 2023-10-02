@@ -97,10 +97,9 @@ class Pipeline():
 
         .. code-block:: python
 
-            'output': {
-                'pipeline_class': 'pyopia.io.StatsH5',
-                'output_datafile': 'proc/test'
-            }
+            [steps.output]
+            pipeline_class = 'pyopia.io.StatsDisc'
+            output_datafile = 'proc/test'  # prefix path for output nc file
         '''
 
         self.data['filename'] = filename
@@ -213,7 +212,7 @@ class Data(TypedDict):
 
 
 def steps_to_string(steps):
-    '''Convert pipeline steps dictionary to a human-readable string
+    '''Deprecated. Convert pipeline steps dictionary to a human-readable string
 
     Args:
         steps (dict): pipeline steps dictionary
@@ -248,6 +247,13 @@ class ReturnData():
 
     Example use:
     ------------
+
+    Config setup:
+
+    .. code-block:: python
+
+        [steps.returndata]
+        pipeline_class = 'pyopia.classify.ReturnData'
 
     This will allow you to call pipeline.run() like this:
 

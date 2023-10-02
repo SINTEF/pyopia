@@ -259,7 +259,7 @@ class CreateBackground():
         number of images to use in the background image stack
 
     instrument_module: (str, optional)
-        Defaults to 'imread'
+        Defaults to 'imread' if not defined
         Other alternatives are: 'holo' or 'silcam' if you want to use the `load_image`functions
         implemented within the {mod}`pyopia.instrument` submodule.
 
@@ -277,14 +277,10 @@ class CreateBackground():
 
     .. code-block:: python
 
-        'steps': {
-            'createbackground': {
-                'pipeline_class': 'pyopia.background.CreateBackground',
-                'average_window': 10,
-                'instrument_module': 'holo'
-            }
-        }
-
+        [steps.createbackground]
+        pipeline_class = 'pyopia.background.CreateBackground'
+        average_window = 10
+        instrument_module = 'holo'
     '''
 
     def __init__(self, average_window, instrument_module='imread'):
@@ -347,23 +343,17 @@ class CorrectBackgroundAccurate():
 
     .. code-block:: python
 
-        'steps': {
-            'correctbackground': {
-                'pipeline_class': 'pyopia.background.CorrectBackgroundAccurate',
-                'bgshift_function': 'accurate'
-            }
-        }
+        [steps.correctbackground]
+        pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
+        bgshift_function = 'accurate'
 
     Apply static background correction:
 
     .. code-block:: python
 
-        'steps': {
-            'correctbackground': {
-                'pipeline_class': 'pyopia.background.CorrectBackgroundAccurate',
-                'bgshift_function': 'pass'
-            }
-        }
+        [steps.correctbackground]
+        pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
+        bgshift_function = 'pass'
 
 
     If you do not want to do background correction, leave this step out of the pipeline.
@@ -422,11 +412,9 @@ class CorrectBackgroundNone():
 
     .. code-block:: python
 
-        'steps': {
-            'nobackground': {
-                'pipeline_class': 'pyopia.background.CorrectBackgroundNone',
-            }
-        }
+        [steps.nobackground]
+        pipeline_class = 'pyopia.background.CorrectBackgroundNone'
+
     '''
 
     def __init__(self):
