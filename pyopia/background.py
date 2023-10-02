@@ -82,7 +82,7 @@ def correct_im_accurate(imbg, imraw):
     '''
     Corrects raw image by subtracting the background and scaling the output
 
-    There is a small chance of clipping of imc in both crushed blacks an blown
+    There is a small chance of clipping of imc in both crushed blacks and blown
     highlights if the background or raw images are very poorly obtained
 
     Args:

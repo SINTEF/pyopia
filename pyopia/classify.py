@@ -11,7 +11,7 @@ from PIL import Image
 
 class Classify():
     '''
-    A classifier class for PyOpia workflow.
+    A classifier class for PyOPIA workflow.
     This is intended as a parent class that can be used as a template for flexible classification methods
 
     Args:
