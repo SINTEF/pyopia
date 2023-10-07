@@ -1,6 +1,13 @@
 name: Publish
 
-on: [push]
+on:
+  release:
+    types:
+      - released
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   pypi-publish:

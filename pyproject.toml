@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "pyopia"
+name = "PyOPIA"
 version = "0"
 description = "A Python Ocean Particle Image Analysis toolbox."
 authors = ["Emlyn Davies <emlyn.davies@sintef.no>"]
