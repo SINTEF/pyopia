@@ -5,8 +5,8 @@ on:
     types:
       - released
   push:
-    branches:
-      - main
+#    branches:
+#      - main
   workflow_dispatch:
 
 jobs:
