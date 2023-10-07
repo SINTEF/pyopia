@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: release
-      url: https://test.pypi.org/p/pyopia
+      url: https://pypi.org/p/pyopia
     permissions:
       id-token: write
     steps:
@@ -36,5 +36,3 @@ jobs:
 
       - name: Publish package distributions to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/
