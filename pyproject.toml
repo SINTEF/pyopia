@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "pyopia"
+name = "PyOPIA"
 version = "0"
 description = "A Python Ocean Particle Image Analysis toolbox."
 authors = ["Emlyn Davies <emlyn.davies@sintef.no>"]
@@ -37,6 +37,7 @@ pandas = {version = "^2.1.1", extras = ["computation"]}
 h5py = "^3.9.0"
 tensorflow-io-gcs-filesystem = "0.31.0"
 tensorflow-cpu = "2.11.0"
+poetry-version-plugin = "^0.2.0"
 
 [tool.poetry-version-plugin]
 source = "init"
