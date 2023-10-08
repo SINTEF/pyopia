@@ -66,6 +66,6 @@ jobs:
       - name: Install poetry
         uses: abatilo/actions-poetry@v2
       - name: Install dependencies
-        run: poetry install --extras "classification-silicon"
+        run: poetry install --extras "classification"
       - name: Run the automated tests
         run: poetry run pytest -v
