@@ -213,11 +213,12 @@ def extract_particles(imc, timestamp, Classification, region_properties,
     '''
     filenames = ['not_exported'] * len(region_properties)
 
-    # pre-allocation
-    predictions = np.zeros((len(region_properties),
-                            len(Classification.class_labels)),
-                           dtype='float64')
-    predictions *= np.nan
+    if Classification is not None:
+        # pre-allocation
+        predictions = np.zeros((len(region_properties),
+                                len(Classification.class_labels)),
+                                dtype='float64')
+        predictions *= np.nan
 
     # obtain the original image filename from the timestamp
     filename = timestamp.strftime('D%Y%m%dT%H%M%S.%f')
@@ -264,9 +265,10 @@ def extract_particles(imc, timestamp, Classification, region_properties,
                 HDF5File.create_dataset('PN' + str(i), data=roi)
                 # @todo also include particle stats here too.
 
-            # run a prediction on what type of particle this might be
-            prediction = Classification.proc_predict(roi.astype(np.uint8))
-            predictions[int(i), :] = prediction[0]
+            if Classification is not None:
+                # run a prediction on what type of particle this might be
+                prediction = Classification.proc_predict(roi.astype(np.uint8))
+                predictions[int(i), :] = prediction[0]
 
     if export_outputpath is not None:
         # close the HDF5 file
@@ -283,9 +285,10 @@ def extract_particles(imc, timestamp, Classification, region_properties,
 
     print('EXTRACTING {0} IMAGES from {1}'.format(nb_extractable_part, len(stats['major_axis_length'])))
 
-    # add classification predictions to the particle statistics data
-    for n, c in enumerate(Classification.class_labels):
-        stats['probability_' + c] = predictions[:, n]
+    if Classification is not None:
+        # add classification predictions to the particle statistics data
+        for n, c in enumerate(Classification.class_labels):
+            stats['probability_' + c] = predictions[:, n]
 
     # add the filenames of the HDF5 file and particle number tag to the
     # particle statistics data
@@ -356,7 +359,8 @@ def segment(img, threshold=0.98, minimum_area=12, fill_holes=True):
     return imbw
 
 
-def statextract(imbw, timestamp, imc, Classification,
+def statextract(imbw, timestamp, imc,
+                Classification=None,
                 max_coverage=30,
                 max_particles=5000,
                 export_outputpath=None,
@@ -510,7 +514,8 @@ class CalculateStats():
 
     def __call__(self, data):
         print('statextract')
-        stats, saturation = statextract(data['imbw'], data['timestamp'], data['imc'], data['cl'],
+        stats, saturation = statextract(data['imbw'], data['timestamp'], data['imc'],
+                                        Classification=data['cl'],
                                         max_coverage=self.max_coverage,
                                         max_particles=self.max_particles,
                                         export_outputpath=self.export_outputpath,
