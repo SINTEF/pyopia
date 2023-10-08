@@ -192,6 +192,29 @@ def write_segmented_images(imbw, imc, settings, timestamp):
         imsave(fname, imc)
 
 
+def put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i):
+    '''Adds rois to an open hdf file if export_outputpath is not None.
+    For use within {func}`pyopia.process.export_particles`
+
+    Parameters
+    ----------
+    export_outputpath : str
+    HDF5File : h5 file object
+    roi : uint8
+    i : int
+        particle number
+
+    Returns
+    -------
+    str
+        filename
+    '''
+    filename = filename + '-PN' + str(i)
+    if export_outputpath is not None:
+        HDF5File.create_dataset('PN' + str(i), data=roi)
+    return filename
+
+
 def extract_particles(imc, timestamp, Classification, region_properties,
                       export_outputpath=None, min_length=0, propnames=['major_axis_length', 'minor_axis_length',
                                                                        'equivalent_diameter']):
@@ -217,7 +240,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         # pre-allocation
         predictions = np.zeros((len(region_properties),
                                 len(Classification.class_labels)),
-                                dtype='float64')
+                               dtype='float64')
         predictions *= np.nan
 
     # obtain the original image filename from the timestamp
@@ -240,6 +263,8 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         meta.attrs['Raw image name'] = filename
         # @todo include more useful information in this meta data, e.g. possibly raw image location and background
         #  stack file list.
+    else:
+        HDF5File = None
 
     # pre-allocate some things
     data = np.zeros((len(region_properties), len(propnames)), dtype=np.float64)
@@ -259,16 +284,13 @@ def extract_particles(imc, timestamp, Classification, region_properties,
             # extract the region of interest from the corrected colour image
             roi = extract_roi(imc, bboxes[i, :].astype(int))
 
-            # add the roi to the HDF5 file
-            filenames[int(i)] = filename + '-PN' + str(i)
-            if export_outputpath is not None:
-                HDF5File.create_dataset('PN' + str(i), data=roi)
-                # @todo also include particle stats here too.
-
             if Classification is not None:
                 # run a prediction on what type of particle this might be
                 prediction = Classification.proc_predict(roi.astype(np.uint8))
                 predictions[int(i), :] = prediction[0]
+
+            # add the roi to the HDF5 file
+            filenames[int(i)] = put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i)
 
     if export_outputpath is not None:
         # close the HDF5 file
