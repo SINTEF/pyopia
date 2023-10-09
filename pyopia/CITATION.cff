@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Davies
+    given-names: Emlyn
+  - family-names: Nimmo-Smith
+    given-names: Alex
+  - family-names: Nepstad
+    given-names: Raymond
+  - family-names: Nordam
+    given-names: Tor
+  - family-names: Brönner
+    given-names: Ute
+  - family-names: Steinvika
+    given-names: Andreas
+  - family-names: Sari
+    given-names: Giering
+  - family-names: Masoudi
+    given-names: Mojtaba
+  - family-names: Liu
+    given-names: Zonghua
+  - family-names: Hélaouët
+    given-names: Pierre
+  - family-names: Cursons
+    given-names: Kairan
+  - family-names: Rau
+    given-names: Matthew
+  - family-names: Song
+    given-names: Yixuan
+  - family-names: Mostaani
+    given-names: Arsalan
+  - family-names: Barstein
+    given-names: Karoline
+  - family-names: Buscombe
+    given-names: Daniel
+title: "PyOPIA: A Python Ocean Particle Image Analysis toolbox"
+url: "https://pyopia.readthedocs.io"
+repository-code: "https://github.com/sintef/pyopia"
