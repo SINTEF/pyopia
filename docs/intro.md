@@ -36,13 +36,25 @@ Full documentation for the code is [here](api)
 Installing
 ==================================
 
-Users are expected to be familiar with Python, and have [Python](https://github.com/conda-forge/miniforge/#download), [pip](https://pypi.org/project/pip/) and [git](https://github.com/git-guides/install-git) installed. You can then install PyOPIA like this:
+Users are expected to be familiar with Python, and have [Python](https://github.com/conda-forge/miniforge/#download), [pip](https://pypi.org/project/pip/). You can then install PyOPIA like this:
 
 ```
-pip install git+https://github.com/SINTEF/PyOPIA.git@main
+pip install pyopia
 ```
 
 We would usually recommend installing within a virtual python environment, which you can read more about [here](https://jni.github.io/using-python-for-science/intro-to-environments.html).
+
+If you want to use PyOPIA's Classificaiton module, you need to also install the extra classification dependencies, like this:
+
+````
+pip install pyopia[classification]
+````
+
+or (for Applie silicon)
+
+```
+pip install pyopia[classification-silicon]
+```
 
 Links to libraries PyOPIA uses
 ==================================

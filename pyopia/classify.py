@@ -39,6 +39,16 @@ class Classify():
         [steps.classifier]
         pipeline_class = 'pyopia.classify.Classify'
         model_path = 'keras_model.h5' # path to trained nn model
+    
+    If `[steps.classifier]`is not defined, the classification will be skipped and no probabilities reported.
+
+    If you want to use an example trained model for SilCam data
+    (no guarantee of accuracy for other applications), you can get it using `exampledata`
+    within the notebooks folder (https://github.com/SINTEF/pyopia/blob/main/notebooks/exampledata.py):
+
+    .. code-block:: python
+
+        model_path = exampledata.get_example_model()
 
     '''
     def __init__(self, model_path=None):
