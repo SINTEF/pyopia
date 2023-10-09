@@ -2,8 +2,14 @@
 name = "PyOPIA"
 version = "0"
 description = "A Python Ocean Particle Image Analysis toolbox."
-authors = ["Emlyn Davies <emlyn.davies@sintef.no>"]
+authors = [
+    "Emlyn Davies <emlyn.davies@sintef.no>",
+    "Alex Nimmo Smith@plymouth.ac.uk <alex.nimmo.smith@plymouth.ac.uk>"
+]
 readme = "README.md"
+repository = "https://github.com/sintef/pyopia"
+documentation = "https://pyopia.readthedocs.io"
+keywords = ["Ocean", "Particles", "Imaging", "Measurement", "Size distribution"]
 packages = [{include = "pyopia"}]
 
 [tool.poetry.dependencies]

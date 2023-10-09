@@ -12,10 +12,6 @@ A Python Ocean Particle Image Analysis toolbox
 
 - Under development. See/regester issues, [here](https://github.com/SINTEF/pyopia/issues)
 
-- Refining a structure for a standard [processing piplines](https://pyopia.readthedocs.io/en/latest/pyopia.pipeline.html)
-
-- Building a system for metadata and [output files](https://pyopia.readthedocs.io/en/latest/pyopia.io.html)
-
 ----
 
 # Installing for users
