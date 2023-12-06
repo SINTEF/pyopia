@@ -50,10 +50,10 @@ If you want to use PyOPIA's Classificaiton module, you need to also install the 
 pip install pyopia[classification]
 ````
 
-or (for Applie silicon)
+or (for Apple silicon)
 
 ```
-pip install pyopia[classification-silicon]
+pip install pyopia[classification-arm64]
 ```
 
 Links to libraries PyOPIA uses

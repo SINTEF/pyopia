@@ -75,7 +75,7 @@ class Classify():
             info_str = 'ERROR: Could not import Keras. Classify will not work'
             info_str += ' until you install tensorflow.\n'
             info_str += 'Use: pip install pyopia[classification]\n'
-            info_str += ' or: pip install pyopia[classification-silicon]'
+            info_str += ' or: pip install pyopia[classification-arm64]'
             info_str += ' for tensorflow-macos (silicon chips)'
             raise ImportError(info_str)
 

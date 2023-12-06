@@ -49,7 +49,7 @@ tensorflow-io-gcs-filesystem = [
 ]
 
 [tool.poetry.extras]
-classification-silicon = ["tensorflow-io-gcs-filesystem", "tensorflow-macos"]
+classification-arm64 = ["tensorflow-io-gcs-filesystem", "tensorflow-macos"]
 classification = ["tensorflow-io-gcs-filesystem", "tensorflow-cpu"]
 
 [tool.poetry-version-plugin]
