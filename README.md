@@ -12,18 +12,14 @@ A Python Ocean Particle Image Analysis toolbox
 
 - Under development. See/regester issues, [here](https://github.com/SINTEF/pyopia/issues)
 
-- Refining a structure for a standard [processing piplines](https://pyopia.readthedocs.io/en/latest/pyopia.pipeline.html)
-
-- Building a system for metadata and [output files](https://pyopia.readthedocs.io/en/latest/pyopia.io.html)
-
 ----
 
 # Installing for users
 
-Users are expected to be familiar with Python, and have [Python](https://github.com/conda-forge/miniforge/#download), [pip](https://pypi.org/project/pip/) and [git](https://github.com/git-guides/install-git) installed. You can then install Pyopia like this:
+Users are expected to be familiar with Python, and have [Python](https://github.com/conda-forge/miniforge/#download), [pip](https://pypi.org/project/pip/). You can then install Pyopia like this:
 
 ```
-pip install git+https://github.com/SINTEF/pyopia.git@main
+pip install pyopia
 ```
 
 We would usually recommend installing within a virtual python environment, which you can read more about [here](https://jni.github.io/using-python-for-science/intro-to-environments.html).
@@ -57,7 +53,7 @@ We welcome additions and improvements to the code! We request that you follow a 
 4. All pull requests must be reviewed by a person. The benefits from code review are plenty, but we like to emphasise that code reviews help spreading the awarenes of code changes. Please note that code reviews should be a pleasant experience, so be plesant, polite and remember that there is a human being with good intentions on the other side of the screen.
 5. All contributions are linted with flake8. We recommend that you run flake8 on your code while developing to fix any issues as you go. We recommend using autopep8 to autoformat your Python code (but please check the code behaviour is not affected by autoformatting before pushing). This makes flake8 happy, and makes it easier for us all to maintain a consistent and readable code base.
 
-## Installing for developers
+## Installing from source for developers
 
 Install [Python](https://github.com/conda-forge/miniforge/#download).
 

@@ -40,6 +40,16 @@ class Classify():
         pipeline_class = 'pyopia.classify.Classify'
         model_path = 'keras_model.h5' # path to trained nn model
 
+    If `[steps.classifier]`is not defined, the classification will be skipped and no probabilities reported.
+
+    If you want to use an example trained model for SilCam data
+    (no guarantee of accuracy for other applications), you can get it using `exampledata`
+    within the notebooks folder (https://github.com/SINTEF/pyopia/blob/main/notebooks/exampledata.py):
+
+    .. code-block:: python
+
+        model_path = exampledata.get_example_model()
+
     '''
     def __init__(self, model_path=None):
         self.model_path = model_path
@@ -62,12 +72,12 @@ class Classify():
         try:
             from tensorflow import keras
         except ImportError:
-            info_str = 'WARNING: Could not import Keras, Classify will not work'
-            info_str += ' until you install tensorflow (pip install tensorflow-cpu)'
-            print(info_str)
-            self.model = lambda x: None
-            self.class_labels = []
-            return
+            info_str = 'ERROR: Could not import Keras. Classify will not work'
+            info_str += ' until you install tensorflow.\n'
+            info_str += 'Use: pip install pyopia[classification]\n'
+            info_str += ' or: pip install pyopia[classification-arm64]'
+            info_str += ' for tensorflow-macos (silicon chips)'
+            raise ImportError(info_str)
 
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
         keras.backend.clear_session()

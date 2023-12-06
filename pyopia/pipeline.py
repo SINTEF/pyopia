@@ -65,6 +65,7 @@ class Pipeline():
         self.initial_steps = initial_steps
         print('Initialising pipeline')
         self.data = Data()
+        self.data['cl'] = None
         self.data['settings'] = settings
 
         self.pass_general_settings()
