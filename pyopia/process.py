@@ -427,9 +427,10 @@ def statextract(imbw, timestamp, imc,
     if not len(s) == 3:
         imref = np.copy(imc)
         imc = np.zeros((np.shape(imc)[0], np.shape(imc)[1], 3), dtype=np.uint8)
-        imc[:, :, 0] = imref
-        imc[:, :, 1] = imref
-        imc[:, :, 2] = imref
+        # Convert from floats in [0, 1] to ints in [0, 255]
+        imc[:, :, 0] = 255 * imref
+        imc[:, :, 1] = 255 * imref
+        imc[:, :, 2] = 255 * imref
         print('WARNING. exportparticles temporarily modified for 2-d images without color!')
 
     stats = extract_particles(imc, timestamp, Classification, region_properties,
