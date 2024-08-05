@@ -289,7 +289,7 @@ class CreateBackground():
         pass
 
     def __call__(self, data):
-        files = glob(data['raw_files'])
+        files = sorted(glob(data['raw_files']))
         bgfiles = files[:self.average_window]
         bgstack, imbg = ini_background(bgfiles, self.load_function)
 
