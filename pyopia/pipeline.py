@@ -74,12 +74,7 @@ class Pipeline():
         for stepname in self.stepnames:
             if not self.initial_steps.__contains__(stepname):
                 continue
-            if stepname == 'classifier':
-                callobj = self.step_callobj(stepname)
-                self.data['cl'] = callobj()
-            else:
-                callobj = self.step_callobj(stepname)
-                self.data = callobj(self.data)
+            self.run_step(stepname)
 
         print('Pipeline ready with these data: ', list(self.data.keys()))
 
@@ -109,14 +104,40 @@ class Pipeline():
             if self.initial_steps.__contains__(stepname):
                 continue
 
-            callobj = self.step_callobj(stepname)
-            self.data = callobj(self.data)
+            self.run_step(stepname)
 
         stats = self.data['stats']
 
         return stats
 
+    def run_step(self, stepname):
+        '''Execute a pipeline step and update the pipeline data
+
+        Parameters
+        ----------
+        stepname : str
+            Name of the step defined in the settings
+        '''
+        if stepname == 'classifier':
+            callobj = self.step_callobj(stepname)
+            self.data['cl'] = callobj()
+        else:
+            callobj = self.step_callobj(stepname)
+            self.data = callobj(self.data)
+
     def step_callobj(self, stepname):
+        '''Generate a callable object for use in run_step()
+
+        Parameters
+        ----------
+        stepname : str
+            Name of the step defined in the settings
+
+        Returns
+        -------
+        obj
+            callable object for use in run_step()
+        '''
 
         pipeline_class = self.settings['steps'][stepname]['pipeline_class']
         classname = pipeline_class.split('.')[-1]
