@@ -69,14 +69,11 @@ class Pipeline():
         self.data['settings'] = settings
 
         self.pass_general_settings()
-        print('raw_files:', self.data['raw_files'])
 
         for stepname in self.stepnames:
             if not self.initial_steps.__contains__(stepname):
                 continue
             self.run_step(stepname)
-
-        print('Pipeline ready with these data: ', list(self.data.keys()))
 
     def run(self, filename):
         '''Method for executing the processing pipeline.
