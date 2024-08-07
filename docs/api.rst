@@ -11,6 +11,7 @@ API documentation
 
 **Content**
 
+* `CLI`_
 * `Pipeline`_
 * `Background`_
 * `Process`_
@@ -32,6 +33,11 @@ API documentation
 
 
 ----
+
+CLI
+--------------
+.. automodule:: pyopia.cli
+    :members:
 
 Pipeline
 --------------

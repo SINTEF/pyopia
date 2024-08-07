@@ -192,6 +192,29 @@ def write_segmented_images(imbw, imc, settings, timestamp):
         imsave(fname, imc)
 
 
+def put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i):
+    '''Adds rois to an open hdf file if export_outputpath is not None.
+    For use within {func}`pyopia.process.export_particles`
+
+    Parameters
+    ----------
+    export_outputpath : str
+    HDF5File : h5 file object
+    roi : uint8
+    i : int
+        particle number
+
+    Returns
+    -------
+    str
+        filename
+    '''
+    filename = filename + '-PN' + str(i)
+    if export_outputpath is not None:
+        HDF5File.create_dataset('PN' + str(i), data=roi)
+    return filename
+
+
 def extract_particles(imc, timestamp, Classification, region_properties,
                       export_outputpath=None, min_length=0, propnames=['major_axis_length', 'minor_axis_length',
                                                                        'equivalent_diameter']):
@@ -213,11 +236,12 @@ def extract_particles(imc, timestamp, Classification, region_properties,
     '''
     filenames = ['not_exported'] * len(region_properties)
 
-    # pre-allocation
-    predictions = np.zeros((len(region_properties),
-                            len(Classification.class_labels)),
-                           dtype='float64')
-    predictions *= np.nan
+    if Classification is not None:
+        # pre-allocation
+        predictions = np.zeros((len(region_properties),
+                                len(Classification.class_labels)),
+                               dtype='float64')
+        predictions *= np.nan
 
     # obtain the original image filename from the timestamp
     filename = timestamp.strftime('D%Y%m%dT%H%M%S.%f')
@@ -239,6 +263,8 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         meta.attrs['Raw image name'] = filename
         # @todo include more useful information in this meta data, e.g. possibly raw image location and background
         #  stack file list.
+    else:
+        HDF5File = None
 
     # pre-allocate some things
     data = np.zeros((len(region_properties), len(propnames)), dtype=np.float64)
@@ -258,15 +284,13 @@ def extract_particles(imc, timestamp, Classification, region_properties,
             # extract the region of interest from the corrected colour image
             roi = extract_roi(imc, bboxes[i, :].astype(int))
 
-            # add the roi to the HDF5 file
-            filenames[int(i)] = filename + '-PN' + str(i)
-            if export_outputpath is not None:
-                HDF5File.create_dataset('PN' + str(i), data=roi)
-                # @todo also include particle stats here too.
+            if Classification is not None:
+                # run a prediction on what type of particle this might be
+                prediction = Classification.proc_predict(roi.astype(np.uint8))
+                predictions[int(i), :] = prediction[0]
 
-            # run a prediction on what type of particle this might be
-            prediction = Classification.proc_predict(roi.astype(np.uint8))
-            predictions[int(i), :] = prediction[0]
+            # add the roi to the HDF5 file
+            filenames[int(i)] = put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i)
 
     if export_outputpath is not None:
         # close the HDF5 file
@@ -283,9 +307,10 @@ def extract_particles(imc, timestamp, Classification, region_properties,
 
     print('EXTRACTING {0} IMAGES from {1}'.format(nb_extractable_part, len(stats['major_axis_length'])))
 
-    # add classification predictions to the particle statistics data
-    for n, c in enumerate(Classification.class_labels):
-        stats['probability_' + c] = predictions[:, n]
+    if Classification is not None:
+        # add classification predictions to the particle statistics data
+        for n, c in enumerate(Classification.class_labels):
+            stats['probability_' + c] = predictions[:, n]
 
     # add the filenames of the HDF5 file and particle number tag to the
     # particle statistics data
@@ -356,7 +381,8 @@ def segment(img, threshold=0.98, minimum_area=12, fill_holes=True):
     return imbw
 
 
-def statextract(imbw, timestamp, imc, Classification,
+def statextract(imbw, timestamp, imc,
+                Classification=None,
                 max_coverage=30,
                 max_particles=5000,
                 export_outputpath=None,
@@ -401,9 +427,10 @@ def statextract(imbw, timestamp, imc, Classification,
     if not len(s) == 3:
         imref = np.copy(imc)
         imc = np.zeros((np.shape(imc)[0], np.shape(imc)[1], 3), dtype=np.uint8)
-        imc[:, :, 0] = imref
-        imc[:, :, 1] = imref
-        imc[:, :, 2] = imref
+        # Convert from floats in [0, 1] to ints in [0, 255]
+        imc[:, :, 0] = 255 * imref
+        imc[:, :, 1] = 255 * imref
+        imc[:, :, 2] = 255 * imref
         print('WARNING. exportparticles temporarily modified for 2-d images without color!')
 
     stats = extract_particles(imc, timestamp, Classification, region_properties,
@@ -479,6 +506,14 @@ class CalculateStats():
     max_particles : (int, optional)
         maximum allowed number of particles in an image.
         Exceeding this will discard the image from analysis. Defaults to 5000.
+    export_outputpath: (str, optional)
+        Path to folder to put extracted particle ROIs (in h5 files).
+        Required for making montages later.
+    min_length: (int, optional)
+        The minimum length of particles (in pixels) to includ in output ROIs
+    propnames: (list, optional)
+        Specifies properties wanted from skimage.regionprops.
+        Defaults to ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']
 
     Returns:
     --------
@@ -502,7 +537,8 @@ class CalculateStats():
 
     def __call__(self, data):
         print('statextract')
-        stats, saturation = statextract(data['imbw'], data['timestamp'], data['imc'], data['cl'],
+        stats, saturation = statextract(data['imbw'], data['timestamp'], data['imc'],
+                                        Classification=data['cl'],
                                         max_coverage=self.max_coverage,
                                         max_particles=self.max_particles,
                                         export_outputpath=self.export_outputpath,

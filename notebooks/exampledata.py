@@ -30,6 +30,9 @@ def get_example_silc_image():
         filename
     '''
     filename = 'D20181101T142731.838206.silc'
+    if os.path.isfile(filename):
+        print('Example image already exists. Skipping download.')
+        return filename
     get_file_from_pysilcam_blob(filename)
     return filename
 
@@ -44,7 +47,8 @@ def get_example_model():
         model_filename
     '''
     model_filename = 'keras_model.h5'
-    if os.path.exists(model_filename):
+    if os.path.isfile(model_filename):
+        print('keras_model.h5 already exists. Skipping download.')
         return model_filename
     # -- Download and unzip the model --#
     url = 'https://github.com/SINTEF/PySilCam/wiki/ml_models/keras_model.zip'
@@ -74,7 +78,7 @@ def get_example_hologram_and_background():
     return holo_filename, holo_background_filename
 
 
-def get_folder_from_holo_repository(foldername="holo_test_data_01"):
+def get_folder_from_holo_repository(foldername="holo_test_data_01", existsok=False):
     '''Downloads a specified folder from the holo testing repository into the working dir. if it doesn't already exist
 
     only works for known folders that are on the GoogleDrive repository
@@ -84,6 +88,8 @@ def get_folder_from_holo_repository(foldername="holo_test_data_01"):
     ----------
     foldername : string
         known filename on the blob
+    existsok : (bool, optional)
+        if True, then don't download if the specified folder already exists, defaults to False
 
     '''
     if foldername == "holo_test_data_01":
@@ -95,6 +101,10 @@ def get_folder_from_holo_repository(foldername="holo_test_data_01"):
     else:
         foldername == "holo_test_data_01"
         url = 'https://drive.google.com/drive/folders/1yNatOaKdWwYQp-5WVEDItoibr-k0lGsP?usp=share_link'
+
+    if os.path.exists(foldername) and existsok:
+        print(foldername + ' already exists. Skipping download.')
+        return foldername
 
     gdown.download_folder(url, quiet=True, use_cookies=False)
     return foldername

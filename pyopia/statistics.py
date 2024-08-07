@@ -5,11 +5,10 @@ Module containing tools for handling particle image statistics after processing
 import os
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from skimage.exposure import rescale_intensity
 import h5py
 from tqdm import tqdm
-from pyopia.io import write_stats
+from pyopia.io import write_stats, load_stats_as_dataframe
 
 
 def d50_from_stats(stats, pixel_size):
@@ -297,25 +296,42 @@ def vd_from_stats(stats, pix_size):
     return dias, vd
 
 
-def montage_maker(roifiles, roidir, pixel_size, msize=2048, brightness=255, eyecandy=True):
+def make_montage(stats_file, pixel_size, roidir,
+                 auto_scaler=500, msize=1024, maxlength=100000, crop_stats=None, brightness=255, eyecandy=True):
     '''
-    makes nice looking matages from a directory of extracted particle images
-
-    use make_montage to call this function
+    makes nice looking montage from a directory of extracted particle images
 
     Args:
-        roifiles        : list of roi files obtained from gen_roifiles(stats, auto_scaler=auto_scaler)
-        roidir          : location of roifiles usually defined by settings.ExportParticles.outputpath in pysilcam
-        pixel_size      : pixel size of system in microns
-        msize=2048      : size of canvas in pixels
-        brightness=255  : brighness of packaged particles
-        eyecandy=True   : boolean which if True will explode the contrast of packed particles
+        stats_file                  : location of the stats hdf5 or nc file that comes from processing
+        pixel_size                  : pixel size of system defined by settings.PostProcess.pix_size
+        roidir                      : location of roifiles usually defined by settings.ExportParticles.outputpath
+        auto_scaler=500             : approximate number of particle that are attempted to be packed into montage
+        msize=1024                  : size of canvas in pixels
+        maxlength=100000            : maximum length in microns of particles to be included in montage
+        crop_stats=None             : None or 4-tuple of lower-left then upper-right coord of crop
+        brightness=255              : brighness of packaged particles used with eyecandy option
+        eyecandy=True               : boolean which if True will explode the contrast of packed particles
                           (nice for natural particles, but not so good for oil and gas).
 
     Returns:
-        montageplot     : a nicely-made montage in the form of an image,
-                          which can be plotted using plotting.montage_plot(montage, settings.PostProcess.pix_size)
+        montageplot (uint8)         : a nicely-made montage in the form of an image,
+                                      which can be plotted using plotting.montage_plot(montage, settings.PostProcess.pix_size)
     '''
+
+    stats = load_stats_as_dataframe(stats_file)
+
+    if crop_stats is not None:
+        stats = crop_stats(stats, crop_stats)
+
+    # remove nans because concentrations are not important here
+    stats = stats[~np.isnan(stats['major_axis_length'])]
+    stats = stats[(stats['major_axis_length'] * pixel_size) < maxlength]
+
+    # sort the particles based on their length
+    stats.sort_values(by=['major_axis_length'], ascending=False, inplace=True)
+
+    roifiles = gen_roifiles(stats, auto_scaler=auto_scaler)
+
     # pre-allocate an empty canvas
     montage = np.zeros((msize, msize, 3), dtype=np.uint8())
     # pre-allocate an empty test canvas
@@ -386,64 +402,6 @@ def montage_maker(roifiles, roidir, pixel_size, msize=2048, brightness=255, eyec
     return montageplot
 
 
-def make_montage(stats_file, pixel_size, roidir,
-                 auto_scaler=500, msize=1024, maxlength=100000, crop_stats=None):
-    ''' wrapper function for montage_maker
-
-    Args:
-        stats_file              : location of the stats hdf5 file that comes from silcam process
-        pixel_size                  : pixel size of system defined by settings.PostProcess.pix_size
-        roidir                      : location of roifiles usually defined by settings.ExportParticles.outputpath
-        auto_scaler=500             : approximate number of particle that are attempted to be pack into montage
-        msize=1024                  : size of canvas in pixels
-        maxlength=100000            : maximum length in microns of particles to be included in montage
-        oilgas=outputPartType.all   : enum defining which type of particle to be selected for use in the montage
-        crop_stats=None             : None or 4-tuple of lower-left then upper-right coord of crop
-
-    Returns:
-        montageplot (uint8)         : a nicely-made montage in the form of an image,
-                                      which can be plotted using plotting.montage_plot(montage, settings.PostProcess.pix_size)
-    '''
-
-    # obtain particle statistics from the stats file
-    stats = pd.read_hdf(stats_file, 'ParticleStats/stats')
-
-    if crop_stats is not None:
-        stats = crop_stats(stats, crop_stats)
-
-    # remove nans because concentrations are not important here
-    stats = stats[~np.isnan(stats['major_axis_length'])]
-    stats = stats[(stats['major_axis_length'] * pixel_size) < maxlength]
-
-    # sort the particles based on their length
-    stats.sort_values(by=['major_axis_length'], ascending=False, inplace=True)
-
-    roifiles = gen_roifiles(stats, auto_scaler=auto_scaler)
-
-    montage = montage_maker(roifiles, roidir, pixel_size, msize, eyecandy=True)
-
-    return montage
-
-
-def montage_plot(montage, pixel_size):
-    '''
-    Plots a particle montage with a 1mm scale reference
-
-    Args:
-        montage (uint8)    : a montage created with make_montage
-        pixel_size (float) : the pixel size of the imaging system used
-    '''
-    msize = np.shape(montage)[0]
-    ex = pixel_size * np.float64(msize) / 1000.
-
-    ax = plt.gca()
-    ax.imshow(montage, extent=[0, ex, 0, ex])
-    ax.set_xticks([1, 2], [])
-    ax.set_xticklabels(['    1mm', ''])
-    ax.set_yticks([], [])
-    ax.xaxis.set_ticks_position('bottom')
-
-
 def gen_roifiles(stats, auto_scaler=500):
     ''' generates a list of filenames suitable for making montages with
 
@@ -459,7 +417,7 @@ def gen_roifiles(stats, auto_scaler=500):
 
     # subsample the particles if necessary
     print('rofiles: {0}'.format(len(roifiles)))
-    IMSTEP = np.max([np.int(np.round(len(roifiles) / auto_scaler)), 1])
+    IMSTEP = np.max([int(np.round(len(roifiles) / auto_scaler)), 1])
     print('reducing particles by factor of {0}'.format(IMSTEP))
     roifiles = roifiles[np.arange(0, len(roifiles), IMSTEP)]
     print('rofiles: {0}'.format(len(roifiles)))

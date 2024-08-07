@@ -11,11 +11,11 @@ from skimage.filters import sobel
 from skimage.morphology import disk, erosion, dilation
 import pyopia.process
 import struct
-from datetime import timedelta
-from datetime import datetime
+from datetime import timedelta, datetime
+from glob import glob
 
 '''
-This is an subpackage containing basic processing for reconstruction of in-line holographic images.
+This is a module containing basic processing for reconstruction of in-line holographic images.
 
 See (and references therein):
 Davies EJ, Buscombe D, Graham GW & Nimmo-Smith WAM (2015)
@@ -34,11 +34,18 @@ class Initial():
 
     Parameters
     ----------
-    filename : string
-        hologram filename to use for image size
-
-    kernel settings : ....
-        ....
+    wavelength : float
+        laser wavelength in nm
+    n : float
+        refractive index of medium
+    offset : float
+        offset of focal plane from hologram plane in mm
+    minZ : float
+        minimum reconstruction distance in mm
+    maxZ : float
+        maximum reconstruction distance in mm
+    stepZ : float
+        step size in mm (i.e. resolution of reconstruction between minZ and maxZ)
 
     Returns
     -------
@@ -49,9 +56,7 @@ class Initial():
 
     '''
 
-    def __init__(self, filename, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
-        self.filename = filename
-        self.pixel_size = pixel_size
+    def __init__(self, wavelength, n, offset, minZ, maxZ, stepZ):
         self.wavelength = wavelength
         self.n = n
         self.offset = offset
@@ -60,9 +65,12 @@ class Initial():
         self.stepZ = stepZ
 
     def __call__(self, data):
-        print('Using given raw file to determine image dimensions')
+        print('Using first raw file from list in general settings to determine image dimensions')
+        raw_files = glob(data['settings']['general']['raw_files'])
+        self.filename = raw_files[0]
         imtmp = load_image(self.filename)
-        print('Build kernel')
+        self.pixel_size = data['settings']['general']['pixel_size']
+        print('Build kernel with pixel_size = ', self.pixel_size, 'um')
         kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.n, self.offset, self.minZ, self.maxZ, self.stepZ)
         im_stack = np.zeros(np.shape(kern)).astype(np.float64)
         print('HoloInitial done', datetime.now())
@@ -127,6 +135,10 @@ class Reconstruct():
     ----------
     stack_clean : float
         defines amount of cleaning of stack (fraction of max value below which to zero)
+    forward_filter_option : int
+        switch to control filtering in frequency domain (0=none,1=DC only,2=zero ferquency/default)
+    inverse_output_option :  int
+        switch to control optional scaling of output intensity (0=square/default,1=linear)
 
     Pipeline input data:
     ---------
@@ -143,29 +155,32 @@ class Reconstruct():
         :attr:`pyopia.pipeline.Data.im_stack`
     '''
 
-    def __init__(self, stack_clean=0):
+    def __init__(self, stack_clean=0, forward_filter_option=0, inverse_output_option=0):
         self.stack_clean = stack_clean
+        self.forward_filter_option = forward_filter_option
+        self.inverse_output_option = inverse_output_option
 
     def __call__(self, data):
         imc = data['imc']
         kern = data['kern']
         im_stack = data['im_stack']
 
-        im_fft = forward_transform(imc)
-        im_stack = inverse_transform(im_fft, kern, im_stack)
+        im_fft = forward_transform(imc, self.forward_filter_option)
+        im_stack = inverse_transform(im_fft, kern, im_stack, self.inverse_output_option)
         data['im_stack'] = clean_stack(im_stack, self.stack_clean)
 
         return data
 
 
-def forward_transform(im):
-    '''Perform forward transform
-    Remove the zero frequency components and then fftshift
+def forward_transform(im, forward_filter_option=2):
+    '''Perform forward transform with optional filtering
 
     Parameters
     ----------
     im : np.array
         hologram (usually background-corrected)
+    forward_filter_option : int
+        filtering in frequency domain (0=none/default,1=DC only,2=zero ferquency)
 
     Returns
     -------
@@ -176,9 +191,15 @@ def forward_transform(im):
     # Perform forward transform
     im_fft = fft.fft2(im, workers=os.cpu_count())
 
-    # Remove the zero frequency components
-    im_fft[:, 0] = 0
-    im_fft[0, :] = 0
+    # apply filtering if required
+    match forward_filter_option:
+        case 1:
+            im_fft[0, 0] = 0
+        case 2:
+            im_fft[:, 0] = 0
+            im_fft[0, :] = 0
+        case _:
+            pass
 
     # fftshift
     im_fft = fft.fftshift(im_fft)
@@ -233,7 +254,7 @@ def create_kernel(im, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
     return kern
 
 
-def inverse_transform(im_fft, kern, im_stack):
+def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0):
     '''create the reconstructed hologram stack of real images
 
     Parameters
@@ -244,6 +265,8 @@ def inverse_transform(im_fft, kern, im_stack):
         calculated from create_kernel
     im_stack : np.array
         pre-allocated array to receive output
+    inverse_output_option: int
+        optional scaling of output intensity (0=square/default,1=linear)
 
     Returns
     -------
@@ -253,7 +276,11 @@ def inverse_transform(im_fft, kern, im_stack):
 
     for i in range(np.shape(kern)[2]):
         im_tmp = np.multiply(im_fft, kern[:, :, i])
-        im_stack[:, :, i] = (fft.ifft2(im_tmp, workers=os.cpu_count()).real)**2
+        match inverse_output_option:
+            case 1:
+                im_stack[:, :, i] = fft.ifft2(im_tmp, workers=os.cpu_count()).real
+            case _:
+                im_stack[:, :, i] = (fft.ifft2(im_tmp, workers=os.cpu_count()).real)**2
 
     return im_stack
 
@@ -440,7 +467,7 @@ class Focus():
 
     Parameters
     ----------
-    stacksummary_function : (function object, optional)
+    stacksummary_function : (string, optional)
         Function used to summarise the stack
         Available functions are:
 
@@ -451,7 +478,7 @@ class Focus():
     threshold : float
         threshold to apply during initial segmentation
 
-    focus_function : (function object, optional)
+    focus_function : (string, optional)
         Function used to focus particles within the stack
         Available functions are:
 
@@ -484,7 +511,7 @@ class Focus():
         :attr:`pyopia.pipeline.Data.stack_ifocus`
     '''
 
-    def __init__(self, stacksummary_function=std_map, threshold=0.9, focus_function=find_focus_imax,
+    def __init__(self, stacksummary_function='std_map', threshold=0.9, focus_function='find_focus_imax',
                  discard_end_slices=True, increase_depth_of_field=False, merge_adjacent_particles=0):
         self.stacksummary_function = stacksummary_function
         self.threshold = threshold
@@ -492,11 +519,18 @@ class Focus():
         self.discard_end_slices = discard_end_slices
         self.increase_depth_of_field = increase_depth_of_field
         self.merge_adjacent_particles = merge_adjacent_particles
-        pass
 
     def __call__(self, data):
         im_stack = data['im_stack']
-        imss = self.stacksummary_function(im_stack)
+
+        match self.stacksummary_function:
+            case 'std_map':
+                imss = std_map(im_stack)
+            case 'max_map':
+                imss = max_map(im_stack)
+            case _:
+                raise ValueError('stacksummary_function in pyopia.instrument.holo.Focus not recognised')
+
         imss = rescale_image(imss)
         if self.merge_adjacent_particles:
             se = disk(self.merge_adjacent_particles)
@@ -513,7 +547,15 @@ class Focus():
         ifocus = []
         rp_out = []
         for rp in region_properties:
-            focus_result = self.focus_function(im_stack, rp.bbox, self.increase_depth_of_field)
+
+            match self.focus_function:
+                case 'find_focus_imax':
+                    focus_result = find_focus_imax(im_stack, rp.bbox, self.increase_depth_of_field)
+                case 'find_focus_sobel':
+                    focus_result = find_focus_sobel(im_stack, rp.bbox, self.increase_depth_of_field)
+                case _:
+                    raise ValueError('focus_function in pyopia.instrument.holo.Focus not recognised')
+
             if self.discard_end_slices and (focus_result[1] == 0 or focus_result[1] == im_stack.shape[2]):
                 continue
             im_focus = 255 - focus_result[0]
@@ -591,3 +633,89 @@ def read_lisst_holo_info(filename):
     f.close()
 
     return timestamp
+
+
+def generate_config(raw_files: str, model_path: str, outfolder: str, output_prefix: str):
+    '''Generaste example holo config.toml as a dict
+
+    Parameters
+    ----------
+    raw_files : str
+        raw_files
+    model_path : str
+        model_path
+    outfolder : str
+        outfolder
+    output_prefix : str
+        output_prefix
+
+    Returns:
+    --------
+    dict
+        pipeline_config toml dict
+    '''
+    pipeline_config = {
+        'general': {
+            'raw_files': raw_files,
+            'pixel_size': 4.4  # pixel size in um
+        },
+        'steps': {
+            'initial': {
+                'pipeline_class': 'pyopia.instrument.holo.Initial',
+                'wavelength': 658,  # laser wavelength in nm
+                'n': 1.33,  # index of refraction of sample volume medium (1.33 for water)
+                'offset': 27,  # offset to start of sample volume in mm
+                'minZ': 0,  # minimum reconstruction distance within sample volume in mm
+                'maxZ': 50,  # maximum reconstruction distance within sample volume in mm
+                'stepZ': 0.5  # step size in mm
+            },
+            'classifier': {
+                'pipeline_class': 'pyopia.classify.Classify',
+                'model_path': model_path
+            },
+            'createbackground': {
+                'pipeline_class': 'pyopia.background.CreateBackground',
+                'average_window': 10,
+                'instrument_module': 'holo'
+            },
+            'load': {
+                'pipeline_class': 'pyopia.instrument.holo.Load'
+            },
+            'correctbackground': {
+                'pipeline_class': 'pyopia.background.CorrectBackgroundAccurate',
+                'bgshift_function': 'accurate'
+            },
+            'reconstruct': {
+                'pipeline_class': 'pyopia.instrument.holo.Reconstruct',
+                'stack_clean': 0.02,
+                'forward_filter_option': 2,
+                'inverse_output_option': 0
+            },
+            'focus': {
+                'pipeline_class': 'pyopia.instrument.holo.Focus',
+                'stacksummary_function': 'max_map',
+                'threshold': 0.9,
+                'focus_function': 'find_focus_sobel',
+                'increase_depth_of_field': False,
+                'merge_adjacent_particles': 2
+            },
+            'segmentation': {
+                'pipeline_class': 'pyopia.process.Segment',
+                'threshold': 0.9
+            },
+            'statextract': {
+                'pipeline_class': 'pyopia.process.CalculateStats',
+                'export_outputpath': outfolder,
+                'propnames': ['major_axis_length', 'minor_axis_length', 'equivalent_diameter',
+                              'feret_diameter_max', 'equivalent_diameter_area']
+            },
+            'mergeholostats': {
+                'pipeline_class': 'pyopia.instrument.holo.MergeStats',
+            },
+            'output': {
+                'pipeline_class': 'pyopia.io.StatsH5',
+                'output_datafile': os.path.join(outfolder, output_prefix)
+            }
+        }
+    }
+    return pipeline_config
