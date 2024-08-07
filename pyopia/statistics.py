@@ -302,7 +302,7 @@ def make_montage(stats_file, pixel_size, roidir,
     makes nice looking montage from a directory of extracted particle images
 
     Args:
-        stats_file                  : location of the stats hdf5 or nc file that comes from processing
+        stats                       : either a str specifying the location of the STATS.nc file that comes from processing, or a stats dataframe
         pixel_size                  : pixel size of system defined by settings.PostProcess.pix_size
         roidir                      : location of roifiles usually defined by settings.ExportParticles.outputpath
         auto_scaler=500             : approximate number of particle that are attempted to be packed into montage
@@ -318,7 +318,10 @@ def make_montage(stats_file, pixel_size, roidir,
                                       which can be plotted using plotting.montage_plot(montage, settings.PostProcess.pix_size)
     '''
 
-    stats = load_stats_as_dataframe(stats_file)
+    if isinstance(stats_file, str):
+        stats = load_stats_as_dataframe(stats_file)
+    else:
+        stats = stats_file
 
     if crop_stats is not None:
         stats = crop_stats(stats, crop_stats)
