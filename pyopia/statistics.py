@@ -302,7 +302,8 @@ def make_montage(stats_file, pixel_size, roidir,
     makes nice looking montage from a directory of extracted particle images
 
     Args:
-        stats                       : either a str specifying the location of the STATS.nc file that comes from processing, or a stats dataframe
+        stats                       : either a str specifying the location of the STATS.nc file that comes from processing,
+                                      or a stats dataframe
         pixel_size                  : pixel size of system defined by settings.PostProcess.pix_size
         roidir                      : location of roifiles usually defined by settings.ExportParticles.outputpath
         auto_scaler=500             : approximate number of particle that are attempted to be packed into montage
