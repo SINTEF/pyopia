@@ -102,7 +102,7 @@ class ImagePrep():
     def __call__(self, data):
         image = data[self.image_level]
         imc = np.float64(image)
-        
+
         image = rescale_intensity(image, out_range=(0, 255))
         data['imref'] = np.uint8(image)
 

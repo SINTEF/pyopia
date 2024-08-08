@@ -94,6 +94,18 @@ conda activate pyopia
 poetry install
 ```
 
+Optional dependecies (for classification), can be installed like this:
+
+```bash
+poetry install --extras "classification"
+```
+
+or for arm/silicon systems:
+
+```bash
+poetry install --extras "classification-arm64"
+```
+
 3. (optional) Run local tests:
 
 ```bash
