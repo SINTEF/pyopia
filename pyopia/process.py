@@ -286,7 +286,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
 
             if Classification is not None:
                 # run a prediction on what type of particle this might be
-                prediction = Classification.proc_predict(roi.astype(np.uint8))
+                prediction = Classification.proc_predict(roi)
                 predictions[int(i), :] = prediction[0]
 
             # add the roi to the HDF5 file
@@ -428,9 +428,9 @@ def statextract(imbw, timestamp, imc,
         imref = np.copy(imc)
         imc = np.zeros((np.shape(imc)[0], np.shape(imc)[1], 3), dtype=np.uint8)
         # Convert from floats in [0, 1] to ints in [0, 255]
-        imc[:, :, 0] = 255 * imref
-        imc[:, :, 1] = 255 * imref
-        imc[:, :, 2] = 255 * imref
+        imc[:, :, 0] = 255 * imref[:, :, 0]
+        imc[:, :, 1] = 255 * imref[:, :, 0]
+        imc[:, :, 2] = 255 * imref[:, :, 0]
         print('WARNING. exportparticles temporarily modified for 2-d images without color!')
 
     stats = extract_particles(imc, timestamp, Classification, region_properties,
@@ -537,7 +537,7 @@ class CalculateStats():
 
     def __call__(self, data):
         print('statextract')
-        stats, saturation = statextract(data['imbw'], data['timestamp'], data['imc'],
+        stats, saturation = statextract(data['imbw'], data['timestamp'], data['imref'],
                                         Classification=data['cl'],
                                         max_coverage=self.max_coverage,
                                         max_particles=self.max_particles,

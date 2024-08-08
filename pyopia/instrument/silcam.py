@@ -3,9 +3,10 @@ Module containing SilCam specific tools to enable compatability with the :mod:`p
 '''
 
 import os
-
+import cv2
 import numpy as np
 import pandas as pd
+from skimage.exposure import rescale_intensity
 
 
 def timestamp_from_filename(filename):
@@ -36,7 +37,10 @@ def load_image(filename):
     array
         raw image
     '''
-    img = np.load(filename, allow_pickle=False).astype(np.float64)
+    img = np.load(filename, allow_pickle=False)
+    if img.shape[-1] == 1:
+        # In this case, the image must be converted from Bayer to RGB
+        img = cv2.cvtColor(img, cv2.COLOR_BayerBG2RGB)
     return img
 
 
@@ -97,7 +101,8 @@ class ImagePrep():
 
     def __call__(self, data):
         image = data[self.image_level]
-        data['imref'] = image
+        image = rescale_intensity(image, out_range=(0, 255))
+        data['imref'] = np.uint8(image)
         imc = np.float64(image)
 
         # simplify processing by squeezing the image dimensions into a 2D array
