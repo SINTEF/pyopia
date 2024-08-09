@@ -272,7 +272,7 @@ class ReturnData():
     .. code-block:: python
 
         [steps.returndata]
-        pipeline_class = 'pyopia.classify.ReturnData'
+        pipeline_class = 'pyopia.pipeline.ReturnData'
 
     This will allow you to call pipeline.run() like this:
 
