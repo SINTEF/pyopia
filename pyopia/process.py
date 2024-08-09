@@ -336,8 +336,7 @@ def measure_particles(imbw, max_particles=5000):
 
     # if there are too many particles then do no proceed with analysis
     if (iml.max() > max_particles):
-        print('....that''s way too many particles! Skipping image.')
-        iml = np.zeros_like(iml)  # this is not a good way to handle this condition
+        raise RuntimeError('Too many particles. Refer to documentation on max_particles parameter in measure_particles()')
         # @todo handle situation when too many particles are found
 
     region_properties = measure.regionprops(iml, cache=False)
