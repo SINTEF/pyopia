@@ -16,13 +16,7 @@ A Python Ocean Particle Image Analysis toolbox
 
 # Installing for users
 
-Users are expected to be familiar with Python, and have [Python](https://github.com/conda-forge/miniforge/#download), [pip](https://pypi.org/project/pip/). You can then install Pyopia like this:
-
-```
-pip install pyopia
-```
-
-We would usually recommend installing within a virtual python environment, which you can read more about [here](https://jni.github.io/using-python-for-science/intro-to-environments.html).
+Users are expected to be familiar with Python. Please refer to the recommended installation instructions provided on the documentation pages, [here](https://pyopia.readthedocs.io/en/latest/intro.html#installing)
 
 ----
 # Development targets for PyOpia:
@@ -55,7 +49,7 @@ We welcome additions and improvements to the code! We request that you follow a 
 
 ## Installing from source for developers
 
-Install [Python](https://github.com/conda-forge/miniforge/#download).
+Install [Python](https://github.com/conda-forge/miniforge/#download) version 3.10.
 
 A prompt such as is provided by the [miniforge installation](https://github.com/conda-forge/miniforge/#download) may be used for the following:
 
