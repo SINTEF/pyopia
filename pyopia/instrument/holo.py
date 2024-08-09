@@ -673,17 +673,13 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
                 'pipeline_class': 'pyopia.classify.Classify',
                 'model_path': model_path
             },
-            'createbackground': {
-                'pipeline_class': 'pyopia.background.CreateBackground',
-                'average_window': 10,
-                'instrument_module': 'holo'
-            },
             'load': {
                 'pipeline_class': 'pyopia.instrument.holo.Load'
             },
             'correctbackground': {
                 'pipeline_class': 'pyopia.background.CorrectBackgroundAccurate',
-                'bgshift_function': 'accurate'
+                'bgshift_function': 'accurate',
+                'average_window': 10
             },
             'reconstruct': {
                 'pipeline_class': 'pyopia.instrument.holo.Reconstruct',

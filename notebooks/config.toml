@@ -8,17 +8,13 @@ pixel_size = 24 # pixel size of imaging system in microns
     pipeline_class = 'pyopia.classify.Classify'
     model_path = 'keras_model.h5' # path to trained nn model
 
-    #[steps.createbackground]
-    #pipeline_class = 'pyopia.background.CreateBackground'
-    #average_window = 10 # number of images used to create background
-    #instrument_module = 'silcam' # used to determina method for loading images. Either 'silcam', 'holo', or 'imread'
-
     [steps.load]
     pipeline_class = 'pyopia.instrument.silcam.SilCamLoad'
 
     #[steps.correctbackground]
     #pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
     #bgshift_function = 'accurate' # optional 'fast' or 'accurate' method for moving backgrounds. For static background use 'pass' or comment this line.
+    #average_window = 10 # number of images used to create background
 
     [steps.imageprep]
     pipeline_class = 'pyopia.instrument.silcam.ImagePrep'

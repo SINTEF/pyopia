@@ -60,17 +60,13 @@ def test_holo_pipeline():
                     'pipeline_class': 'pyopia.classify.Classify',
                     'model_path': model_path
                 },
-                'createbackground': {
-                    'pipeline_class': 'pyopia.background.CreateBackground',
-                    'average_window': 10,
-                    'instrument_module': 'holo'
-                },
                 'load': {
                     'pipeline_class': 'pyopia.instrument.holo.Load'
                 },
                 'correctbackground': {
                     'pipeline_class': 'pyopia.background.CorrectBackgroundAccurate',
-                    'bgshift_function': 'accurate'
+                    'bgshift_function': 'accurate',
+                    'average_window': 1
                 },
                 'reconstruct': {
                     'pipeline_class': 'pyopia.instrument.holo.Reconstruct',
@@ -107,6 +103,9 @@ def test_holo_pipeline():
         }
 
         processing_pipeline = Pipeline(pipeline_config)
+
+        # First call to run will create the background
+        processing_pipeline.run(holo_background_filename)
 
         print('Run processing on: ', holo_filename)
         processing_pipeline.run(holo_filename)

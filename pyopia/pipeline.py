@@ -177,12 +177,12 @@ class Data(TypedDict):
     '''
     bgstack: float
     '''List of images making up the background (either static or moving)
-    Obtained from :class:`pyopia.background.CreateBackground`
+    Obtained from :class:`pyopia.background.CorrectBackgroundAccurate`
     '''
     imbg: float
     '''Background image that can be used to correct :attr:`pyopia.pipeline.Data.imraw`
     and calcaulte :attr:`pyopia.pipeline.Data.imc`
-    Obtained from :class:`pyopia.background.CreateBackground`
+    Obtained from :class:`pyopia.background.CorrectBackgroundAccurater`
     '''
     filename: str
     '''Filename string'''
@@ -339,11 +339,3 @@ def build_steps(toml_steps):
         steps[step_name] = build_repr(toml_steps, step_name)
 
     return steps
-
-
-def get_load_function(instrument_module='imread'):
-    if instrument_module == 'imread':
-        return imread
-    else:
-        instrument = importlib.import_module(f'pyopia.instrument.{instrument_module}')
-        return instrument.load_image
