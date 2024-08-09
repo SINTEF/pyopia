@@ -13,18 +13,6 @@ A Python Ocean Particle Image Analysis toolbox
 - Under development. See/regester issues, [here](https://github.com/SINTEF/pyopia/issues)
 
 ----
-
-# Installing for users
-
-Users are expected to be familiar with Python, and have [Python](https://github.com/conda-forge/miniforge/#download), [pip](https://pypi.org/project/pip/). You can then install Pyopia like this:
-
-```
-pip install pyopia
-```
-
-We would usually recommend installing within a virtual python environment, which you can read more about [here](https://jni.github.io/using-python-for-science/intro-to-environments.html).
-
-----
 # Development targets for PyOpia:
 
 1) Allow nonfamiliar users to install and use PyOpia, and to contribute & commit code changes
@@ -53,9 +41,15 @@ We welcome additions and improvements to the code! We request that you follow a 
 4. All pull requests must be reviewed by a person. The benefits from code review are plenty, but we like to emphasise that code reviews help spreading the awarenes of code changes. Please note that code reviews should be a pleasant experience, so be plesant, polite and remember that there is a human being with good intentions on the other side of the screen.
 5. All contributions are linted with flake8. We recommend that you run flake8 on your code while developing to fix any issues as you go. We recommend using autopep8 to autoformat your Python code (but please check the code behaviour is not affected by autoformatting before pushing). This makes flake8 happy, and makes it easier for us all to maintain a consistent and readable code base.
 
-## Installing from source for developers
+# Installing
 
-Install [Python](https://github.com/conda-forge/miniforge/#download).
+## For users
+
+Users are expected to be familiar with Python. Please refer to the recommended installation instructions provided on the documentation pages, [here](https://pyopia.readthedocs.io/en/latest/intro.html#installing)
+
+## For developers from source
+
+Install [Python](https://github.com/conda-forge/miniforge/#download) version 3.10.
 
 A prompt such as is provided by the [miniforge installation](https://github.com/conda-forge/miniforge/#download) may be used for the following:
 
@@ -92,6 +86,18 @@ conda activate pyopia
 
 ```bash
 poetry install
+```
+
+Optional dependecies (for classification), can be installed like this:
+
+```bash
+poetry install --extras "classification"
+```
+
+or for arm/silicon systems:
+
+```bash
+poetry install --extras "classification-arm64"
 ```
 
 3. (optional) Run local tests:

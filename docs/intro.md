@@ -36,7 +36,7 @@ Full documentation for the code is [here](api)
 Installing
 ==================================
 
-Users are expected to be familiar with Python, and have [Python](https://github.com/conda-forge/miniforge/#download), [pip](https://pypi.org/project/pip/). You can then install PyOPIA like this:
+Users are expected to be familiar with Python, and have [Python](https://github.com/conda-forge/miniforge/#download) version 3.10, [pip](https://pypi.org/project/pip/). You can then install PyOPIA like this:
 
 ```
 pip install pyopia
@@ -55,6 +55,8 @@ or (for Apple silicon)
 ```
 pip install pyopia[classification-arm64]
 ```
+
+If you would like to install a development environment, please refer to the instructions in the README on GitHub, [here](https://github.com/SINTEF/pyopia/blob/main/README.md)
 
 Links to libraries PyOPIA uses
 ==================================
