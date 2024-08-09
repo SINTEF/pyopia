@@ -22,7 +22,7 @@ pixel_size = 4.4 # pixel size of imaging system in microns'wavelength = 658, # l
 
     [steps.correctbackground]
     pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
-    average_window = 10 # number of images used to create background
+    average_window = 1 # number of images used to create background
     bgshift_function = 'accurate' # optional 'fast' or 'accurate' method for moving backgrounds. For static background use 'pass' or comment this line.
 
     [steps.reconstruct]
@@ -48,4 +48,4 @@ pixel_size = 4.4 # pixel size of imaging system in microns'wavelength = 658, # l
 
     [steps.output]
     pipeline_class = 'pyopia.io.StatsToDisc'
-    output_datafile = 'proc/test' # prefix path for output nc file
+    output_datafile = 'proc-holo/test' # prefix path for output nc file

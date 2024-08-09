@@ -220,119 +220,31 @@ class CorrectBackgroundAccurate():
         self.bgshift_function = bgshift_function
         self.average_window = average_window
 
-        # Initialize data structures for background image and stack
-        self.background_is_initialized = False
-
 
     def _build_background_step(self, data):
         '''Add one layer to the background stack from the raw image in data pipeline, and update the background image.'''
         if not 'bgstack' in data:
             data['bgstack'] = []
 
-        data['bgstack'].append(data['imraw'])
-        data['imbg'] = np.mean(data['bgstack'], axis=0)
-
-        if len(data['bgstack']) == self.average_window:
-            self.background_is_initialized = True
-
-
-    def __call__(self, data):
-        # Initialize background and skip correction step while required bgstack size not reached
-        if not self.background_is_initialized:
-            self._build_background_step(data)
-
-        data['imc'] = correct_im_accurate(data['imbg'], data['imraw'])
-
-        match self.bgshift_function:
-            case 'pass':
-                return data
-            case 'accurate':
-                data['bgstack'], data['imbg'] = shift_bgstack_accurate(data['bgstack'],
-                                                                       data['imbg'],
-                                                                       data['imraw'])
-            case 'fast':
-                data['bgstack'], data['imbg'] = shift_bgstack_fast(data['bgstack'],
-                                                                   data['imbg'],
-                                                                   data['imraw'])
-        return data
-
-
-class CorrectBackgroundStatic():
-    '''
-    :class:`pyopia.pipeline` compatible class that calls: :func:`pyopia.background.correct_im_accurate`
-    and will use a static background for correction.
-
-    Pipeline input data:
-    --------------------
-    :class:`pyopia.pipeline.Data`
-
-        containing the following keys:
-
-        :attr:`pyopia.pipeline.Data.imraw`
-
-        :attr:`pyopia.pipeline.Data.imbg`
-
-    Parameters:
-    -----------
-    background_image : (string)
-
-        Full path to background image
-        
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
-        containing the following new keys:
-
-        :attr:`pyopia.pipeline.Data.imc`
-
-        :attr:`pyopia.pipeline.Data.bgstack`
-
-        :attr:`pyopia.pipeline.Data.imbg`
-
-
-    Example pipeline uses:
-    ----------------------
-    Apply moving average using :func:`pyopia.background.shift_bgstack_accurate` :
-
-    .. code-block:: python
-
-        [steps.correctbackground]
-        pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
-        bgshift_function = 'accurate'
-
-    Apply static background correction:
-
-    .. code-block:: python
-
-        [steps.correctbackground]
-        pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
-        bgshift_function = 'pass'
-
-
-    If you do not want to do background correction, leave this step out of the pipeline.
-    Then you could use :class:`pyopia.pipeline.CorrectBackgroundNone` if you need to instead.
-    '''
-
-    def __init__(self, bgshift_function='pass', average_window=1):
-        self.bgshift_function = bgshift_function
-        self.average_window = average_window
-
-        # Initialize data structures for background image and stack
-        self.background_is_initialized = False
-
-    def __call__(self, data):
-        # Initialize background and skip correction step while required bgstack size not reached
-        if not self.background_is_initialized:
-            if not 'bgstack' in data:
-                data['bgstack'] = []
-
+        init_complete = True
+        if len(data['bgstack']) < self.average_window:
             data['bgstack'].append(data['imraw'])
             data['imbg'] = np.mean(data['bgstack'], axis=0)
 
-            if len(data['bgstack']) == self.average_window:
-                self.background_is_initialized = True
+            init_complete = False
+
+        return init_complete
+
+
+    def __call__(self, data):
+        # Initialize the background while required bgstack size not reached
+        init_complete = self._build_background_step(data)
 
         data['imc'] = correct_im_accurate(data['imbg'], data['imraw'])
+
+        # If we are still building the bgstack, return without doing shift bgstack below
+        if not init_complete:
+            return data
 
         match self.bgshift_function:
             case 'pass':
@@ -346,7 +258,6 @@ class CorrectBackgroundStatic():
                                                                    data['imbg'],
                                                                    data['imraw'])
         return data
-
 
 
 class CorrectBackgroundNone():

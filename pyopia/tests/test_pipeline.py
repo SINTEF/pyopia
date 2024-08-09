@@ -6,6 +6,8 @@ A high level test for the basic processing pipeline.
 from glob import glob
 import tempfile
 import os
+import numpy as np
+import skimage.io
 
 import pyopia.exampledata as testdata
 import pyopia.io
@@ -104,8 +106,10 @@ def test_holo_pipeline():
 
         processing_pipeline = Pipeline(pipeline_config)
 
-        # First call to run will create the background
-        processing_pipeline.run(holo_background_filename)
+        # Manually initialize the background from a pre-computed and stored image
+        background_img = skimage.io.imread(holo_background_filename)
+        processing_pipeline.data['bgstack'] = [background_img]
+        processing_pipeline.data['imbg'] = np.mean(processing_pipeline.data['bgstack'], axis=0)
 
         print('Run processing on: ', holo_filename)
         processing_pipeline.run(holo_filename)
@@ -114,7 +118,7 @@ def test_holo_pipeline():
 
         print('stats header: ', stats.data_vars)
         print('Total number of particles: ', len(stats.major_axis_length))
-        assert len(stats.major_axis_length) == 56, ('Number of particles expected in this test is 56.' +
+        assert len(stats.major_axis_length) == 49, ('Number of particles expected in this test is 49.' +
                                                     'This test counted ' + str(len(stats.major_axis_length)) +
                                                     ' Something has altered the number of particles detected')
 
