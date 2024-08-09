@@ -220,10 +220,9 @@ class CorrectBackgroundAccurate():
         self.bgshift_function = bgshift_function
         self.average_window = average_window
 
-
     def _build_background_step(self, data):
         '''Add one layer to the background stack from the raw image in data pipeline, and update the background image.'''
-        if not 'bgstack' in data:
+        if 'bgstack' not in data:
             data['bgstack'] = []
 
         init_complete = True
@@ -234,7 +233,6 @@ class CorrectBackgroundAccurate():
             init_complete = False
 
         return init_complete
-
 
     def __call__(self, data):
         # Initialize the background while required bgstack size not reached

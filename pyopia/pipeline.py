@@ -9,8 +9,6 @@ import pandas as pd
 from operator import methodcaller
 import toml
 import sys
-import importlib
-from skimage.io import imread
 
 
 class Pipeline():
