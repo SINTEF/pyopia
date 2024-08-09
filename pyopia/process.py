@@ -286,7 +286,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
 
             if Classification is not None:
                 # run a prediction on what type of particle this might be
-                prediction = Classification.proc_predict(roi.astype(np.uint8))
+                prediction = Classification.proc_predict(roi)
                 predictions[int(i), :] = prediction[0]
 
             # add the roi to the HDF5 file
@@ -336,8 +336,7 @@ def measure_particles(imbw, max_particles=5000):
 
     # if there are too many particles then do no proceed with analysis
     if (iml.max() > max_particles):
-        print('....that''s way too many particles! Skipping image.')
-        imbw *= 0  # this is not a good way to handle this condition
+        raise RuntimeError('Too many particles. Refer to documentation on max_particles parameter in measure_particles()')
         # @todo handle situation when too many particles are found
 
     region_properties = measure.regionprops(iml, cache=False)
@@ -424,14 +423,14 @@ def statextract(imbw, timestamp, imc,
 
     # build the stats and export to HDF5
     s = np.shape(imc)
-    if not len(s) == 3:
+    if len(s) == 2:
         imref = np.copy(imc)
         imc = np.zeros((np.shape(imc)[0], np.shape(imc)[1], 3), dtype=np.uint8)
         # Convert from floats in [0, 1] to ints in [0, 255]
         imc[:, :, 0] = 255 * imref
         imc[:, :, 1] = 255 * imref
         imc[:, :, 2] = 255 * imref
-        print('WARNING. exportparticles temporarily modified for 2-d images without color!')
+        print('WARNING! Unexpected image dimension. extract_particles modified for 2-d images without color!')
 
     stats = extract_particles(imc, timestamp, Classification, region_properties,
                               export_outputpath=export_outputpath, min_length=min_length,
@@ -537,7 +536,13 @@ class CalculateStats():
 
     def __call__(self, data):
         print('statextract')
-        stats, saturation = statextract(data['imbw'], data['timestamp'], data['imc'],
+        if 'imref' not in data.keys():
+            if data['cl'] is not None:
+                print('WARNING. No reference image ("imref") for classifier. Resorting to "imc"')
+            imc = data['imc']
+        else:
+            imc = data['imref']
+        stats, saturation = statextract(data['imbw'], data['timestamp'], imc,
                                         Classification=data['cl'],
                                         max_coverage=self.max_coverage,
                                         max_particles=self.max_particles,
