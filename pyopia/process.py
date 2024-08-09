@@ -424,14 +424,14 @@ def statextract(imbw, timestamp, imc,
 
     # build the stats and export to HDF5
     s = np.shape(imc)
-    if not len(s) == 3:
+    if len(s) == 2:
         imref = np.copy(imc)
         imc = np.zeros((np.shape(imc)[0], np.shape(imc)[1], 3), dtype=np.uint8)
         # Convert from floats in [0, 1] to ints in [0, 255]
-        imc[:, :, 0] = 255 * imref[:, :, 0]
-        imc[:, :, 1] = 255 * imref[:, :, 0]
-        imc[:, :, 2] = 255 * imref[:, :, 0]
-        print('WARNING! Unexpected image dimension. Exportparticles modified for 2-d images without color!')
+        imc[:, :, 0] = 255 * imref
+        imc[:, :, 1] = 255 * imref
+        imc[:, :, 2] = 255 * imref
+        print('WARNING! Unexpected image dimension. extract_particles modified for 2-d images without color!')
 
     stats = extract_particles(imc, timestamp, Classification, region_properties,
                               export_outputpath=export_outputpath, min_length=min_length,
@@ -537,7 +537,13 @@ class CalculateStats():
 
     def __call__(self, data):
         print('statextract')
-        stats, saturation = statextract(data['imbw'], data['timestamp'], data['imref'],
+        if 'imref' not in data.keys():
+            if data['cl'] is not None:
+                print('WARNING. No reference image ("imref") for classifier. Resorting to "imc"')
+            imc = data['imc']
+        else:
+            imc = data['imref']
+        stats, saturation = statextract(data['imbw'], data['timestamp'], imc,
                                         Classification=data['cl'],
                                         max_coverage=self.max_coverage,
                                         max_particles=self.max_particles,
