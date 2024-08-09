@@ -63,12 +63,6 @@ git clone https://github.com/SINTEF/pyopia.git
 cd pyopia
 ```
 
-If you do not want to use git, you can manually download the repository from github. To do so, click on the green "<> CODE button" (top right-hand side) and select "Download zip". Unzip the files into your target folder, and move into the new directory (note the foldername may contain the branch name, such as 'main').
-
-```bash
-cd pyopia-main
-```
-
 For the next steps, you need to be located in the directory that contains the file 'environment.yml'.
 
 1. (optional, but recommended) Create a virtual environment using the environment.yml. This will create an environment called pyopia, but with no dependencies installed. Dependencies are managed by poetry (in step 2):
