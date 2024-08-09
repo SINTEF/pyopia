@@ -431,7 +431,7 @@ def statextract(imbw, timestamp, imc,
         imc[:, :, 0] = 255 * imref[:, :, 0]
         imc[:, :, 1] = 255 * imref[:, :, 0]
         imc[:, :, 2] = 255 * imref[:, :, 0]
-        print('WARNING. exportparticles temporarily modified for 2-d images without color!')
+        print('WARNING! Unexpected image dimension. Exportparticles modified for 2-d images without color!')
 
     stats = extract_particles(imc, timestamp, Classification, region_properties,
                               export_outputpath=export_outputpath, min_length=min_length,

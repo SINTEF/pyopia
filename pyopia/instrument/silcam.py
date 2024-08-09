@@ -3,7 +3,6 @@ Module containing SilCam specific tools to enable compatability with the :mod:`p
 '''
 
 import os
-import cv2
 import numpy as np
 import pandas as pd
 from skimage.exposure import rescale_intensity
@@ -37,10 +36,7 @@ def load_image(filename):
     array
         raw image
     '''
-    img = np.load(filename, allow_pickle=False)
-    if img.shape[-1] == 1:
-        # In this case, the image must be converted from Bayer to RGB
-        img = cv2.cvtColor(img, cv2.COLOR_BayerBG2RGB)
+    img = np.load(filename, allow_pickle=False).astype(np.uint8)
     return img
 
 
