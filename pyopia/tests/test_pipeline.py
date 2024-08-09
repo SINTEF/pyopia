@@ -7,7 +7,7 @@ from glob import glob
 import tempfile
 import os
 
-import pyopia.tests.testdata as testdata
+import pyopia.exampledata as testdata
 import pyopia.io
 import pyopia.classify
 from pyopia.pipeline import Pipeline
