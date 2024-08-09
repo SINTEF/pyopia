@@ -296,13 +296,14 @@ def vd_from_stats(stats, pix_size):
     return dias, vd
 
 
-def make_montage(stats_file, pixel_size, roidir,
+def make_montage(stats_file_or_df, pixel_size, roidir,
                  auto_scaler=500, msize=1024, maxlength=100000, crop_stats=None, brightness=255, eyecandy=True):
     '''
     makes nice looking montage from a directory of extracted particle images
 
     Args:
-        stats_file                  : location of the stats hdf5 or nc file that comes from processing
+        stats_file_or_df           : either a str specifying the location of the STATS.nc file that comes from processing,
+                                      or a stats dataframe
         pixel_size                  : pixel size of system defined by settings.PostProcess.pix_size
         roidir                      : location of roifiles usually defined by settings.ExportParticles.outputpath
         auto_scaler=500             : approximate number of particle that are attempted to be packed into montage
@@ -318,7 +319,10 @@ def make_montage(stats_file, pixel_size, roidir,
                                       which can be plotted using plotting.montage_plot(montage, settings.PostProcess.pix_size)
     '''
 
-    stats = load_stats_as_dataframe(stats_file)
+    if isinstance(stats_file_or_df, str):
+        stats = load_stats_as_dataframe(stats_file_or_df)
+    else:
+        stats = stats_file_or_df
 
     if crop_stats is not None:
         stats = crop_stats(stats, crop_stats)

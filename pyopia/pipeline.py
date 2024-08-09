@@ -69,19 +69,11 @@ class Pipeline():
         self.data['settings'] = settings
 
         self.pass_general_settings()
-        print('raw_files:', self.data['raw_files'])
 
         for stepname in self.stepnames:
             if not self.initial_steps.__contains__(stepname):
                 continue
-            if stepname == 'classifier':
-                callobj = self.step_callobj(stepname)
-                self.data['cl'] = callobj()
-            else:
-                callobj = self.step_callobj(stepname)
-                self.data = callobj(self.data)
-
-        print('Pipeline ready with these data: ', list(self.data.keys()))
+            self.run_step(stepname)
 
     def run(self, filename):
         '''Method for executing the processing pipeline.
@@ -109,14 +101,40 @@ class Pipeline():
             if self.initial_steps.__contains__(stepname):
                 continue
 
-            callobj = self.step_callobj(stepname)
-            self.data = callobj(self.data)
+            self.run_step(stepname)
 
         stats = self.data['stats']
 
         return stats
 
+    def run_step(self, stepname):
+        '''Execute a pipeline step and update the pipeline data
+
+        Parameters
+        ----------
+        stepname : str
+            Name of the step defined in the settings
+        '''
+        if stepname == 'classifier':
+            callobj = self.step_callobj(stepname)
+            self.data['cl'] = callobj()
+        else:
+            callobj = self.step_callobj(stepname)
+            self.data = callobj(self.data)
+
     def step_callobj(self, stepname):
+        '''Generate a callable object for use in run_step()
+
+        Parameters
+        ----------
+        stepname : str
+            Name of the step defined in the settings
+
+        Returns
+        -------
+        obj
+            callable object for use in run_step()
+        '''
 
         pipeline_class = self.settings['steps'][stepname]['pipeline_class']
         classname = pipeline_class.split('.')[-1]
@@ -254,7 +272,7 @@ class ReturnData():
     .. code-block:: python
 
         [steps.returndata]
-        pipeline_class = 'pyopia.classify.ReturnData'
+        pipeline_class = 'pyopia.pipeline.ReturnData'
 
     This will allow you to call pipeline.run() like this:
 

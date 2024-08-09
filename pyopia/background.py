@@ -91,12 +91,7 @@ def correct_im_accurate(imbg, imraw):
     '''
 
     imc = np.float64(imraw) - np.float64(imbg)
-    if imc.ndim == 3:
-        imc[:, :, 0] += (255 / 2 - np.percentile(imc[:, :, 0], 50))
-        imc[:, :, 1] += (255 / 2 - np.percentile(imc[:, :, 1], 50))
-        imc[:, :, 2] += (255 / 2 - np.percentile(imc[:, :, 2], 50))
-    else:
-        imc += (255 / 2 - np.percentile(imc, 50))
+    imc += (255 / 2 - np.percentile(imc, 50))
 
     imc += 255 - imc.max()
 
