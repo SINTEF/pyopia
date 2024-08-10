@@ -11,11 +11,6 @@ pixel_size = 24 # pixel size of imaging system in microns
     [steps.load]
     pipeline_class = 'pyopia.instrument.silcam.SilCamLoad'
 
-    #[steps.correctbackground]
-    #pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
-    #bgshift_function = 'accurate' # optional 'fast' or 'accurate' method for moving backgrounds. For static background use 'pass' or comment this line.
-    #average_window = 10 # number of images used to create background
-
     [steps.imageprep]
     pipeline_class = 'pyopia.instrument.silcam.ImagePrep'
     image_level = 'imraw' # the level of processing for further analysis. Either 'imraw' for ignoring background or 'imc' for using the backgroun-corrected image. Defaults to 'imc' if not defined.

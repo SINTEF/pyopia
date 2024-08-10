@@ -599,7 +599,7 @@ class MergeStats():
                           + abs(bbox[:, 2] - stats.maxr[idx]) + abs(bbox[:, 3] - stats.maxc[idx]))
             ifocus.append(stack_ifocus[np.argmin(total_diff)])
 
-        stats['ifocus'] = ifocus
+        stats['ifocus'] = np.array(ifocus, dtype=np.int64)
         stats['holo_filename'] = data['filename']
         data['stats'] = stats
         return data
