@@ -198,7 +198,7 @@ class Data(TypedDict):
     imbg: float
     '''Background image that can be used to correct :attr:`pyopia.pipeline.Data.imraw`
     and calcaulte :attr:`pyopia.pipeline.Data.imc`
-    Obtained from :class:`pyopia.background.CorrectBackgroundAccurater`
+    Obtained from :class:`pyopia.background.CorrectBackgroundAccurate`
     '''
     filename: str
     '''Filename string'''
