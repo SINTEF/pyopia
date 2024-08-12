@@ -103,7 +103,6 @@ class Pipeline():
 
             self.run_step(stepname)
 
-
     def run_step(self, stepname):
         '''Execute a pipeline step and update the pipeline data
 

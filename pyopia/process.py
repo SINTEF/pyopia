@@ -457,7 +457,7 @@ class Segment():
         threshold for segmentation. Defaults to 0.98.
     fill_holes : (bool)
         runs ndi.binary_fill_holes if True. Defaults to True.
-    segment_key: (str, optional)
+    segment_source: (str, optional)
         The key in Pipeline.data of the image to be segmented.
         Defaults to 'im_corrected'
 
@@ -473,15 +473,15 @@ class Segment():
                  minimum_area=12,
                  threshold=0.98,
                  fill_holes=True,
-                 segment_key='im_corrected'):
+                 segment_source='im_corrected'):
 
         self.minimum_area = minimum_area
         self.threshold = threshold
         self.fill_holes = fill_holes
-        self.segment_key = segment_key
+        self.segment_source = segment_source
 
     def __call__(self, data):
-        data['imbw'] = segment(data[self.segment_key], threshold=self.threshold, fill_holes=self.fill_holes)
+        data['imbw'] = segment(data[self.segment_source], threshold=self.threshold, fill_holes=self.fill_holes)
         return data
 
 
