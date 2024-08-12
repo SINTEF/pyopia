@@ -13,6 +13,7 @@ import pyopia.process
 import struct
 from datetime import timedelta, datetime
 from glob import glob
+from skimage.exposure import rescale_intensity
 
 '''
 This is a module containing basic processing for reconstruction of in-line holographic images.
@@ -341,7 +342,7 @@ def max_map(im_stack):
 
 
 def rescale_image(im):
-    '''rescale im (e.g. may be stack summary) to be dark particles on light background, 8 bit
+    '''rescale im (e.g. may be stack summary) to be dark particles on light background
 
     Parameters
     ----------
