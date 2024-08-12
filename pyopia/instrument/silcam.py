@@ -148,7 +148,8 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
                 'threshold': 0.85
             },
             'statextract': {
-                'pipeline_class': 'pyopia.process.CalculateStats'
+                'pipeline_class': 'pyopia.process.CalculateStats',
+                'roi_source': 'imref'
             },
             'output': {
                 'pipeline_class': 'pyopia.io.StatsH5',

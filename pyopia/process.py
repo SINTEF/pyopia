@@ -512,6 +512,9 @@ class CalculateStats():
     propnames: (list, optional)
         Specifies properties wanted from skimage.regionprops.
         Defaults to ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']
+    roi_source: (str, optional)
+        Key of an image in Pipeline.data that is used for outputting ROIs and passing to the classifier.
+        Defaults to 'imc'
 
     Returns:
     --------
@@ -525,23 +528,19 @@ class CalculateStats():
                  max_particles=5000,
                  export_outputpath=None,
                  min_length=0,
-                 propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter']):
+                 propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter'],
+                 roi_source='imc'):
 
         self.max_coverage = max_coverage
         self.max_particles = max_particles
         self.export_outputpath = export_outputpath
         self.min_length = min_length
         self.propnames = propnames
+        self.roi_source = roi_source
 
     def __call__(self, data):
         print('statextract')
-        if 'imref' not in data.keys():
-            if data['cl'] is not None:
-                print('WARNING. No reference image ("imref") for classifier. Resorting to "imc"')
-            imc = data['imc']
-        else:
-            imc = data['imref']
-        stats, saturation = statextract(data['imbw'], data['timestamp'], imc,
+        stats, saturation = statextract(data['imbw'], data['timestamp'], data[self.roi_source],
                                         Classification=data['cl'],
                                         max_coverage=self.max_coverage,
                                         max_particles=self.max_particles,
