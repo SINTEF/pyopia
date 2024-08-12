@@ -92,7 +92,7 @@ def load_image(filename):
     array
         raw image
     '''
-    img = imread(filename).astype(np.float64)/255
+    img = imread(filename).astype(np.float64) / 255
     return img
 
 
@@ -340,26 +340,6 @@ def max_map(im_stack):
     return max_map
 
 
-def rescale_stack(im_stack):
-    '''rescale the reconstructed stack so that particles look dark on a light background
-
-    Parameters
-    ----------
-    im_stack : _type_
-        _description_
-
-    Returns
-    -------
-    _type_
-        _description_
-    '''
-    im_max = np.max(im_stack)
-    im_min = np.min(im_stack)
-    im_stack_inverted = (im_stack - im_min) / (im_max - im_min)
-    im_stack_inverted = 1 - im_stack_inverted
-    return im_stack_inverted
-
-
 def rescale_image(im):
     '''rescale im (e.g. may be stack summary) to be dark particles on light background, 8 bit
 
@@ -403,14 +383,14 @@ def find_focus_imax(im_stack, bbox, increase_depth_of_field):
     ifocus: int
         index through stack of focussed image
     '''
-    im_seg = im_stack[bbox[0]:bbox[2], bbox[1]:bbox[3], :]
-    focus = np.sum(im_seg, axis=(0, 1))
+    roi = im_stack[bbox[0]:bbox[2], bbox[1]:bbox[3], :]
+    focus = np.sum(roi, axis=(0, 1))
     ifocus = np.argmax(focus)
 
     if increase_depth_of_field:
-        im_focus = np.max(im_seg[:, :, np.max([ifocus-1, 0]):np.min([ifocus+1, im_seg.shape[2]])], axis=2)
+        im_focus = np.max(roi[:, :, np.max([ifocus-1, 0]):np.min([ifocus+1, roi.shape[2]])], axis=2)
     else:
-        im_focus = im_seg[:, :, ifocus]
+        im_focus = roi[:, :, ifocus]
 
     return im_focus, ifocus
 
@@ -439,17 +419,17 @@ def find_focus_sobel(im_stack, bbox, increase_depth_of_field):
         index through stack of focussed image
     '''
     im_bbox = im_stack[bbox[0]:bbox[2], bbox[1]:bbox[3], :]
-    im_seg = np.empty_like(im_bbox)
-    for zi in range(im_seg.shape[2]):
-        im_seg[:, :, zi] = sobel(im_bbox[:, :, zi])
+    roi = np.zeros_like(im_bbox)
+    for zi in range(roi.shape[2]):
+        roi[:, :, zi] = sobel(im_bbox[:, :, zi])
 
-    focus = np.sum(im_seg, axis=(0, 1))
+    focus = np.sum(roi, axis=(0, 1))
     ifocus = np.argmax(focus)
 
     if increase_depth_of_field:
-        im_focus = np.max(im_seg[:, :, np.max([ifocus-1, 0]):np.min([ifocus+1, im_seg.shape[2]])], axis=2)
+        im_focus = np.max(roi[:, :, np.max([ifocus-1, 0]):np.min([ifocus+1, roi.shape[2]])], axis=2)
     else:
-        im_focus = im_seg[:, :, ifocus]
+        im_focus = roi[:, :, ifocus]
 
     return im_focus, ifocus
 
@@ -550,20 +530,19 @@ class Focus():
 
             match self.focus_function:
                 case 'find_focus_imax':
-                    focus_result = find_focus_imax(im_stack, rp.bbox, self.increase_depth_of_field)
+                    im_focus_, ifocus_ = find_focus_imax(im_stack, rp.bbox, self.increase_depth_of_field)
                 case 'find_focus_sobel':
-                    focus_result = find_focus_sobel(im_stack, rp.bbox, self.increase_depth_of_field)
+                    im_focus_, ifocus_ = find_focus_sobel(im_stack, rp.bbox, self.increase_depth_of_field)
                 case _:
                     raise ValueError('focus_function in pyopia.instrument.holo.Focus not recognised')
 
-            if self.discard_end_slices and (focus_result[1] == 0 or focus_result[1] == im_stack.shape[2]):
+            if self.discard_end_slices and (ifocus_ == 0 or ifocus_ == im_stack.shape[2]):
                 continue
-            im_focus = 1 - focus_result[0]
-            ifocus.append(focus_result[1])
+            ifocus.append(ifocus_)
             rp_out.append(rp)
-            imc[rp.bbox[0]:rp.bbox[2], rp.bbox[1]:rp.bbox[3]] = im_focus
+            imc[rp.bbox[0]:rp.bbox[2], rp.bbox[1]:rp.bbox[3]] = im_focus_
 
-        data['imc'] = imc
+        data['imc'] = 1 - imc
         data['stack_rp'] = rp_out
         data['stack_ifocus'] = ifocus
         return data
