@@ -66,6 +66,9 @@ class Pipeline():
         self.data['cl'] = None
         self.data['settings'] = settings
 
+        # Flag used to control whether remaining pipeline steps should be skipped once it has been set to True
+        self.data['skip_next_steps'] = False
+
         self.pass_general_settings()
 
         for stepname in self.stepnames:
@@ -100,6 +103,14 @@ class Pipeline():
                 continue
 
             self.run_step(stepname)
+
+            # Check for signal from this step that we should skip remaining pipeline for this image
+            if self.data['skip_next_steps']:
+                print('Skipping remaining steps of the pipeline and returning')
+
+                # Reset skip flag
+                self.data['skip_next_steps'] = False
+                return
 
         stats = self.data['stats']
 

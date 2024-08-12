@@ -229,7 +229,6 @@ class CorrectBackgroundAccurate():
         if len(data['bgstack']) < self.average_window:
             data['bgstack'].append(data['imraw'])
             data['imbg'] = np.mean(data['bgstack'], axis=0)
-
             init_complete = False
 
         return init_complete
@@ -238,11 +237,13 @@ class CorrectBackgroundAccurate():
         # Initialize the background while required bgstack size not reached
         init_complete = self._build_background_step(data)
 
-        data['imc'] = correct_im_accurate(data['imbg'], data['imraw'])
-
-        # If we are still building the bgstack, return without doing shift bgstack below
+        # If we are still building the bgstack, return without doing image correction and bgstack update
         if not init_complete:
+            # Flag to the pipeline that remaining steps should be skipped since we are still building the background
+            data['skip_next_steps'] = True
             return data
+
+        data['imc'] = correct_im_accurate(data['imbg'], data['imraw'])
 
         match self.bgshift_function:
             case 'pass':
