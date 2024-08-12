@@ -227,6 +227,8 @@ class Data(TypedDict):
     '''Stack summary image used to locate possible particles
     Obtained from :class:`pyopia.instrument.holo.Focus`
     '''
+    im_focussed: float
+    '''Focussed holographic image'''
     imref: float
     '''Refereence background corrected image passed to silcam classifier'''
 

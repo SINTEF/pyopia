@@ -482,7 +482,7 @@ class Focus():
 
         containing the following keys:
 
-        :attr:`pyopia.pipeline.Data.im_corrected`
+        :attr:`pyopia.pipeline.Data.im_focussed`
 
         :attr:`pyopia.pipeline.Data.imss`
 
@@ -523,7 +523,7 @@ class Focus():
         # identify particles
         region_properties = pyopia.process.measure_particles(imssbw)
         # loop through bounding boxes to focus each particle and add to output imc
-        imc = np.zeros_like(im_stack[:, :, 0])
+        im_focussed = np.zeros_like(im_stack[:, :, 0])
         ifocus = []
         rp_out = []
         for rp in region_properties:
@@ -540,9 +540,9 @@ class Focus():
                 continue
             ifocus.append(ifocus_)
             rp_out.append(rp)
-            imc[rp.bbox[0]:rp.bbox[2], rp.bbox[1]:rp.bbox[3]] = im_focus_
+            im_focussed[rp.bbox[0]:rp.bbox[2], rp.bbox[1]:rp.bbox[3]] = im_focus_
 
-        data['im_corrected'] = 1 - imc
+        data['im_focussed'] = 1 - im_focussed
         data['stack_rp'] = rp_out
         data['stack_ifocus'] = ifocus
         return data
@@ -680,13 +680,15 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
             },
             'segmentation': {
                 'pipeline_class': 'pyopia.process.Segment',
-                'threshold': 0.9
+                'threshold': 0.9,
+                'segment_key': 'im_focussed'
             },
             'statextract': {
                 'pipeline_class': 'pyopia.process.CalculateStats',
                 'export_outputpath': outfolder,
                 'propnames': ['major_axis_length', 'minor_axis_length', 'equivalent_diameter',
-                              'feret_diameter_max', 'equivalent_diameter_area']
+                              'feret_diameter_max', 'equivalent_diameter_area'],
+                'roi_source': 'im_focussed'
             },
             'mergeholostats': {
                 'pipeline_class': 'pyopia.instrument.holo.MergeStats',
