@@ -263,3 +263,4 @@ docs/jupyter_execute/
 *.nc
 
 poetry.lock
+/notebooks/gas_silcam_images

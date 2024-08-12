@@ -21,6 +21,30 @@ def get_file_from_pysilcam_blob(filename, download_directory='./'):
     urllib.request.urlretrieve(url, os.path.join(download_directory, filename))
 
 
+def get_gas_from_pysilcam_blob(download_directory='./gas_silcam_images'):
+    '''Downloads a specified filename from the pysilcam.blob into the working dir. if it doesn't already exist
+
+    only works for known filenames that are on this blob
+
+    Parameters
+    ----------
+    filename : string
+        known filename on the blob
+
+    '''
+    if os.path.exists(os.path.join(download_directory)):
+        print(download_directory, 'already exists. Returning nothing')
+        return
+    os.makedirs(download_directory, exist_ok=False)
+    url = 'https://pysilcam.blob.core.windows.net/test-data/gas.zip'
+    print('Downloading....')
+    urllib.request.urlretrieve(url, download_directory + '/gas.zip')
+    print('Unzipping....')
+    with zipfile.ZipFile(os.path.join(download_directory, 'gas.zip'), 'r') as zipit:
+        zipit.extractall(download_directory)
+    print('Done.')
+
+
 def get_example_silc_image(download_directory='./'):
     '''calls `get_file_from_pysilcam_blob` for a silcam iamge
 
