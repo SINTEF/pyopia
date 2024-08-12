@@ -68,7 +68,7 @@ class SilCamLoad():
 
     def __call__(self, data):
         timestamp = timestamp_from_filename(data['filename'])
-        img = load_image(data['filename'])
+        img = load_image(data['filename']).astype(np.float64)/255
         data['timestamp'] = timestamp
         data['imraw'] = img
         return data
@@ -97,17 +97,12 @@ class ImagePrep():
 
     def __call__(self, data):
         image = data[self.image_level]
-        imc = np.float64(image)
-
-        image = rescale_intensity(image, out_range=(0, 255))
-        data['imref'] = np.uint8(image)
-
+        
         # simplify processing by squeezing the image dimensions into a 2D array
         # min is used for squeezing to represent the highest attenuation of all wavelengths
-        imc = np.min(imc, axis=2)
-        imc /= 255
+        data['imc'] = np.min(image, axis=2)
 
-        data['imc'] = imc
+        data['imref'] = rescale_intensity(image, out_range=(0, 1))
         return data
 
 

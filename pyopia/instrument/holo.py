@@ -92,7 +92,7 @@ def load_image(filename):
     array
         raw image
     '''
-    img = imread(filename).astype(np.float64)
+    img = imread(filename).astype(np.float64)/255
     return img
 
 
@@ -355,8 +355,8 @@ def rescale_stack(im_stack):
     '''
     im_max = np.max(im_stack)
     im_min = np.min(im_stack)
-    im_stack_inverted = 255 * (im_stack - im_min) / (im_max - im_min)
-    im_stack_inverted = 255 - im_stack_inverted
+    im_stack_inverted = (im_stack - im_min) / (im_max - im_min)
+    im_stack_inverted = 1 - im_stack_inverted
     return im_stack_inverted
 
 
@@ -375,8 +375,8 @@ def rescale_image(im):
     '''
     im_max = np.max(im)
     im_min = np.min(im)
-    im = 255 * (im - im_min) / (im_max - im_min)
-    im = 255 - im
+    im = (im - im_min) / (im_max - im_min)
+    im = 1 - im
     return im
 
 
@@ -558,7 +558,7 @@ class Focus():
 
             if self.discard_end_slices and (focus_result[1] == 0 or focus_result[1] == im_stack.shape[2]):
                 continue
-            im_focus = 255 - focus_result[0]
+            im_focus = 1 - focus_result[0]
             ifocus.append(focus_result[1])
             rp_out.append(rp)
             imc[rp.bbox[0]:rp.bbox[2], rp.bbox[1]:rp.bbox[3]] = im_focus
