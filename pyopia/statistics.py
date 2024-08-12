@@ -297,7 +297,7 @@ def vd_from_stats(stats, pix_size):
 
 
 def make_montage(stats_file_or_df, pixel_size, roidir,
-                 auto_scaler=500, msize=1024, maxlength=100000, crop_stats=None, brightness=255, eyecandy=True):
+                 auto_scaler=500, msize=1024, maxlength=100000, crop_stats=None, brightness=1, eyecandy=True):
     '''
     makes nice looking montage from a directory of extracted particle images
 
@@ -310,12 +310,12 @@ def make_montage(stats_file_or_df, pixel_size, roidir,
         msize=1024                  : size of canvas in pixels
         maxlength=100000            : maximum length in microns of particles to be included in montage
         crop_stats=None             : None or 4-tuple of lower-left then upper-right coord of crop
-        brightness=255              : brighness of packaged particles used with eyecandy option
+        brightness=1                : brighness of packaged particles used with eyecandy option
         eyecandy=True               : boolean which if True will explode the contrast of packed particles
                           (nice for natural particles, but not so good for oil and gas).
 
     Returns:
-        montageplot (uint8)         : a nicely-made montage in the form of an image,
+        montageplot (float64        : a nicely-made montage in the form of an image,
                                       which can be plotted using plotting.montage_plot(montage, settings.PostProcess.pix_size)
     '''
 
@@ -337,7 +337,7 @@ def make_montage(stats_file_or_df, pixel_size, roidir,
     roifiles = gen_roifiles(stats, auto_scaler=auto_scaler)
 
     # pre-allocate an empty canvas
-    montage = np.zeros((msize, msize, 3), dtype=np.uint8())
+    montage = np.zeros((msize, msize, 3), dtype=np.float64())
     # pre-allocate an empty test canvas
     immap_test = np.zeros_like(montage[:, :, 0])
     print('making a montage - this might take some time....')
@@ -363,10 +363,10 @@ def make_montage(stats_file_or_df, pixel_size, roidir,
             # eye-candy normalization:
             peak = np.median(particle_image.flatten())
             bm = brightness - peak
-            particle_image = np.float64(particle_image) + bm
+            particle_image = particle_image + bm
         else:
-            particle_image = np.float64(particle_image)
-        particle_image[particle_image > 255] = 255
+            particle_image = particle_image
+        particle_image[particle_image > 1] = 1
 
         # initialise a counter
         counter = 0
@@ -392,15 +392,15 @@ def make_montage(stats_file_or_df, pixel_size, roidir,
 
         # if we reach here, then the particle has found a position in the
         # canvas with no overlap, and can then be inserted into the canvas
-        montage[r:r + height, c:c + width, :] = np.uint8(particle_image)
+        montage[r:r + height, c:c + width, :] = particle_image
 
         immap_test[r:r + height, c:c + width, None] = immap_test[r:r + height, c:c + width, None] + 1
 
     # now the montage is finished
     # here are some small eye-candy scaling things to tidy up
     montageplot = np.copy(montage)
-    montageplot[montage > 255] = 255
-    montageplot[montage == 0] = 255
+    montageplot[montage > 1] = 1
+    montageplot[montage == 0] = 1
     print('montage complete')
 
     return montageplot
@@ -506,14 +506,12 @@ def explode_contrast(im):
     ''' eye-candy function for exploding the contrast of a particle iamge (roi)
 
     Args:
-        im   (uint8)       : image (normally a particle ROI)
+        im   (float64)       : image (normally a particle ROI)
 
     Returns:
-        im_mod (uint8)     : image following exploded contrast
+        im_mod (float64)     : image following exploded contrast
 
     '''
-    # make sure iamge is float
-    im = np.float64(im)
 
     # re-scale the instensities in the image to chop off some ends
     p1, p2 = np.percentile(im, (0, 80))
@@ -525,15 +523,10 @@ def explode_contrast(im):
     # set maximum value to one
     im_mod /= np.max(im_mod)
 
-    # re-scale to match uint8 max
-    im_mod *= 255
-
-    # convert to unit8
-    im_mod = np.uint8(im_mod)
     return im_mod
 
 
-def bright_norm(im, brightness=255):
+def bright_norm(im, brightness=1):
     ''' eye-candy function for normalising the image brightness
 
     Args:
@@ -548,9 +541,8 @@ def bright_norm(im, brightness=255):
     bm = brightness - peak
 
     im = np.float64(im) + bm
-    im[im > 255] = 255
+    im[im > 1] = 1
 
-    im = np.uint8(im)
     return im
 
 
@@ -623,7 +615,7 @@ def roi_from_export_name(exportname, path):
     fh = h5py.File(fullname, 'r')
 
     # extract the particle image of interest
-    im = fh[pn]
+    im = np.float64(fh[pn])
 
     return im
 
