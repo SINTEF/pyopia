@@ -145,7 +145,7 @@ class Reconstruct():
     :class:`pyopia.pipeline.Data`
         containing the following keys:
 
-        :attr:`pyopia.pipeline.Data.imc`
+        :attr:`pyopia.pipeline.Data.im_corrected`
 
     Returns:
     --------
@@ -161,7 +161,7 @@ class Reconstruct():
         self.inverse_output_option = inverse_output_option
 
     def __call__(self, data):
-        imc = data['imc']
+        imc = data['im_corrected']
         kern = data['kern']
         im_stack = data['im_stack']
 
@@ -482,7 +482,7 @@ class Focus():
 
         containing the following keys:
 
-        :attr:`pyopia.pipeline.Data.imc`
+        :attr:`pyopia.pipeline.Data.im_corrected`
 
         :attr:`pyopia.pipeline.Data.imss`
 
@@ -542,7 +542,7 @@ class Focus():
             rp_out.append(rp)
             imc[rp.bbox[0]:rp.bbox[2], rp.bbox[1]:rp.bbox[3]] = im_focus_
 
-        data['imc'] = 1 - imc
+        data['im_corrected'] = 1 - imc
         data['stack_rp'] = rp_out
         data['stack_ifocus'] = ifocus
         return data

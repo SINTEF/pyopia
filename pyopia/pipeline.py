@@ -177,7 +177,7 @@ class Data(TypedDict):
     In future this may be better as a data class with slots (from python 3.10).
 
     This is an example of a link to the imc key doc:
-    :attr:`pyopia.pipeline.Data.imc`
+    :attr:`pyopia.pipeline.Data.im_corrected`
     '''
 
     raw_files: str
@@ -188,8 +188,10 @@ class Data(TypedDict):
     imraw: float
     '''Raw uncorrected image'''
     img: float
-    '''Raw uncorrected image. To be deprecatied and changed to imraw'''
+    '''Deprecatied. Replaced by imraw'''
     imc: float
+    '''Deprecatied. Replaced by im_corrected'''
+    im_corrected: float
     '''Single composite image of focussed particles ready for segmentation
     Obtained from e.g. :class:`pyopia.background.CorrectBackgroundAccurate`
     '''
@@ -199,7 +201,7 @@ class Data(TypedDict):
     '''
     imbg: float
     '''Background image that can be used to correct :attr:`pyopia.pipeline.Data.imraw`
-    and calcaulte :attr:`pyopia.pipeline.Data.imc`
+    and calcaulte :attr:`pyopia.pipeline.Data.im_corrected`
     Obtained from :class:`pyopia.background.CreateBackground`
     '''
     filename: str
@@ -228,6 +230,8 @@ class Data(TypedDict):
     '''Stack summary image used to locate possible particles
     Obtained from :class:`pyopia.instrument.holo.Focus`
     '''
+    imref: float
+    '''Refereence background corrected image passed to silcam classifier'''
 
 
 def steps_to_string(steps):

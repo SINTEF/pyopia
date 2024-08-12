@@ -447,7 +447,7 @@ class Segment():
 
         containing the following keys:
 
-        :attr:`pyopia.pipeline.Data.imc`
+        :attr:`pyopia.pipeline.Data.im_corrected`
 
     Parameters:
     ----------
@@ -476,7 +476,7 @@ class Segment():
         self.fill_holes = fill_holes
 
     def __call__(self, data):
-        data['imbw'] = segment(data['imc'], threshold=self.threshold, fill_holes=self.fill_holes)
+        data['imbw'] = segment(data['im_corrected'], threshold=self.threshold, fill_holes=self.fill_holes)
         return data
 
 
@@ -493,7 +493,7 @@ class CalculateStats():
 
         :attr:`pyopia.pipeline.Data.timestamp`
 
-        :attr:`pyopia.pipeline.Data.imc`
+        :attr:`pyopia.pipeline.Data.im_corrected`
 
         :attr:`pyopia.pipeline.Data.cl`
 
@@ -514,7 +514,7 @@ class CalculateStats():
         Defaults to ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']
     roi_source: (str, optional)
         Key of an image in Pipeline.data that is used for outputting ROIs and passing to the classifier.
-        Defaults to 'imc'
+        Defaults to 'im_corrected'
 
     Returns:
     --------
@@ -529,7 +529,7 @@ class CalculateStats():
                  export_outputpath=None,
                  min_length=0,
                  propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter'],
-                 roi_source='imc'):
+                 roi_source='im_corrected'):
 
         self.max_coverage = max_coverage
         self.max_particles = max_particles

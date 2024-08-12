@@ -239,7 +239,7 @@ class CreateBackground():
 
         :attr:`pyopia.pipeline.Data.raw_files`
 
-        :attr:`pyopia.pipeline.Data.imc`
+        :attr:`pyopia.pipeline.Data.im_corrected`
 
         :attr:`pyopia.pipeline.Data.bgstack`
 
@@ -324,7 +324,7 @@ class CorrectBackgroundAccurate():
     :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
-        :attr:`pyopia.pipeline.Data.imc`
+        :attr:`pyopia.pipeline.Data.im_corrected`
 
         :attr:`pyopia.pipeline.Data.bgstack`
 
@@ -359,7 +359,7 @@ class CorrectBackgroundAccurate():
         pass
 
     def __call__(self, data):
-        data['imc'] = correct_im_accurate(data['imbg'], data['imraw'])
+        data['im_corrected'] = correct_im_accurate(data['imbg'], data['imraw'])
 
         match self.bgshift_function:
             case 'pass':
@@ -378,7 +378,7 @@ class CorrectBackgroundAccurate():
 class CorrectBackgroundNone():
     '''
     :class:`pyopia.pipeline` compatible class for use when no background correction is required.
-    This simply makes `data['imc'] = data['imraw'] in the pipeline.
+    This simply makes `data['im_corrected'] = data['imraw'] in the pipeline.
 
     Pipeline input data:
     --------------------
@@ -397,7 +397,7 @@ class CorrectBackgroundNone():
     :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
-        :attr:`pyopia.pipeline.Data.imc`
+        :attr:`pyopia.pipeline.Data.im_corrected`
 
 
     Example pipeline uses:
@@ -415,6 +415,6 @@ class CorrectBackgroundNone():
         pass
 
     def __call__(self, data):
-        data['imc'] = data['imraw']
+        data['im_corrected'] = data['imraw']
 
         return data
