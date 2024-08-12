@@ -345,7 +345,7 @@ def make_montage(stats_file_or_df, pixel_size, roidir,
     # loop through each extracted particle and attempt to add it to the canvas
     for files in tqdm(roifiles):
         # get the particle image from the HDF5 file
-        particle_image = export_name2im(files, roidir)
+        particle_image = roi_from_export_name(files, roidir)
 
         # measure the size of this image
         [height, width] = np.shape(particle_image[:, :, 0])
@@ -597,7 +597,7 @@ def add_depth_to_stats(stats, time, depth):
     return stats
 
 
-def export_name2im(exportname, path):
+def roi_from_export_name(exportname, path):
     ''' returns an image from the export name string in the -STATS.h5 file
 
     get the exportname like this: exportname = stats['export name'].values[0]

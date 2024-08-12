@@ -30,6 +30,7 @@ pixel_size = 24 # pixel size of imaging system in microns
 
     [steps.statextract]
     pipeline_class = 'pyopia.process.CalculateStats'
+    export_outputpath = "silcam_rois"
 
     [steps.output]
     pipeline_class = 'pyopia.io.StatsToDisc'
