@@ -103,9 +103,6 @@ class Pipeline():
 
             self.run_step(stepname)
 
-        stats = self.data['stats']
-
-        return stats
 
     def run_step(self, stepname):
         '''Execute a pipeline step and update the pipeline data
@@ -251,48 +248,6 @@ def steps_to_string(steps):
                       + '\n   Vars: ' + str(vars(steps[key]))
                       + '\n')
     return steps_str
-
-
-class ReturnData():
-    '''Pipeline compatible class that can be used for debugging
-    if inserted as the last step in the steps dict.
-
-
-    Pipeline input data:
-    --------------------
-    :class:`pyopia.pipeline.Data`
-
-    containing any set of keys
-
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
-
-    Example use:
-    ------------
-
-    Config setup:
-
-    .. code-block:: python
-
-        [steps.returndata]
-        pipeline_class = 'pyopia.pipeline.ReturnData'
-
-    This will allow you to call pipeline.run() like this:
-
-    .. code-block:: python
-
-        data = pipeline.run(filename)
-
-    where `data` will be the available data dictionary available at the point of calling this
-    '''
-
-    def __init__(self):
-        pass
-
-    def __call__(self, data):
-        data['stats'] = data
-        return data
 
 
 def steps_from_xstats(xstats):
