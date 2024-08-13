@@ -85,6 +85,8 @@ def correct_im_accurate(imbg, imraw):
     Args:
       imbg (float64)  : background averaged image
       imraw (float64) : raw image
+      imbg (float64)  : background averaged image
+      imraw (float64) : raw image
 
     Returns:
       im_corrected (float64)   : corrected image, same type as input
@@ -107,6 +109,8 @@ def correct_im_fast(imbg, imraw):
     highlights, especially if the background or raw images are not properly obtained
 
     Args:
+      imbg (float64)  : background averaged image
+      imraw (float64) : raw image
       imbg (float64)  : background averaged image
       imraw (float64) : raw image
 
@@ -186,6 +190,7 @@ class CorrectBackgroundAccurate():
         containing the following new keys:
 
         :attr:`pyopia.pipeline.Data.im_corrected`
+        :attr:`pyopia.pipeline.Data.im_corrected`
 
         :attr:`pyopia.pipeline.Data.bgstack`
 
@@ -243,6 +248,7 @@ class CorrectBackgroundAccurate():
             return data
 
         data['im_corrected'] = correct_im_accurate(data['imbg'], data['imraw'])
+        data['im_corrected'] = correct_im_accurate(data['imbg'], data['imraw'])
 
         match self.bgshift_function:
             case 'pass':
@@ -262,6 +268,7 @@ class CorrectBackgroundNone():
     '''
     :class:`pyopia.pipeline` compatible class for use when no background correction is required.
     This simply makes `data['im_corrected'] = data['imraw'] in the pipeline.
+    This simply makes `data['im_corrected'] = data['imraw'] in the pipeline.
 
     Pipeline input data:
     --------------------
@@ -280,6 +287,7 @@ class CorrectBackgroundNone():
     :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
+        :attr:`pyopia.pipeline.Data.im_corrected`
         :attr:`pyopia.pipeline.Data.im_corrected`
 
 
