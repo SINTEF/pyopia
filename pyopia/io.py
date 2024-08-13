@@ -28,6 +28,7 @@ def write_stats(
         stats_all (DataFrame):  stats dataframe returned from processImage()
         export_name_len (int):  max number of chars allowed for col 'export name'
     '''
+
     if 'export name' in stats.columns:
         min_itemsize = {'export name': export_name_len}
     else:
@@ -51,7 +52,10 @@ def write_stats(
             existing_stats = load_stats(datafilename + '-STATS.nc')
             xstats = xarray.concat([existing_stats, xstats], 'index')
 
-        xstats.to_netcdf(datafilename + '-STATS.nc')
+        # Make sure that string variables get stores as string, even if dataset is empty
+        encoding = {k: {'dtype': 'str'} for k in ['export name', 'holo_filename'] if k in xstats.data_vars}
+
+        xstats.to_netcdf(datafilename + '-STATS.nc', encoding=encoding)
 
 
 def make_xstats(stats, toml_steps):

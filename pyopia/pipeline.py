@@ -9,8 +9,6 @@ import pandas as pd
 from operator import methodcaller
 import toml
 import sys
-import importlib
-from skimage.io import imread
 
 
 class Pipeline():
@@ -68,6 +66,9 @@ class Pipeline():
         self.data['cl'] = None
         self.data['settings'] = settings
 
+        # Flag used to control whether remaining pipeline steps should be skipped once it has been set to True
+        self.data['skip_next_steps'] = False
+
         self.pass_general_settings()
 
         for stepname in self.stepnames:
@@ -102,6 +103,14 @@ class Pipeline():
                 continue
 
             self.run_step(stepname)
+
+            # Check for signal from this step that we should skip remaining pipeline for this image
+            if self.data['skip_next_steps']:
+                print('Skipping remaining steps of the pipeline and returning')
+
+                # Reset skip flag
+                self.data['skip_next_steps'] = False
+                return
 
         stats = self.data['stats']
 
@@ -195,12 +204,12 @@ class Data(TypedDict):
     '''
     bgstack: float
     '''List of images making up the background (either static or moving)
-    Obtained from :class:`pyopia.background.CreateBackground`
+    Obtained from :class:`pyopia.background.CorrectBackgroundAccurate`
     '''
     imbg: float
     '''Background image that can be used to correct :attr:`pyopia.pipeline.Data.imraw`
     and calcaulte :attr:`pyopia.pipeline.Data.imc`
-    Obtained from :class:`pyopia.background.CreateBackground`
+    Obtained from :class:`pyopia.background.CorrectBackgroundAccurate`
     '''
     filename: str
     '''Filename string'''
@@ -357,11 +366,3 @@ def build_steps(toml_steps):
         steps[step_name] = build_repr(toml_steps, step_name)
 
     return steps
-
-
-def get_load_function(instrument_module='imread'):
-    if instrument_module == 'imread':
-        return imread
-    else:
-        instrument = importlib.import_module(f'pyopia.instrument.{instrument_module}')
-        return instrument.load_image
