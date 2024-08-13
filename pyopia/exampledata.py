@@ -56,17 +56,21 @@ def get_oil_from_pysilcam_blob(download_directory='./oil_silcam_images'):
         known filename on the blob
 
     '''
-    if os.path.exists(os.path.join(download_directory)):
+    local_zip_file = os.path.join(download_directory, 'oil.zip')
+    extract_dir = os.path.join(download_directory, 'oil')
+    if os.path.exists(local_zip_file):
         print(download_directory, 'already exists. Returning nothing')
-        return
+        return extract_dir
     os.makedirs(download_directory, exist_ok=False)
     url = 'https://pysilcam.blob.core.windows.net/test-data/oil.zip'
     print('Downloading....')
-    urllib.request.urlretrieve(url, download_directory + '/oil.zip')
+    urllib.request.urlretrieve(url, local_zip_file)
     print('Unzipping....')
-    with zipfile.ZipFile(os.path.join(download_directory, 'oil.zip'), 'r') as zipit:
+    with zipfile.ZipFile(local_zip_file, 'r') as zipit:
         zipit.extractall(download_directory)
     print('Done.')
+
+    return extract_dir
 
 
 def get_example_silc_image(download_directory='./'):
