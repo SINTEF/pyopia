@@ -18,7 +18,7 @@ def show_imc(imc, pixel_size):
     '''
     r, c = np.shape(imc[:, :, 0])
 
-    plt.imshow(np.uint8(imc),
+    plt.imshow(imc,
                extent=[0, c * pixel_size / 1000, 0, r * pixel_size / 1000],
                interpolation='nearest')
     plt.xlabel('mm')
@@ -40,7 +40,7 @@ def montage_plot(montage, pixel_size):
     ex = pixel_size * np.float64(msize) / 1000.
 
     ax = plt.gca()
-    ax.imshow(montage, extent=[0, ex, 0, ex])
+    ax.imshow(montage, extent=[0, ex, 0, ex], cmap='grey')
     ax.set_xticks([1, 2], [])
     ax.set_xticklabels(['    1mm', ''])
     ax.set_yticks([], [])

@@ -422,14 +422,8 @@ def statextract(imbw, timestamp, imc,
     region_properties = measure_particles(imbw, max_particles=max_particles)
 
     # build the stats and export to HDF5
-    s = np.shape(imc)
-    if len(s) == 2:
-        imref = np.copy(imc)
-        imc = np.zeros((np.shape(imc)[0], np.shape(imc)[1], 3), dtype=np.uint8)
-        # Convert from floats in [0, 1] to ints in [0, 255]
-        imc[:, :, 0] = 255 * imref
-        imc[:, :, 1] = 255 * imref
-        imc[:, :, 2] = 255 * imref
+    if imc.ndim == 2:
+        imc = np.stack([imc] * 3, axis=2)
         print('WARNING! Unexpected image dimension. extract_particles modified for 2-d images without color!')
 
     stats = extract_particles(imc, timestamp, Classification, region_properties,
@@ -448,7 +442,7 @@ class Segment():
 
         containing the following keys:
 
-        :attr:`pyopia.pipeline.Data.imc`
+        :attr:`pyopia.pipeline.Data.im_corrected`
 
     Parameters:
     ----------
@@ -458,6 +452,9 @@ class Segment():
         threshold for segmentation. Defaults to 0.98.
     fill_holes : (bool)
         runs ndi.binary_fill_holes if True. Defaults to True.
+    segment_source: (str, optional)
+        The key in Pipeline.data of the image to be segmented.
+        Defaults to 'im_corrected'
 
     Returns:
     --------
@@ -470,14 +467,16 @@ class Segment():
     def __init__(self,
                  minimum_area=12,
                  threshold=0.98,
-                 fill_holes=True):
+                 fill_holes=True,
+                 segment_source='im_corrected'):
 
         self.minimum_area = minimum_area
         self.threshold = threshold
         self.fill_holes = fill_holes
+        self.segment_source = segment_source
 
     def __call__(self, data):
-        data['imbw'] = segment(data['imc'], threshold=self.threshold, fill_holes=self.fill_holes)
+        data['imbw'] = segment(data[self.segment_source], threshold=self.threshold, fill_holes=self.fill_holes)
         return data
 
 
@@ -494,7 +493,7 @@ class CalculateStats():
 
         :attr:`pyopia.pipeline.Data.timestamp`
 
-        :attr:`pyopia.pipeline.Data.imc`
+        :attr:`pyopia.pipeline.Data.im_corrected`
 
         :attr:`pyopia.pipeline.Data.cl`
 
@@ -513,6 +512,9 @@ class CalculateStats():
     propnames: (list, optional)
         Specifies properties wanted from skimage.regionprops.
         Defaults to ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']
+    roi_source: (str, optional)
+        Key of an image in Pipeline.data that is used for outputting ROIs and passing to the classifier.
+        Defaults to 'im_corrected'
 
     Returns:
     --------
@@ -526,23 +528,19 @@ class CalculateStats():
                  max_particles=5000,
                  export_outputpath=None,
                  min_length=0,
-                 propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter']):
+                 propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter'],
+                 roi_source='im_corrected'):
 
         self.max_coverage = max_coverage
         self.max_particles = max_particles
         self.export_outputpath = export_outputpath
         self.min_length = min_length
         self.propnames = propnames
+        self.roi_source = roi_source
 
     def __call__(self, data):
         print('statextract')
-        if 'imref' not in data.keys():
-            if data['cl'] is not None:
-                print('WARNING. No reference image ("imref") for classifier. Resorting to "imc"')
-            imc = data['imc']
-        else:
-            imc = data['imref']
-        stats, saturation = statextract(data['imbw'], data['timestamp'], imc,
+        stats, saturation = statextract(data['imbw'], data['timestamp'], data[self.roi_source],
                                         Classification=data['cl'],
                                         max_coverage=self.max_coverage,
                                         max_particles=self.max_particles,

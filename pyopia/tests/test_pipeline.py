@@ -79,20 +79,22 @@ def test_holo_pipeline():
                 'focus': {
                     'pipeline_class': 'pyopia.instrument.holo.Focus',
                     'stacksummary_function': 'max_map',
-                    'threshold': 0.9,
+                    'threshold': 0.97,
                     'focus_function': 'find_focus_sobel',
                     'increase_depth_of_field': False,
                     'merge_adjacent_particles': 2
                 },
                 'segmentation': {
                     'pipeline_class': 'pyopia.process.Segment',
-                    'threshold': 0.9
+                    'threshold': 0.97,
+                    'segment_source': 'im_focussed'
                 },
                 'statextract': {
                     'pipeline_class': 'pyopia.process.CalculateStats',
                     'export_outputpath': tempdir_proc,
                     'propnames': ['major_axis_length', 'minor_axis_length', 'equivalent_diameter',
-                                  'feret_diameter_max', 'equivalent_diameter_area']
+                                  'feret_diameter_max', 'equivalent_diameter_area'],
+                    'roi_source': 'im_focussed'
                 },
                 'mergeholostats': {
                     'pipeline_class': 'pyopia.instrument.holo.MergeStats',
@@ -118,7 +120,7 @@ def test_holo_pipeline():
 
         print('stats header: ', stats.data_vars)
         print('Total number of particles: ', len(stats.major_axis_length))
-        assert len(stats.major_axis_length) == 49, ('Number of particles expected in this test is 49.' +
+        assert len(stats.major_axis_length) == 40, ('Number of particles expected in this test is 40.' +
                                                     'This test counted ' + str(len(stats.major_axis_length)) +
                                                     ' Something has altered the number of particles detected')
 

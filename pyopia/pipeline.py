@@ -186,7 +186,7 @@ class Data(TypedDict):
     In future this may be better as a data class with slots (from python 3.10).
 
     This is an example of a link to the imc key doc:
-    :attr:`pyopia.pipeline.Data.imc`
+    :attr:`pyopia.pipeline.Data.im_corrected`
     '''
 
     raw_files: str
@@ -197,8 +197,10 @@ class Data(TypedDict):
     imraw: float
     '''Raw uncorrected image'''
     img: float
-    '''Raw uncorrected image. To be deprecatied and changed to imraw'''
+    '''Deprecatied. Replaced by imraw'''
     imc: float
+    '''Deprecatied. Replaced by im_corrected'''
+    im_corrected: float
     '''Single composite image of focussed particles ready for segmentation
     Obtained from e.g. :class:`pyopia.background.CorrectBackgroundAccurate`
     '''
@@ -208,7 +210,7 @@ class Data(TypedDict):
     '''
     imbg: float
     '''Background image that can be used to correct :attr:`pyopia.pipeline.Data.imraw`
-    and calcaulte :attr:`pyopia.pipeline.Data.imc`
+    and calcaulte :attr:`pyopia.pipeline.Data.im_corrected`
     Obtained from :class:`pyopia.background.CorrectBackgroundAccurate`
     '''
     filename: str
@@ -237,6 +239,10 @@ class Data(TypedDict):
     '''Stack summary image used to locate possible particles
     Obtained from :class:`pyopia.instrument.holo.Focus`
     '''
+    im_focussed: float
+    '''Focussed holographic image'''
+    imref: float
+    '''Refereence background corrected image passed to silcam classifier'''
 
 
 def steps_to_string(steps):
@@ -256,48 +262,6 @@ def steps_to_string(steps):
                       + '\n   Vars: ' + str(vars(steps[key]))
                       + '\n')
     return steps_str
-
-
-class ReturnData():
-    '''Pipeline compatible class that can be used for debugging
-    if inserted as the last step in the steps dict.
-
-
-    Pipeline input data:
-    --------------------
-    :class:`pyopia.pipeline.Data`
-
-    containing any set of keys
-
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
-
-    Example use:
-    ------------
-
-    Config setup:
-
-    .. code-block:: python
-
-        [steps.returndata]
-        pipeline_class = 'pyopia.pipeline.ReturnData'
-
-    This will allow you to call pipeline.run() like this:
-
-    .. code-block:: python
-
-        data = pipeline.run(filename)
-
-    where `data` will be the available data dictionary available at the point of calling this
-    '''
-
-    def __init__(self):
-        pass
-
-    def __call__(self, data):
-        data['stats'] = data
-        return data
 
 
 def steps_from_xstats(xstats):

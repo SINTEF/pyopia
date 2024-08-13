@@ -18,9 +18,12 @@ pixel_size = 24 # pixel size of imaging system in microns
     [steps.segmentation]
     pipeline_class = 'pyopia.process.Segment'
     threshold = 0.85 # threshold used for segmentation
+    segment_source = "im_corrected"
 
     [steps.statextract]
     pipeline_class = 'pyopia.process.CalculateStats'
+    export_outputpath = "silcam_rois"
+    roi_source = "imref"
 
     [steps.output]
     pipeline_class = 'pyopia.io.StatsToDisc'
