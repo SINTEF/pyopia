@@ -314,7 +314,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
 
     # add the filenames of the HDF5 file and particle number tag to the
     # particle statistics data
-    stats['export name'] = filenames
+    stats['export name'] = pd.Series(index=stats.index, data=filenames, dtype=str)
 
     return stats
 

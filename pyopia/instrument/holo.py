@@ -579,7 +579,7 @@ class MergeStats():
                           + abs(bbox[:, 2] - stats.maxr[idx]) + abs(bbox[:, 3] - stats.maxc[idx]))
             ifocus.append(stack_ifocus[np.argmin(total_diff)])
 
-        stats['ifocus'] = ifocus
+        stats['ifocus'] = np.array(ifocus, dtype=np.int64)
         stats['holo_filename'] = data['filename']
         data['stats'] = stats
         return data
@@ -653,17 +653,13 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
                 'pipeline_class': 'pyopia.classify.Classify',
                 'model_path': model_path
             },
-            'createbackground': {
-                'pipeline_class': 'pyopia.background.CreateBackground',
-                'average_window': 10,
-                'instrument_module': 'holo'
-            },
             'load': {
                 'pipeline_class': 'pyopia.instrument.holo.Load'
             },
             'correctbackground': {
                 'pipeline_class': 'pyopia.background.CorrectBackgroundAccurate',
-                'bgshift_function': 'accurate'
+                'bgshift_function': 'accurate',
+                'average_window': 10
             },
             'reconstruct': {
                 'pipeline_class': 'pyopia.instrument.holo.Reconstruct',

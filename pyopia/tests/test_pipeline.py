@@ -6,6 +6,8 @@ A high level test for the basic processing pipeline.
 from glob import glob
 import tempfile
 import os
+import numpy as np
+import skimage.io
 
 import pyopia.exampledata as testdata
 import pyopia.io
@@ -60,17 +62,13 @@ def test_holo_pipeline():
                     'pipeline_class': 'pyopia.classify.Classify',
                     'model_path': model_path
                 },
-                'createbackground': {
-                    'pipeline_class': 'pyopia.background.CreateBackground',
-                    'average_window': 10,
-                    'instrument_module': 'holo'
-                },
                 'load': {
                     'pipeline_class': 'pyopia.instrument.holo.Load'
                 },
                 'correctbackground': {
                     'pipeline_class': 'pyopia.background.CorrectBackgroundAccurate',
-                    'bgshift_function': 'accurate'
+                    'bgshift_function': 'accurate',
+                    'average_window': 1
                 },
                 'reconstruct': {
                     'pipeline_class': 'pyopia.instrument.holo.Reconstruct',
@@ -108,6 +106,11 @@ def test_holo_pipeline():
 
         processing_pipeline = Pipeline(pipeline_config)
 
+        # Manually initialize the background from a pre-computed and stored image
+        background_img = skimage.io.imread(holo_background_filename)
+        processing_pipeline.data['bgstack'] = [background_img]
+        processing_pipeline.data['imbg'] = np.mean(processing_pipeline.data['bgstack'], axis=0)
+
         print('Run processing on: ', holo_filename)
         processing_pipeline.run(holo_filename)
         with xarray.open_dataset(datafile_prefix + '-STATS.nc') as stats:
@@ -115,7 +118,7 @@ def test_holo_pipeline():
 
         print('stats header: ', stats.data_vars)
         print('Total number of particles: ', len(stats.major_axis_length))
-        assert len(stats.major_axis_length) == 56, ('Number of particles expected in this test is 56.' +
+        assert len(stats.major_axis_length) == 49, ('Number of particles expected in this test is 49.' +
                                                     'This test counted ' + str(len(stats.major_axis_length)) +
                                                     ' Something has altered the number of particles detected')
 
