@@ -97,7 +97,7 @@ class ImagePrep():
 
     def __call__(self, data):
         image = data[self.image_level]
-        
+
         # simplify processing by squeezing the image dimensions into a 2D array
         # min is used for squeezing to represent the highest attenuation of all wavelengths
         data['im_corrected'] = np.min(image, axis=2)
