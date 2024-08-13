@@ -242,7 +242,7 @@ class CorrectBackgroundAccurate():
             data['skip_next_steps'] = True
             return data
 
-        data['imc'] = correct_im_accurate(data['imbg'], data['imraw'])
+        data['im_corrected'] = correct_im_accurate(data['imbg'], data['imraw'])
 
         match self.bgshift_function:
             case 'pass':
