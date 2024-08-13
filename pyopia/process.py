@@ -15,7 +15,7 @@ from skimage.io import imsave
 from datetime import datetime
 
 
-def image2blackwhite_accurate(imc, greythresh):
+def image2blackwhite_accurate(input_image, greythresh):
     ''' converts corrected image (imc) to a binary image
     using greythresh as the threshold value (some auto-scaling of greythresh is done inside)
 
@@ -28,19 +28,18 @@ def image2blackwhite_accurate(imc, greythresh):
         imbw                        : segmented image (binary image)
 
     '''
-    img = np.copy(imc)  # create a copy of the input image (not sure why)
 
     # obtain a semi-autimated treshold which can handle
     # some flicker in the illumination by tracking the 50th percentile of the
     # image histogram
-    thresh = greythresh * np.percentile(img, 50)
+    thresh = greythresh * np.percentile(input_image, 50)
 
     # create a segmented image using the crude threshold
-    imbw1 = img < thresh
+    imbw1 = input_image < thresh
 
     # perform an adaptive historgram equalization to handle some
     # less-than-ideal lighting situations
-    img_adapteq = skimage.exposure.equalize_adapthist(img,
+    img_adapteq = skimage.exposure.equalize_adapthist(input_image,
                                                       clip_limit=(greythresh),
                                                       nbins=256)
 
@@ -57,12 +56,12 @@ def image2blackwhite_accurate(imc, greythresh):
     return imbw
 
 
-def image2blackwhite_fast(imc, greythresh):
-    ''' converts corrected image (imc) to a binary image
+def image2blackwhite_fast(input_image, greythresh):
+    ''' converts an image (input_image) to a binary image
     using greythresh as the threshold value (fixed scaling of greythresh is done inside)
 
     Args:
-        imc                         : background-corrected image
+        input_image (float)         : image. Usually a background-corrected image
         greythresh                  : threshold multiplier (greythresh is multiplied by 50th percentile of the image
                                       histogram)
 
@@ -72,8 +71,8 @@ def image2blackwhite_fast(imc, greythresh):
     # obtain a semi-autimated treshold which can handle
     # some flicker in the illumination by tracking the 50th percentile of the
     # image histogram
-    thresh = greythresh * np.percentile(imc, 50)
-    imbw = imc < thresh  # segment the image
+    thresh = greythresh * np.percentile(input_image, 50)
+    imbw = input_image < thresh  # segment the image
 
     return imbw
 
@@ -159,23 +158,23 @@ def get_spine_length(imbw):
     return spine_length
 
 
-def extract_roi(im, bbox):
+def extract_roi(input_image, bbox):
     ''' given an image (im) and bounding box (bbox), this will return the roi
 
     Args:
-        im                  : any image, such as background-corrected image (imc)
+        input_image         : any image, such as background-corrected image
         bbox                : bounding box from regionprops [r1, c1, r2, c2]
 
     Returns:
         roi                 : image cropped to region of interest
     '''
     # refer to skimage regionprops documentation on how bbox is structured
-    roi = im[bbox[0]:bbox[2], bbox[1]:bbox[3]]
+    roi = input_image[bbox[0]:bbox[2], bbox[1]:bbox[3]]
 
     return roi
 
 
-def write_segmented_images(imbw, imc, settings, timestamp):
+def write_segmented_images(imbw, input_image, settings, timestamp):
     '''writes binary images as bmp files to the same place as hdf5 files if loglevel is in DEBUG mode
     Useful for checking threshold and segmentation
 
@@ -189,7 +188,7 @@ def write_segmented_images(imbw, imc, settings, timestamp):
         imbw_ = np.uint8(255 * imbw)
         imsave(fname, imbw_)
         fname = os.path.join(settings.ExportParticles.outputpath, timestamp.strftime('D%Y%m%dT%H%M%S.%f-IMC.bmp'))
-        imsave(fname, imc)
+        imsave(fname, input_image)
 
 
 def put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i):
