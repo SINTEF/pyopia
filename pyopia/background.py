@@ -83,14 +83,14 @@ def correct_im_accurate(imbg, imraw):
     highlights if the background or raw images are very poorly obtained
 
     Args:
-      imbg (uint8 or float64)  : background averaged image
-      imraw (uint8 or float64) : raw image
+      imbg (float64)  : background averaged image
+      imraw (float64) : raw image
 
     Returns:
       imc (float64)   : corrected image, same type as input
     '''
 
-    imc = np.float64(imraw) - np.float64(imbg)
+    imc = imraw - imbg
     imc += (1 / 2 - np.percentile(imc, 50))
 
     imc += 1 - imc.max()
@@ -107,13 +107,13 @@ def correct_im_fast(imbg, imraw):
     highlights, especially if the background or raw images are not properly obtained
 
     Args:
-      imbg (uint8 or float64)  : background averaged image
-      imraw (uint8 or float64) : raw image
+      imbg (float64)  : background averaged image
+      imraw (float64) : raw image
 
     Returns:
       imc (float64)   : corrected image
     '''
-    imc = np.float64(imraw) - np.float64(imbg)
+    imc = imraw - imbg
 
     imc += 215/255
     imc[imc < 0] = 0
