@@ -112,10 +112,6 @@ class Pipeline():
                 self.data['skip_next_steps'] = False
                 return
 
-        stats = self.data['stats']
-
-        return stats
-
     def run_step(self, stepname):
         '''Execute a pipeline step and update the pipeline data
 
