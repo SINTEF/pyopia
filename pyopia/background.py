@@ -158,17 +158,17 @@ class CorrectBackgroundAccurate():
     :class:`pyopia.pipeline` compatible class that calls: :func:`pyopia.background.correct_im_accurate`
     and will shift the background using a moving average function if given.
 
+    The background stack and background image are created during the first 'average_window' (int) calls
+    to this class, and the skip_next_steps flag is set in the pipeline Data. No background correction
+    is performed during these steps.
+
     Pipeline input data:
     --------------------
     :class:`pyopia.pipeline.Data`
 
         containing the following keys:
 
-        :attr:`pyopia.pipeline.Data.bgstack`
-
         :attr:`pyopia.pipeline.Data.imraw`
-
-        :attr:`pyopia.pipeline.Data.imbg`
 
     Parameters:
     -----------
@@ -179,6 +179,9 @@ class CorrectBackgroundAccurate():
         :func:`pyopia.background.shift_bgstack_accurate`
 
         :func:`pyopia.background.shift_bgstack_fast`
+
+    average_window : int
+        number of images to use in the background image stack
 
     Returns:
     --------
@@ -201,6 +204,7 @@ class CorrectBackgroundAccurate():
         [steps.correctbackground]
         pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
         bgshift_function = 'accurate'
+        average_window = 5
 
     Apply static background correction:
 
@@ -209,7 +213,7 @@ class CorrectBackgroundAccurate():
         [steps.correctbackground]
         pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
         bgshift_function = 'pass'
-
+        average_window = 5
 
     If you do not want to do background correction, leave this step out of the pipeline.
     Then you could use :class:`pyopia.pipeline.CorrectBackgroundNone` if you need to instead.
