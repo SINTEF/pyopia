@@ -4,6 +4,10 @@ import os
 import gdown
 
 
+def get_classifier_database_from_pysilcam_blob(download_directory='./'):
+    
+
+
 def get_file_from_pysilcam_blob(filename, download_directory='./'):
     '''Downloads a specified filename from the pysilcam.blob into the working dir. if it doesn't already exist
 
