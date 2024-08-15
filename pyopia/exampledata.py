@@ -17,7 +17,7 @@ def get_classifier_database_from_pysilcam_blob(download_directory='./'):
     '''
     if os.path.exists(os.path.join(download_directory)):
         print(download_directory, 'already exists. Returning nothing')
-        return
+        return download_directory
     os.makedirs(download_directory, exist_ok=False)
     url = 'https://pysilcam.blob.core.windows.net/test-data/silcam_database.zip'
     print('Downloading....')
