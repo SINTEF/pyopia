@@ -5,7 +5,8 @@ import gdown
 
 
 def get_classifier_database_from_pysilcam_blob(download_directory='./'):
-    
+    print('not implemented')
+    return
 
 
 def get_file_from_pysilcam_blob(filename, download_directory='./'):
