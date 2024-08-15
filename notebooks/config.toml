@@ -18,7 +18,7 @@ pixel_size = 24 # pixel size of imaging system in microns
     [steps.segmentation]
     pipeline_class = 'pyopia.process.Segment'
     threshold = 0.85 # threshold used for segmentation
-    segment_source = "im_corrected"
+    segment_source = "im_minimum"
 
     [steps.statextract]
     pipeline_class = 'pyopia.process.CalculateStats'
