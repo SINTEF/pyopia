@@ -245,7 +245,8 @@ class Data(TypedDict):
     imref: float
     '''Refereence background corrected image passed to silcam classifier'''
     im_masked: float
-    '''Masked raw image with removed potentially noisy border region before further processsing'''
+    '''Masked raw image with removed potentially noisy border region before further processsing
+    Obtained from e.g. :class:`pyopia.instrument.common.RectangularImageMask`'''
 
 
 def steps_to_string(steps):
