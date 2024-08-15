@@ -51,7 +51,9 @@ def write_stats(
             existing_stats = load_stats(datafilename + '-STATS.nc')
             xstats = xarray.concat([existing_stats, xstats], 'index')
 
-        xstats.to_netcdf(datafilename + '-STATS.nc')
+        encoding = {k: {'dtype': 'str'} for k in ['export name', 'holo_filename'] if k in xstats.data_vars}
+
+        xstats.to_netcdf(datafilename + '-STATS.nc', encoding=encoding)
 
 
 def make_xstats(stats, toml_steps):
