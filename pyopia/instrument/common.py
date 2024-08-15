@@ -32,7 +32,7 @@ class RectangularImageMask():
     Put this in your pipeline right after load step to mask out border outside specified pixel coordinates:
 
     .. code-block:: python
-    
+
         [steps.mask]
         pipeline_class = 'pyopia.instrument.common.RectangularImageMask'
         mask_bbox = [[200, 1850], [400, 2048], [0, 3]]
@@ -44,12 +44,12 @@ class RectangularImageMask():
         if mask_bbox is None:
             self.mask_bbox = (slice(None), slice(None), slice(None))
         else:
-            self.mask_bbox = (slice(mask_bbox[0][0], mask_bbox[0][1]), 
+            self.mask_bbox = (slice(mask_bbox[0][0], mask_bbox[0][1]),
                               slice(mask_bbox[1][0], mask_bbox[1][1]),
                               slice(mask_bbox[2][0], mask_bbox[2][1]))
 
     def __call__(self, data):
-        # Create a masked version of imraw, where space between defined mask rectangle and border is set to 0, 
+        # Create a masked version of imraw, where space between defined mask rectangle and border is set to 0,
         # while inside is kept.
         imraw_masked = np.zeros_like(data['imraw'])
         imraw_masked[self.mask_bbox] = data['imraw'][self.mask_bbox]
