@@ -5,7 +5,27 @@ import gdown
 
 
 def get_classifier_database_from_pysilcam_blob(download_directory='./'):
-    print('not implemented')
+    '''Downloads a specified filename from the pysilcam.blob into the working dir. if it doesn't already exist
+
+    only works for known filenames that are on this blob
+
+    Parameters
+    ----------
+    filename : string
+        known filename on the blob
+
+    '''
+    if os.path.exists(os.path.join(download_directory)):
+        print(download_directory, 'already exists. Returning nothing')
+        return
+    os.makedirs(download_directory, exist_ok=False)
+    url = 'https://pysilcam.blob.core.windows.net/test-data/silcam_database.zip'
+    print('Downloading....')
+    urllib.request.urlretrieve(url, download_directory + '/silcam_database.zip')
+    print('Unzipping....')
+    with zipfile.ZipFile(os.path.join(download_directory, 'silcam_database.zip'), 'r') as zipit:
+        zipit.extractall(download_directory)
+    print('Done.')
     return
 
 
