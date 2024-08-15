@@ -265,3 +265,5 @@ docs/jupyter_execute/
 poetry.lock
 /notebooks/gas_silcam_images
 /notebooks/oil_silcam_images
+header.tfl.txt
+*.tiff
