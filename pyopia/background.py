@@ -109,10 +109,8 @@ def correct_im_fast(imbg, imraw):
     highlights, especially if the background or raw images are not properly obtained
 
     Args:
-      imbg (float64)  : background averaged image
       imraw (float64) : raw image
       imbg (float64)  : background averaged image
-      imraw (float64) : raw image
 
     Returns:
       im_corrected (float64)   : corrected image
@@ -120,8 +118,7 @@ def correct_im_fast(imbg, imraw):
     im_corrected = imraw - imbg
 
     im_corrected += 215/255
-    im_corrected[im_corrected < 0] = 0
-    im_corrected[im_corrected > 1] = 1
+    im_corrected = np.clip(im_corrected, 0, 1)
 
     return im_corrected
 
@@ -291,7 +288,6 @@ class CorrectBackgroundNone():
     :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
-        :attr:`pyopia.pipeline.Data.im_corrected`
         :attr:`pyopia.pipeline.Data.im_corrected`
 
 

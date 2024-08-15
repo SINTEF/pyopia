@@ -16,11 +16,11 @@ from datetime import datetime
 
 
 def image2blackwhite_accurate(input_image, greythresh):
-    ''' converts corrected image (imc) to a binary image
+    ''' converts corrected image (im_corrected) to a binary image
     using greythresh as the threshold value (some auto-scaling of greythresh is done inside)
 
     Args:
-        imc                         : background-corrected image
+        input_image (float)         : image. Usually a background-corrected image
         greythresh                  : threshold multiplier (greythresh is multiplied by 50th percentile of the image
                                       histogram)
 
