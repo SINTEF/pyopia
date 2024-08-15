@@ -22,9 +22,9 @@ class RectangularImageMask():
     Returns:
     --------
     :class:`pyopia.pipeline.Data`
-        containing the updated keys:
+        containing the new key:
 
-        :attr:`pyopia.pipeline.Data.imraw`
+        :attr:`pyopia.pipeline.Data.im_masked`
 
 
     Example pipeline use:
@@ -53,6 +53,6 @@ class RectangularImageMask():
         # while inside is kept.
         imraw_masked = np.zeros_like(data['imraw'])
         imraw_masked[self.mask_bbox] = data['imraw'][self.mask_bbox]
-        data['imraw'] = imraw_masked
+        data['im_masked'] = imraw_masked
 
         return data

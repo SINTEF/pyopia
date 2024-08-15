@@ -241,6 +241,8 @@ class Data(TypedDict):
     '''Focussed holographic image'''
     imref: float
     '''Refereence background corrected image passed to silcam classifier'''
+    im_masked: float
+    '''Masked raw image with removed potentially noisy border region before further processsing'''
 
 
 def steps_to_string(steps):
