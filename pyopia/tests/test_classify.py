@@ -114,7 +114,7 @@ def test_pipeline_classification():
             for file in files:
                 img = skimage.io.imread(file)  # load ROI
                 prediction = cl.proc_predict(img)  # run prediction from silcam_classify
-                
+
                 if np.max(prediction) < 0.96:
                     continue
 
