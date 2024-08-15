@@ -100,6 +100,14 @@ poetry install --extras "classification-arm64"
 poetry run pytest
 ```
 
+#### Version numbering
+
+The version number of PyOPIA is split into three sections: MAJOR.MINOR.PATCH
+
+* MAJOR: Changes in high-level pipeline use and/or data output, that are not be backwards-compatible.
+* MINOR: Enhancements that may not be backwards-compatible. High-level pipeline use and data outputs remain backwards-compatible.
+* PATCH: Backwards-compatible bug fixes or enhancements
+
 ## Build docs locally
 
 ```
