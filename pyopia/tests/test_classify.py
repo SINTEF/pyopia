@@ -108,12 +108,15 @@ def test_pipeline_classification():
             '''
 
             # list the files in this category of the training data
-            files = glob(os.path.join(database_path, category, '*.tiff'))
+            files = sorted(glob(os.path.join(database_path, category, '*.tiff')))
 
             # loop through the database images
             for file in files:
                 img = skimage.io.imread(file)  # load ROI
                 prediction = cl.proc_predict(img)  # run prediction from silcam_classify
+                
+                if np.max(prediction) < 0.96:
+                    continue
 
                 ind = np.argmax(prediction)  # find the highest score
 
@@ -122,12 +125,12 @@ def test_pipeline_classification():
                     return img, category
 
         cl = pyopia.classify.Classify(model_path)
-        canvas = np.ones((2048, 2448, 3), np.float64) * 1
+        canvas = np.ones((2048, 2448, 3), np.float64)
 
         rc_shift = int(2048/len(cl.class_labels)/1.5)
         rc = rc_shift
 
-        classes = glob(os.path.join(database_path, '*'))
+        classes = sorted(glob(os.path.join(database_path, '*')))
         print(classes)
 
         categories = []
