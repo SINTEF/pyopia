@@ -202,6 +202,9 @@ class Data(TypedDict):
     '''Single composite image of focussed particles ready for segmentation
     Obtained from e.g. :class:`pyopia.background.CorrectBackgroundAccurate`
     '''
+    im_minimum: float
+    '''A 2-d flattened RGB image representing the minmum intensity of all channels
+    Obtained from e.g. :class:`pyopia.instrument.silcam.ImagePrep`'''
     bgstack: float
     '''List of images making up the background (either static or moving)
     Obtained from :class:`pyopia.background.CorrectBackgroundAccurate`

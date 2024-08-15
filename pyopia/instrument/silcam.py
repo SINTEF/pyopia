@@ -89,7 +89,7 @@ class ImagePrep():
     :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
-        :attr:`pyopia.pipeline.Data.im_corrected`
+        :attr:`pyopia.pipeline.Data.im_minimum`
     '''
     def __init__(self, image_level='im_corrected'):
         self.image_level = image_level
@@ -100,7 +100,7 @@ class ImagePrep():
 
         # simplify processing by squeezing the image dimensions into a 2D array
         # min is used for squeezing to represent the highest attenuation of all wavelengths
-        data['im_corrected'] = np.min(image, axis=2)
+        data['im_minimum'] = np.min(image, axis=2)
 
         data['imref'] = rescale_intensity(image, out_range=(0, 1))
         return data

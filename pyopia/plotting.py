@@ -8,17 +8,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def show_imc(imc, pixel_size):
+def show_image(image, pixel_size):
     '''
     Plots a scaled figure (in mm) of an image
 
     Args:
-        imc (uint8 or float) : Image (usually a corrected image, such as imc)
+        image (float) : Image (usually a corrected image, such as im_corrected)
         pixel_size (float) : the pixel size (um) of the imaging system used
     '''
-    r, c = np.shape(imc[:, :, 0])
+    r, c = np.shape(image[:, :, 0])
 
-    plt.imshow(imc,
+    plt.imshow(image,
                extent=[0, c * pixel_size / 1000, 0, r * pixel_size / 1000],
                interpolation='nearest')
     plt.xlabel('mm')
