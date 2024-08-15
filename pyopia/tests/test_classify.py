@@ -10,11 +10,10 @@ import os
 import pyopia.exampledata as exampledata
 import pyopia.io
 import pyopia.classify
-from pyopia.pipeline import Pipeline
+import pyopia.pipeline
 import pyopia.process
 import pyopia.statistics
 import pyopia.background  # noqa: F401
-import xarray
 import pandas as pd
 import skimage.io
 import numpy as np
@@ -41,7 +40,6 @@ def test_match_to_database():
         # Load the trained tensorflow model and class names
         cl = pyopia.classify.Classify(model_path)
         class_labels = cl.class_labels
-        #model, class_labels = pyopia.classify.Classify(model_path)
 
         # class_labels should match the training data
         classes = sorted(glob(os.path.join(database_path, '*')))
@@ -189,7 +187,7 @@ def test_pipeline_classification():
 
         # Add the segmentation step description
         MyPipeline.settings['steps'].update({'statextract':
-                                                {'pipeline_class': 'pyopia.process.CalculateStats'}}
+                                            {'pipeline_class': 'pyopia.process.CalculateStats'}}
                                             )
 
         # Run the step
