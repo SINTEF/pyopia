@@ -28,7 +28,7 @@ def get_classifier_database_from_pysilcam_blob(download_directory='./'):
     print('Removing zip file')
     os.remove(os.path.join(download_directory, 'silcam_database.zip'))
     print('Done.')
-    return
+    return download_directory
 
 
 def get_file_from_pysilcam_blob(filename, download_directory='./'):
@@ -46,6 +46,7 @@ def get_file_from_pysilcam_blob(filename, download_directory='./'):
         return filename
     url = 'https://pysilcam.blob.core.windows.net/test-data/' + filename
     urllib.request.urlretrieve(url, os.path.join(download_directory, filename))
+    return download_directory
 
 
 def get_example_silc_image(download_directory='./'):
