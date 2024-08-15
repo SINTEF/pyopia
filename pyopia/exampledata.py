@@ -24,7 +24,9 @@ def get_classifier_database_from_pysilcam_blob(download_directory='./'):
     urllib.request.urlretrieve(url, download_directory + '/silcam_database.zip')
     print('Unzipping....')
     with zipfile.ZipFile(os.path.join(download_directory, 'silcam_database.zip'), 'r') as zipit:
-        zipit.extractall(download_directory)
+        zipit.extractall(os.path.join(download_directory, '../'))
+    print('Removing zip file')
+    os.remove(os.path.join(download_directory, 'silcam_database.zip'))
     print('Done.')
     return
 

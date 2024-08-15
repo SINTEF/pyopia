@@ -264,3 +264,4 @@ docs/jupyter_execute/
 
 poetry.lock
 header.tfl.txt
+*.tiff

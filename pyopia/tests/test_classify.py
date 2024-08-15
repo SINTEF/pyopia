@@ -7,7 +7,7 @@ from glob import glob
 import tempfile
 import os
 
-import pyopia.exampledata as testdata
+import pyopia.exampledata as exampledata
 import pyopia.io
 import pyopia.classify
 from pyopia.pipeline import Pipeline
@@ -30,170 +30,181 @@ def test_match_to_database():
     '''
 
     # location of the training data
-    database_path = '/Users/emlynd/Downloads/pysilcam-testdata/unittest-data/silcam_classification_database'
-    model_path = '/Users/emlynd/Downloads/pysilcam-testdata/keras_model/keras_model.h5'
+    with tempfile.TemporaryDirectory() as tempdir:
+        # location of the training data
+        database_path = os.path.join(tempdir, 'silcam_classification_database')
 
-    # Load the trained tensorflow model and class names
-    cl = pyopia.classify.Classify(model_path)
-    class_labels = cl.class_labels
-    #model, class_labels = pyopia.classify.Classify(model_path)
+        exampledata.get_classifier_database_from_pysilcam_blob(database_path)
+        os.makedirs(os.path.join(tempdir, 'model'), exist_ok=True)
+        model_path = exampledata.get_example_model(os.path.join(tempdir, 'model'))
 
-    # class_labels should match the training data
-    classes = glob(os.path.join(database_path, '*'))
+        # Load the trained tensorflow model and class names
+        cl = pyopia.classify.Classify(model_path)
+        class_labels = cl.class_labels
+        #model, class_labels = pyopia.classify.Classify(model_path)
 
-    # @todo write a quick check that classes and class_labels agree before doing the proper test.
+        # class_labels should match the training data
+        classes = sorted(glob(os.path.join(database_path, '*')))
 
-    def correct_positives(category):
-        '''
-        calculate the percentage positive matches for a given category
-        '''
+        # @todo write a quick check that classes and class_labels agree before doing the proper test.
 
-        # list the files in this category of the training data
-        files = glob(os.path.join(database_path, category, '*.tiff'))
+        def correct_positives(category):
+            '''
+            calculate the percentage positive matches for a given category
+            '''
+            print('Checking', category)
+            # list the files in this category of the training data
+            files = glob(os.path.join(database_path, category, '*.tiff'))
 
-        assert len(files) > 50, 'less then 50 files in test data.'
+            assert len(files) > 50, 'less then 50 files in test data.'
 
-        # start a counter of incorrectly classified images
-        failed = 0
-        time_limit = len(files) * 0.01
-        t1 = pd.Timestamp.now()
+            # start a counter of incorrectly classified images
+            failed = 0
+            time_limit = len(files) * 0.01
+            t1 = pd.Timestamp.now()
 
-        # loop through the database images
-        for file in files:
-            img = skimage.io.imread(file)  # load ROI
-            prediction = cl.proc_predict(img)  # run prediction from silcam_classify
+            # loop through the database images
+            for file in files:
+                img = skimage.io.imread(file)  # load ROI
+                prediction = cl.proc_predict(img)  # run prediction from silcam_classify
 
-            ind = np.argmax(prediction)  # find the highest score
+                ind = np.argmax(prediction)  # find the highest score
 
-            # check if the highest score matches the correct category
-            if not class_labels[ind] == category:
-                # if not, the add to the failure count
-                failed += 1
+                # check if the highest score matches the correct category
+                if not class_labels[ind] == category:
+                    # if not, the add to the failure count
+                    failed += 1
 
-        # turn failed count into a success percent
-        success = 100 - (failed / len(files)) * 100
+            # turn failed count into a success percent
+            success = 100 - (failed / len(files)) * 100
 
-        t2 = pd.Timestamp.now()
-        td = t2 - t1
-        assert td < pd.to_timedelta(time_limit, 's'), 'Processing time too long.'
+            t2 = pd.Timestamp.now()
+            td = t2 - t1
+            assert td < pd.to_timedelta(time_limit, 's'), 'Processing time too long.'
 
-        return success
+            return success
 
-    # loop through each category and calculate the success percentage
-    for cat in classes:
-        name = os.path.split(cat)[-1]
-        success = correct_positives(name)
-        print(name, success)
-        assert success > 96, (name + ' was poorly classified at only ' + str(success) + 'percent.')
+        # loop through each category and calculate the success percentage
+        for cat in classes:
+            name = os.path.split(cat)[-1]
+            success = correct_positives(name)
+            print(name, success)
+            assert success > 96, (name + ' was poorly classified at only ' + str(success) + 'percent.')
 
 
 def test_pipeline_classification():
-    
-    # location of the training data
-    database_path = '/Users/emlynd/Downloads/pysilcam-testdata/unittest-data/silcam_classification_database'
-    model_path = '/Users/emlynd/Downloads/pysilcam-testdata/keras_model/keras_model.h5'
+    with tempfile.TemporaryDirectory() as tempdir:
+        # location of the training data
+        database_path = os.path.join(tempdir, 'silcam_classification_database')
 
-    def get_good_roi(category):
-        '''
-        calculate the percentage positive matches for a given category
-        '''
+        exampledata.get_classifier_database_from_pysilcam_blob(database_path)
+        os.makedirs(os.path.join(tempdir, 'model'), exist_ok=True)
+        model_path = exampledata.get_example_model(os.path.join(tempdir, 'model'))
 
-        # list the files in this category of the training data
-        files = glob(os.path.join(database_path, category, '*.tiff'))
+        # Load the trained tensorflow model and class names
+        cl = pyopia.classify.Classify(model_path)
 
-        # loop through the database images
-        for file in files:
-            img = skimage.io.imread(file)  # load ROI
-            prediction = cl.proc_predict(img)  # run prediction from silcam_classify
+        def get_good_roi(category):
+            '''
+            calculate the percentage positive matches for a given category
+            '''
 
-            ind = np.argmax(prediction)  # find the highest score
+            # list the files in this category of the training data
+            files = glob(os.path.join(database_path, category, '*.tiff'))
 
-            # check if the highest score matches the correct category
-            if cl.class_labels[ind] == category:
-                return img, category
+            # loop through the database images
+            for file in files:
+                img = skimage.io.imread(file)  # load ROI
+                prediction = cl.proc_predict(img)  # run prediction from silcam_classify
 
-    cl = pyopia.classify.Classify(model_path)
-    canvas = np.ones((2048, 2448, 3), np.float64) * 1
+                ind = np.argmax(prediction)  # find the highest score
 
-    rc_shift = int(2048/len(cl.class_labels)/1.5)
-    rc = rc_shift
+                # check if the highest score matches the correct category
+                if cl.class_labels[ind] == category:
+                    return img, category
 
-    classes = glob(os.path.join(database_path, '*'))
-    print(classes)
+        cl = pyopia.classify.Classify(model_path)
+        canvas = np.ones((2048, 2448, 3), np.float64) * 1
 
-    categories = []
+        rc_shift = int(2048/len(cl.class_labels)/1.5)
+        rc = rc_shift
 
-    for cat in classes:
-        name = os.path.split(cat)[-1]
-        img, category = get_good_roi(name)
-        categories.append(category)
-        img_shape = np.shape(img)
-        rc += rc_shift
-        canvas[rc:rc + img_shape[0], rc: rc + img_shape[1], :] = np.float64(img)/255
+        classes = glob(os.path.join(database_path, '*'))
+        print(classes)
 
-    settings = {'general': {'raw_files': None,
-                            'pixel_size': 24},
-                'steps': {'note': 'non-standard pipeline.'}
-                }
+        categories = []
 
-    # Initialise the pipeline class without running anything
-    MyPipeline = pyopia.pipeline.Pipeline(settings=settings, initial_steps='')
+        for cat in classes:
+            name = os.path.split(cat)[-1]
+            img, category = get_good_roi(name)
+            categories.append(category)
+            img_shape = np.shape(img)
+            rc += rc_shift
+            canvas[rc:rc + img_shape[0], rc: rc + img_shape[1], :] = np.float64(img)/255
 
-    # Get the example trained model
-    model_path = pyopia.exampledata.get_example_model(os.getcwd())
+        settings = {'general': {'raw_files': None,
+                                'pixel_size': 24},
+                    'steps': {'note': 'non-standard pipeline.'}
+                    }
 
-    # Add the classifier step description to settings (i.e. metadata)
-    MyPipeline.settings['steps'].update({'classifier':
-                                        {'pipeline_class': 'pyopia.classify.Classify',
-                                        'model_path': model_path}
-                                        })
+        # Initialise the pipeline class without running anything
+        MyPipeline = pyopia.pipeline.Pipeline(settings=settings, initial_steps='')
 
-    # Execute the classifier step we defined above
-    MyPipeline.run_step('classifier')
-    # This is the same as running:
-    # MyPipeline.data['cl'] = pyopia.classify.Classify(model_path=model_path)
-    # Note: the classifier step is special in that it's output is specifically data['cl'], rather than other new keys in data
+        # Get the example trained model
+        model_path = pyopia.exampledata.get_example_model(os.getcwd())
 
-    MyPipeline.data['imraw'] = canvas
-    MyPipeline.data['timestamp'] = pd.Timestamp.now()
+        # Add the classifier step description to settings (i.e. metadata)
+        MyPipeline.settings['steps'].update({'classifier':
+                                            {'pipeline_class': 'pyopia.classify.Classify',
+                                             'model_path': model_path}})
 
-    # Add the imageprep step description
-    MyPipeline.settings['steps'].update({'imageprep':
-                                        {'pipeline_class': 'pyopia.instrument.silcam.ImagePrep',
-                                            'image_level': 'imraw'}
-                                        })
-    # Run the step
-    MyPipeline.run_step('imageprep')
-    # This is the same as running:
-    # ImagePrep = pyopia.instrument.silcam.ImagePrep(image_level='imraw')
-    # MyPipeline.data = ImagePrep(MyPipeline.data)
+        # Execute the classifier step we defined above
+        MyPipeline.run_step('classifier')
+        # This is the same as running:
+        # MyPipeline.data['cl'] = pyopia.classify.Classify(model_path=model_path)
+        # Note: the classifier step is special in that it's output is specifically data['cl'], rather than other new keys in data
 
-    # Add the segmentation step description
-    MyPipeline.settings['steps'].update({'segmentation':
-                                {'pipeline_class': 'pyopia.process.Segment',
-                                'threshold': 1}}
-                            )
-    # Run the step
-    MyPipeline.run_step('segmentation')
-    # This is the same as running:
-    # Segment = pyopia.process.Segment(threshold=settings['steps']['segmentation']['threshold'])
-    # data = Segment(data)
+        MyPipeline.data['imraw'] = canvas
+        MyPipeline.data['timestamp'] = pd.Timestamp.now()
 
-    # Add the segmentation step description
-    MyPipeline.settings['steps'].update({'statextract':
-                                            {'pipeline_class': 'pyopia.process.CalculateStats'}}
-                                        )
+        # Add the imageprep step description
+        MyPipeline.settings['steps'].update({'imageprep':
+                                            {'pipeline_class': 'pyopia.instrument.silcam.ImagePrep',
+                                             'image_level': 'imraw'}})
+        # Run the step
+        MyPipeline.run_step('imageprep')
+        # This is the same as running:
+        # ImagePrep = pyopia.instrument.silcam.ImagePrep(image_level='imraw')
+        # MyPipeline.data = ImagePrep(MyPipeline.data)
 
-    # Run the step
-    MyPipeline.run_step('statextract')
-    # This is the same as running:
-    # CalculateStats = pyopia.process.CalculateStats()
-    # data = CalculateStats(data)
+        # Add the segmentation step description
+        MyPipeline.settings['steps'].update({'segmentation':
+                                            {'pipeline_class': 'pyopia.process.Segment',
+                                             'threshold': 1}})
+        # Run the step
+        MyPipeline.run_step('segmentation')
+        # This is the same as running:
+        # Segment = pyopia.process.Segment(threshold=settings['steps']['segmentation']['threshold'])
+        # data = Segment(data)
 
-    stats = pyopia.statistics.add_best_guesses_to_stats(MyPipeline.data['stats'])
+        # Add the segmentation step description
+        MyPipeline.settings['steps'].update({'statextract':
+                                                {'pipeline_class': 'pyopia.process.CalculateStats'}}
+                                            )
 
-    out = [x[12:] for x in stats['best guess'].values]
-    assert categories == out, 'Classes returned from classifier do not match what was given to the pipeline'
+        # Run the step
+        MyPipeline.run_step('statextract')
+        # This is the same as running:
+        # CalculateStats = pyopia.process.CalculateStats()
+        # data = CalculateStats(data)
+
+        stats = pyopia.statistics.add_best_guesses_to_stats(MyPipeline.data['stats'])
+
+        out = [x[12:] for x in stats['best guess'].values]
+        assert categories == out, 'Classes returned from classifier do not match what was given to the pipeline'
+        print('classes input', categories)
+        print('classes measured', out)
+
 
 if __name__ == "__main__":
     test_match_to_database()
