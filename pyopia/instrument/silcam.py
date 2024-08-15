@@ -72,7 +72,10 @@ class SilCamLoad():
 
     def __call__(self, data):
         img = load_image(data['filename'])
-        data['timestamp'] = pd.to_datetime('2024' + os.path.splitext(os.path.basename(data['filename']))[0][6:])
+        if data['filename'][0] == 'D':
+            data['timestamp'] = timestamp_from_filename(data['filename'])
+        else:
+            data['timestamp'] = pd.to_datetime('2024' + os.path.splitext(os.path.basename(data['filename']))[0][6:])
         data['imraw'] = img
         return data
 
