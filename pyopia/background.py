@@ -85,17 +85,19 @@ def correct_im_accurate(imbg, imraw):
     Args:
       imbg (float64)  : background averaged image
       imraw (float64) : raw image
+      imbg (float64)  : background averaged image
+      imraw (float64) : raw image
 
     Returns:
-      imc (float64)   : corrected image, same type as input
+      im_corrected (float64)   : corrected image, same type as input
     '''
 
-    imc = imraw - imbg
-    imc += (1 / 2 - np.percentile(imc, 50))
+    im_corrected = imraw - imbg
+    im_corrected += (1 / 2 - np.percentile(im_corrected, 50))
 
-    imc += 1 - imc.max()
+    im_corrected += 1 - im_corrected.max()
 
-    return imc
+    return im_corrected
 
 
 def correct_im_fast(imbg, imraw):
@@ -107,19 +109,18 @@ def correct_im_fast(imbg, imraw):
     highlights, especially if the background or raw images are not properly obtained
 
     Args:
-      imbg (float64)  : background averaged image
       imraw (float64) : raw image
+      imbg (float64)  : background averaged image
 
     Returns:
-      imc (float64)   : corrected image
+      im_corrected (float64)   : corrected image
     '''
-    imc = imraw - imbg
+    im_corrected = imraw - imbg
 
-    imc += 215/255
-    imc[imc < 0] = 0
-    imc[imc > 1] = 1
+    im_corrected += 215/255
+    im_corrected = np.clip(im_corrected, 0, 1)
 
-    return imc
+    return im_corrected
 
 
 def shift_and_correct(bgstack, imbg, imraw, stacklength, real_time_stats=False):
@@ -131,26 +132,26 @@ def shift_and_correct(bgstack, imbg, imraw, stacklength, real_time_stats=False):
 
     Args:
         bgstack (list)                  : list of all images in the background stack
-        imbg (uint8)                    : background image
-        imraw (uint8)                   : raw image
+        imbg (float64)                  : background image
+        imraw (float64)                 : raw image
         stacklength (int)               : unsed int here - just there to maintain the same behaviour as
                                           shift_bgstack_fast()
         real_time_stats=False (Bool)    : if True use fast functions, if False use accurate functions
 
     Returns:
         bgstack (list)                  : list of all images in the background stack
-        imbg (uint8)                    : background averaged image
-        imc (uint8)                     : corrected image
+        imbg (float64)                  : background averaged image
+        im_corrected (float64)          : corrected image
     '''
 
     if real_time_stats:
-        imc = correct_im_fast(imbg, imraw)
+        im_corrected = correct_im_fast(imbg, imraw)
         bgstack, imbg = shift_bgstack_fast(bgstack, imbg, imraw, stacklength)
     else:
-        imc = correct_im_accurate(imbg, imraw)
+        im_corrected = correct_im_accurate(imbg, imraw)
         bgstack, imbg = shift_bgstack_accurate(bgstack, imbg, imraw, stacklength)
 
-    return bgstack, imbg, imc
+    return bgstack, imbg, im_corrected
 
 
 class CorrectBackgroundAccurate():
@@ -188,6 +189,7 @@ class CorrectBackgroundAccurate():
     :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
+        :attr:`pyopia.pipeline.Data.im_corrected`
         :attr:`pyopia.pipeline.Data.im_corrected`
 
         :attr:`pyopia.pipeline.Data.bgstack`
@@ -247,6 +249,7 @@ class CorrectBackgroundAccurate():
             return data
 
         data['im_corrected'] = correct_im_accurate(data['imbg'], data['imraw'])
+        data['im_corrected'] = correct_im_accurate(data['imbg'], data['imraw'])
 
         match self.bgshift_function:
             case 'pass':
@@ -265,6 +268,7 @@ class CorrectBackgroundAccurate():
 class CorrectBackgroundNone():
     '''
     :class:`pyopia.pipeline` compatible class for use when no background correction is required.
+    This simply makes `data['im_corrected'] = data['imraw'] in the pipeline.
     This simply makes `data['im_corrected'] = data['imraw'] in the pipeline.
 
     Pipeline input data:
