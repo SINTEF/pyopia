@@ -138,9 +138,6 @@ def test_silcam_pipeline():
         tempdir_proc = os.path.join(tempdir, 'proc')
         os.makedirs(tempdir_proc, exist_ok=True)
 
-        model_path = testdata.get_example_model(tempdir)
-        print('model_path:', model_path)
-
         filename = testdata.get_example_silc_image(tempdir)
         print('filename got:', filename)
 
@@ -156,10 +153,6 @@ def test_silcam_pipeline():
                 'pixel_size': 28  # pixel size in um
             },
             'steps': {
-                'classifier': {
-                    'pipeline_class': 'pyopia.classify.Classify',
-                    'model_path': model_path
-                },
                 'load': {
                     'pipeline_class': 'pyopia.instrument.silcam.SilCamLoad'
                 },
@@ -169,10 +162,12 @@ def test_silcam_pipeline():
                 },
                 'segmentation': {
                     'pipeline_class': 'pyopia.process.Segment',
-                    'threshold': 0.85
+                    'threshold': 0.85,
+                    'segment_source': 'im_minimum'
                 },
                 'statextract': {
-                    'pipeline_class': 'pyopia.process.CalculateStats'
+                    'pipeline_class': 'pyopia.process.CalculateStats',
+                    'roi_source': 'im_minimum'
                 },
                 'output': {
                     'pipeline_class': 'pyopia.io.StatsH5',
@@ -201,4 +196,5 @@ def test_silcam_pipeline():
 
 
 if __name__ == "__main__":
+    test_holo_pipeline()
     test_silcam_pipeline()

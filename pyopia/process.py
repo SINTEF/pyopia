@@ -492,8 +492,6 @@ class CalculateStats():
 
         :attr:`pyopia.pipeline.Data.timestamp`
 
-        :attr:`pyopia.pipeline.Data.im_corrected`
-
         :attr:`pyopia.pipeline.Data.cl`
 
     Parameters:
