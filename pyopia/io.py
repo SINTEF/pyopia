@@ -28,6 +28,10 @@ def write_stats(
         stats_all (DataFrame):  stats dataframe returned from processImage()
         export_name_len (int):  max number of chars allowed for col 'export name'
     '''
+    
+    if len(stats) == 0: # to avoid issue with wrong time datatypes in xarray
+        return
+    
     if 'export name' in stats.columns:
         min_itemsize = {'export name': export_name_len}
     else:
@@ -177,7 +181,6 @@ class StatsToDisc():
         self.export_name_len = export_name_len
 
     def __call__(self, data):
-
         write_stats(data['stats'], self.output_datafile,
                     settings=data['settings'],
                     dataformat=self.dataformat,
