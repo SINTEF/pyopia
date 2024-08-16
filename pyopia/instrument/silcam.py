@@ -6,7 +6,6 @@ import os
 import numpy as np
 import pandas as pd
 from skimage.exposure import rescale_intensity
-import cv2
 
 
 def timestamp_from_filename(filename):
@@ -38,9 +37,6 @@ def load_image(filename):
         raw image
     '''
     img = np.load(filename, allow_pickle=False).astype(np.uint8)
-    if img.shape[-1] == 1:
-        # In this case, the image must be converted from Bayer to RGB
-        img = cv2.cvtColor(img, cv2.COLOR_BayerBG2RGB)
     return img
 
 
@@ -71,11 +67,9 @@ class SilCamLoad():
         pass
 
     def __call__(self, data):
+        timestamp = timestamp_from_filename(data['filename'])
         img = load_image(data['filename'])
-        if data['filename'][0] == 'D':
-            data['timestamp'] = timestamp_from_filename(data['filename'])
-        else:
-            data['timestamp'] = pd.to_datetime('2024' + os.path.splitext(os.path.basename(data['filename']))[0][6:])
+        data['timestamp'] = timestamp
         data['imraw'] = img
         return data
 
