@@ -184,6 +184,10 @@ class CorrectBackgroundAccurate():
     average_window : int
         number of images to use in the background image stack
 
+    image_source: (str, optional)
+        The key in Pipeline.data of the image to be background corrected.
+        Defaults to 'imraw'
+
     Returns:
     --------
     :class:`pyopia.pipeline.Data`
@@ -195,7 +199,6 @@ class CorrectBackgroundAccurate():
         :attr:`pyopia.pipeline.Data.bgstack`
 
         :attr:`pyopia.pipeline.Data.imbg`
-
 
     Example pipeline uses:
     ----------------------
@@ -221,9 +224,10 @@ class CorrectBackgroundAccurate():
     Then you could use :class:`pyopia.pipeline.CorrectBackgroundNone` if you need to instead.
     '''
 
-    def __init__(self, bgshift_function='pass', average_window=1):
+    def __init__(self, bgshift_function='pass', average_window=1, image_source='imraw'):
         self.bgshift_function = bgshift_function
         self.average_window = average_window
+        self.image_source = image_source
 
     def _build_background_step(self, data):
         '''Add one layer to the background stack from the raw image in data pipeline, and update the background image.'''
@@ -232,7 +236,7 @@ class CorrectBackgroundAccurate():
 
         init_complete = True
         if len(data['bgstack']) < self.average_window:
-            data['bgstack'].append(data['imraw'])
+            data['bgstack'].append(data[self.image_source])
             data['imbg'] = np.mean(data['bgstack'], axis=0)
             init_complete = False
 
@@ -248,8 +252,8 @@ class CorrectBackgroundAccurate():
             data['skip_next_steps'] = True
             return data
 
-        data['im_corrected'] = correct_im_accurate(data['imbg'], data['imraw'])
-        data['im_corrected'] = correct_im_accurate(data['imbg'], data['imraw'])
+        data['im_corrected'] = correct_im_accurate(data['imbg'], data[self.image_source])
+        data['im_corrected'] = correct_im_accurate(data['imbg'], data[self.image_source])
 
         match self.bgshift_function:
             case 'pass':
@@ -257,11 +261,11 @@ class CorrectBackgroundAccurate():
             case 'accurate':
                 data['bgstack'], data['imbg'] = shift_bgstack_accurate(data['bgstack'],
                                                                        data['imbg'],
-                                                                       data['imraw'])
+                                                                       data[self.image_source])
             case 'fast':
                 data['bgstack'], data['imbg'] = shift_bgstack_fast(data['bgstack'],
                                                                    data['imbg'],
-                                                                   data['imraw'])
+                                                                   data[self.image_source])
         return data
 
 
