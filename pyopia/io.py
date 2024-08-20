@@ -13,12 +13,12 @@ import os
 from pyopia import __version__ as pyopia_version
 
 
-def write_stats(
-        stats,
-        datafilename,
-        settings=None,
-        export_name_len=40,
-        dataformat='nc'):
+def write_stats(stats,
+                datafilename,
+                settings=None,
+                export_name_len=40,
+                dataformat='nc',
+                append=True):
     '''
     Writes particle stats into the ouput file.
     Appends if file already exists.
@@ -27,6 +27,12 @@ def write_stats(
         datafilename (str):     filame prefix for -STATS.h5 file that may or may not include a path
         stats_all (DataFrame):  stats dataframe returned from processImage()
         export_name_len (int):  max number of chars allowed for col 'export name'
+        append (bool):          Append all processed data into one nc file.
+                                Defaults to True.
+                                If False, then one nc file will be generated per raw image,
+                                which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
+                                This is useful for larger datasets, where appending causes substantial slowdown
+                                as the dataset gets larger.
     '''
 
     if len(stats) == 0:  # to avoid issue with wrong time datatypes in xarray
@@ -51,12 +57,15 @@ def write_stats(
             meta.attrs['Pipeline steps'] = settings
     elif dataformat == 'nc':
         xstats = make_xstats(stats, settings)
-        if os.path.isfile(datafilename + '-STATS.nc'):
+        if append and os.path.isfile(datafilename + '-STATS.nc'):
             existing_stats = load_stats(datafilename + '-STATS.nc')
             xstats = xarray.concat([existing_stats, xstats], 'index')
-
+            xstats.index.values[:] = range(0, xstats.index.size)
+        elif not append:
+            xstats = xstats.set_index(index="index")
+            datafilename += ('-Image-D' +
+                             str(xstats['timestamp'][0].values).replace('-', '').replace(':', '').replace('.', '-'))
         encoding = {k: {'dtype': 'str'} for k in ['export name', 'holo_filename'] if k in xstats.data_vars}
-
         xstats.to_netcdf(datafilename + '-STATS.nc', encoding=encoding)
 
 
@@ -94,7 +103,7 @@ def load_stats(datafilename):
     Returns
     -------
     DataFrame
-        STATS SataFrame
+        STATS DataFrame  / xarray dataset
     '''
 
     if datafilename.endswith('.nc'):
@@ -108,6 +117,25 @@ def load_stats(datafilename):
               'In future, this function will only take .nc files')
         stats = pd.read_hdf(datafilename + '-STATS.h5', 'ParticleStats/stats')
     return stats
+
+
+def combine_stats_netcdf_files(path_to_data):
+    '''Combine a multi-file directory of STATS.nc files into a 'stats' xarray dataset created by :func:`pyopia.io.write_stats`
+    when using 'append = false'
+
+    Parameters
+    ----------
+    path_to_data : str
+        Folder name containing nc files with pattern '*Image-D*-STATS.nc'
+
+    Returns
+    -------
+    DataFrame
+        STATS xarray dataset
+    '''
+    xstats = xarray.open_mfdataset(os.path.join(path_to_data, '*Image-D*-STATS.nc'), combine='nested', concat_dim='index')
+    xstats = xstats.set_index(range(0, xstats.index.size))
+    return xstats
 
 
 def load_stats_as_dataframe(stats_file):
@@ -159,6 +187,12 @@ class StatsToDisc():
         dataformat (str): either 'nc' or 'h5
         append (bool): if to allow append to an existing STATS file. Defaults to True
         export_name_len (int): max number of chars allowed for col 'export name'. Defaults to 40
+        append (bool):          Append all processed data into one nc file.
+                                Defaults to True.
+                                If False, then one nc file will be generated per raw image,
+                                which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
+                                This is useful for larger datasets, where appending causes substantial slowdown
+                                as the dataset gets larger.
 
     Returns:
         data (dict): data from pipeline
@@ -170,21 +204,25 @@ class StatsToDisc():
         [steps.output]
         pipeline_class = 'pyopia.io.StatsToDisc'
         output_datafile = './test' # prefix path for output nc file
+        append = true
     '''
     def __init__(self,
                  output_datafile='data',
                  dataformat='nc',
-                 export_name_len=40):
+                 export_name_len=40,
+                 append=True):
 
         self.output_datafile = output_datafile
         self.dataformat = dataformat
         self.export_name_len = export_name_len
+        self.append = append
 
     def __call__(self, data):
         write_stats(data['stats'], self.output_datafile,
                     settings=data['settings'],
                     dataformat=self.dataformat,
-                    export_name_len=self.export_name_len)
+                    export_name_len=self.export_name_len,
+                    append=self.append)
 
         return data
 
