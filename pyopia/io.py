@@ -30,12 +30,7 @@ def write_stats(stats,
         append (bool):          Append all processed data into one nc file.
                                 Defaults to True.
                                 If False, then one nc file will be generated per raw image,
-                                which can be loaded using xarray.open_mfdataset(), e.g. like this:
-                                ```
-                                dataset = xarray.open_mfdataset('*Image-D*-STATS.nc',
-                                                                combine='nested',
-                                                                concat_dim='index')
-                                ```
+                                which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
                                 This is useful for larger datasets, where appending causes substantial slowdown
                                 as the dataset gets larger.
     '''
@@ -107,7 +102,7 @@ def load_stats(datafilename):
     Returns
     -------
     DataFrame
-        STATS SataFrame
+        STATS DataFrame  / xarray dataset
     '''
 
     if datafilename.endswith('.nc'):
@@ -121,6 +116,24 @@ def load_stats(datafilename):
               'In future, this function will only take .nc files')
         stats = pd.read_hdf(datafilename + '-STATS.h5', 'ParticleStats/stats')
     return stats
+
+
+def combine_stats_netcdf_files(path_to_data):
+    '''Combine a multi-file directory of STATS.nc files into a 'stats' xarray dataset created by :func:`pyopia.io.write_stats`
+    when using 'append = false'
+
+    Parameters
+    ----------
+    path_to_data : str
+        Folder name containing nc files with pattern '*Image-D*-STATS.nc'
+
+    Returns
+    -------
+    DataFrame
+        STATS xarray dataset
+    '''
+    xstats = xarray.open_mfdataset(os.path.join(path_to_data, '*Image-D*-STATS.nc'), combine='nested', concat_dim='index')
+    return xstats
 
 
 def load_stats_as_dataframe(stats_file):
@@ -175,12 +188,7 @@ class StatsToDisc():
         append (bool):          Append all processed data into one nc file.
                                 Defaults to True.
                                 If False, then one nc file will be generated per raw image,
-                                which can be loaded using xarray.open_mfdataset(), e.g. like this:
-                                ```
-                                dataset = xarray.open_mfdataset('*Image-D*-STATS.nc',
-                                                                combine='nested',
-                                                                concat_dim='index')
-                                ```
+                                which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
                                 This is useful for larger datasets, where appending causes substantial slowdown
                                 as the dataset gets larger.
 
