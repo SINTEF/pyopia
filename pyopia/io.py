@@ -60,6 +60,7 @@ def write_stats(stats,
         if append and os.path.isfile(datafilename + '-STATS.nc'):
             existing_stats = load_stats(datafilename + '-STATS.nc')
             xstats = xarray.concat([existing_stats, xstats], 'index')
+            xstats = xstats.set_xindex(index=range(0, xstats.index.size))
         elif not append:
             xstats = xstats.set_index(index="index")
             datafilename += ('-Image-D' +
@@ -133,6 +134,7 @@ def combine_stats_netcdf_files(path_to_data):
         STATS xarray dataset
     '''
     xstats = xarray.open_mfdataset(os.path.join(path_to_data, '*Image-D*-STATS.nc'), combine='nested', concat_dim='index')
+    xstats = xstats.set_index(range(0, xstats.index.size))
     return xstats
 
 
