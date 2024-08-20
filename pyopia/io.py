@@ -60,7 +60,7 @@ def write_stats(stats,
         if append and os.path.isfile(datafilename + '-STATS.nc'):
             existing_stats = load_stats(datafilename + '-STATS.nc')
             xstats = xarray.concat([existing_stats, xstats], 'index')
-            xstats = xstats.set_xindex(index=range(0, xstats.index.size))
+            xstats.index.values[:] = range(0, xstats.index.size)
         elif not append:
             xstats = xstats.set_index(index="index")
             datafilename += ('-Image-D' +
