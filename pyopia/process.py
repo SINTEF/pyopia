@@ -77,13 +77,13 @@ def image2blackwhite_fast(input_image, greythresh):
     return imbw
 
 
-def clean_bw(imbw, min_area):
+def clean_bw(imbw, minimum_area):
     ''' cleans up particles which are too small and particles touching the
     border
 
     Args:
         imbw                        : segmented image
-        min_area                    : minimum number of accepted pixels for a particle
+        minimum_area                : minimum number of accepted pixels for a particle
 
     Returns:
         imbw (DataFrame)           : cleaned up segmented image
@@ -93,15 +93,15 @@ def clean_bw(imbw, min_area):
     # remove objects that are below the detection limit defined in the config
     # file.
     # this min_area is usually 12 pixels
-    imbw = morphology.remove_small_objects(imbw > 0, min_size=min_area)
+    imbw_clean = morphology.remove_small_objects(imbw > 0, min_size=minimum_area)
 
     # remove particles touching the border of the image
     # because there might be part of a particle not recorded, and therefore
     # border particles will be incorrectly sized
-    imbw = segmentation.clear_border(imbw, buffer_size=2)
+    imbw_clean = segmentation.clear_border(imbw_clean, buffer_size=2)
 
     # remove objects smaller the min_area
-    return imbw
+    return imbw_clean
 
 
 def concentration_check(imbw, max_coverage=30):
@@ -475,7 +475,8 @@ class Segment():
         self.segment_source = segment_source
 
     def __call__(self, data):
-        data['imbw'] = segment(data[self.segment_source], threshold=self.threshold, fill_holes=self.fill_holes)
+        data['imbw'] = segment(data[self.segment_source], threshold=self.threshold, fill_holes=self.fill_holes,
+                               minimum_area=self.minimum_area)
         return data
 
 

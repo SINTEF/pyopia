@@ -28,3 +28,4 @@ pixel_size = 24 # pixel size of imaging system in microns
     [steps.output]
     pipeline_class = 'pyopia.io.StatsToDisc'
     output_datafile = './test' # prefix path for output nc file
+    append = true
