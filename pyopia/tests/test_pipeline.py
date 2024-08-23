@@ -6,6 +6,8 @@ A high level test for the basic processing pipeline.
 from glob import glob
 import tempfile
 import os
+import numpy as np
+import skimage.io
 
 import pyopia.exampledata as testdata
 import pyopia.io
@@ -60,17 +62,13 @@ def test_holo_pipeline():
                     'pipeline_class': 'pyopia.classify.Classify',
                     'model_path': model_path
                 },
-                'createbackground': {
-                    'pipeline_class': 'pyopia.background.CreateBackground',
-                    'average_window': 10,
-                    'instrument_module': 'holo'
-                },
                 'load': {
                     'pipeline_class': 'pyopia.instrument.holo.Load'
                 },
                 'correctbackground': {
                     'pipeline_class': 'pyopia.background.CorrectBackgroundAccurate',
-                    'bgshift_function': 'accurate'
+                    'bgshift_function': 'accurate',
+                    'average_window': 1
                 },
                 'reconstruct': {
                     'pipeline_class': 'pyopia.instrument.holo.Reconstruct',
@@ -81,20 +79,22 @@ def test_holo_pipeline():
                 'focus': {
                     'pipeline_class': 'pyopia.instrument.holo.Focus',
                     'stacksummary_function': 'max_map',
-                    'threshold': 0.9,
+                    'threshold': 0.97,
                     'focus_function': 'find_focus_sobel',
                     'increase_depth_of_field': False,
                     'merge_adjacent_particles': 2
                 },
                 'segmentation': {
                     'pipeline_class': 'pyopia.process.Segment',
-                    'threshold': 0.9
+                    'threshold': 0.97,
+                    'segment_source': 'im_focussed'
                 },
                 'statextract': {
                     'pipeline_class': 'pyopia.process.CalculateStats',
                     'export_outputpath': tempdir_proc,
                     'propnames': ['major_axis_length', 'minor_axis_length', 'equivalent_diameter',
-                                  'feret_diameter_max', 'equivalent_diameter_area']
+                                  'feret_diameter_max', 'equivalent_diameter_area'],
+                    'roi_source': 'im_focussed'
                 },
                 'mergeholostats': {
                     'pipeline_class': 'pyopia.instrument.holo.MergeStats',
@@ -108,6 +108,11 @@ def test_holo_pipeline():
 
         processing_pipeline = Pipeline(pipeline_config)
 
+        # Manually initialize the background from a pre-computed and stored image
+        background_img = skimage.io.imread(holo_background_filename)
+        processing_pipeline.data['bgstack'] = [background_img]
+        processing_pipeline.data['imbg'] = np.mean(processing_pipeline.data['bgstack'], axis=0)
+
         print('Run processing on: ', holo_filename)
         processing_pipeline.run(holo_filename)
         with xarray.open_dataset(datafile_prefix + '-STATS.nc') as stats:
@@ -115,8 +120,9 @@ def test_holo_pipeline():
 
         print('stats header: ', stats.data_vars)
         print('Total number of particles: ', len(stats.major_axis_length))
-        assert len(stats.major_axis_length) == 56, ('Number of particles expected in this test is 56.' +
-                                                    'This test counted ' + str(len(stats.major_axis_length)) +
+        assert len(stats.major_axis_length) == 40, ('Number of particles expected in this test is 56 for main' +
+                                                    ' (or 40 for dev-1.2.)' +
+                                                    ' This test counted ' + str(len(stats.major_axis_length)) +
                                                     ' Something has altered the number of particles detected')
 
 
@@ -133,9 +139,6 @@ def test_silcam_pipeline():
         tempdir_proc = os.path.join(tempdir, 'proc')
         os.makedirs(tempdir_proc, exist_ok=True)
 
-        model_path = testdata.get_example_model(tempdir)
-        print('model_path:', model_path)
-
         filename = testdata.get_example_silc_image(tempdir)
         print('filename got:', filename)
 
@@ -151,10 +154,6 @@ def test_silcam_pipeline():
                 'pixel_size': 28  # pixel size in um
             },
             'steps': {
-                'classifier': {
-                    'pipeline_class': 'pyopia.classify.Classify',
-                    'model_path': model_path
-                },
                 'load': {
                     'pipeline_class': 'pyopia.instrument.silcam.SilCamLoad'
                 },
@@ -164,10 +163,12 @@ def test_silcam_pipeline():
                 },
                 'segmentation': {
                     'pipeline_class': 'pyopia.process.Segment',
-                    'threshold': 0.85
+                    'threshold': 0.85,
+                    'segment_source': 'im_minimum'
                 },
                 'statextract': {
-                    'pipeline_class': 'pyopia.process.CalculateStats'
+                    'pipeline_class': 'pyopia.process.CalculateStats',
+                    'roi_source': 'im_minimum'
                 },
                 'output': {
                     'pipeline_class': 'pyopia.io.StatsH5',
@@ -196,4 +197,5 @@ def test_silcam_pipeline():
 
 
 if __name__ == "__main__":
+    test_holo_pipeline()
     test_silcam_pipeline()

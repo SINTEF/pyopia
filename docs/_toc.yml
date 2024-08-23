@@ -5,15 +5,22 @@ format: jb-book
 root: intro
 
 parts:
-- caption: Examples
+- caption:
   chapters:
   - file: examples
+- caption: Processing examples
+  chapters:
   - file: notebooks/toml_config.ipynb
   - file: notebooks/cli
+- caption: STATS particle statistics data
+  chapters:
   - file: notebooks/stats
   - file: notebooks/STATSnc
-  - file: notebooks/exploring_pipeline_data
+- caption: Advanced analysis
+  chapters:
   - file: notebooks/pipeline_step_by_step
+  - file: notebooks/exploring_pipeline_data
+  - file: notebooks/montaging
 - caption: Code docs
   chapters:
   - file: api

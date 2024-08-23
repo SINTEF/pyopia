@@ -15,12 +15,12 @@ from skimage.io import imsave
 from datetime import datetime
 
 
-def image2blackwhite_accurate(imc, greythresh):
-    ''' converts corrected image (imc) to a binary image
+def image2blackwhite_accurate(input_image, greythresh):
+    ''' converts corrected image (im_corrected) to a binary image
     using greythresh as the threshold value (some auto-scaling of greythresh is done inside)
 
     Args:
-        imc                         : background-corrected image
+        input_image (float)         : image. Usually a background-corrected image
         greythresh                  : threshold multiplier (greythresh is multiplied by 50th percentile of the image
                                       histogram)
 
@@ -28,19 +28,18 @@ def image2blackwhite_accurate(imc, greythresh):
         imbw                        : segmented image (binary image)
 
     '''
-    img = np.copy(imc)  # create a copy of the input image (not sure why)
 
     # obtain a semi-autimated treshold which can handle
     # some flicker in the illumination by tracking the 50th percentile of the
     # image histogram
-    thresh = greythresh * np.percentile(img, 50)
+    thresh = greythresh * np.percentile(input_image, 50)
 
     # create a segmented image using the crude threshold
-    imbw1 = img < thresh
+    imbw1 = input_image < thresh
 
     # perform an adaptive historgram equalization to handle some
     # less-than-ideal lighting situations
-    img_adapteq = skimage.exposure.equalize_adapthist(img,
+    img_adapteq = skimage.exposure.equalize_adapthist(input_image,
                                                       clip_limit=(greythresh),
                                                       nbins=256)
 
@@ -57,12 +56,12 @@ def image2blackwhite_accurate(imc, greythresh):
     return imbw
 
 
-def image2blackwhite_fast(imc, greythresh):
-    ''' converts corrected image (imc) to a binary image
+def image2blackwhite_fast(input_image, greythresh):
+    ''' converts an image (input_image) to a binary image
     using greythresh as the threshold value (fixed scaling of greythresh is done inside)
 
     Args:
-        imc                         : background-corrected image
+        input_image (float)         : image. Usually a background-corrected image
         greythresh                  : threshold multiplier (greythresh is multiplied by 50th percentile of the image
                                       histogram)
 
@@ -72,8 +71,8 @@ def image2blackwhite_fast(imc, greythresh):
     # obtain a semi-autimated treshold which can handle
     # some flicker in the illumination by tracking the 50th percentile of the
     # image histogram
-    thresh = greythresh * np.percentile(imc, 50)
-    imbw = imc < thresh  # segment the image
+    thresh = greythresh * np.percentile(input_image, 50)
+    imbw = input_image < thresh  # segment the image
 
     return imbw
 
@@ -159,23 +158,23 @@ def get_spine_length(imbw):
     return spine_length
 
 
-def extract_roi(im, bbox):
+def extract_roi(input_image, bbox):
     ''' given an image (im) and bounding box (bbox), this will return the roi
 
     Args:
-        im                  : any image, such as background-corrected image (imc)
+        input_image         : any image, such as background-corrected image
         bbox                : bounding box from regionprops [r1, c1, r2, c2]
 
     Returns:
         roi                 : image cropped to region of interest
     '''
     # refer to skimage regionprops documentation on how bbox is structured
-    roi = im[bbox[0]:bbox[2], bbox[1]:bbox[3]]
+    roi = input_image[bbox[0]:bbox[2], bbox[1]:bbox[3]]
 
     return roi
 
 
-def write_segmented_images(imbw, imc, settings, timestamp):
+def write_segmented_images(imbw, input_image, settings, timestamp):
     '''writes binary images as bmp files to the same place as hdf5 files if loglevel is in DEBUG mode
     Useful for checking threshold and segmentation
 
@@ -189,7 +188,7 @@ def write_segmented_images(imbw, imc, settings, timestamp):
         imbw_ = np.uint8(255 * imbw)
         imsave(fname, imbw_)
         fname = os.path.join(settings.ExportParticles.outputpath, timestamp.strftime('D%Y%m%dT%H%M%S.%f-IMC.bmp'))
-        imsave(fname, imc)
+        imsave(fname, input_image)
 
 
 def put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i):
@@ -422,14 +421,8 @@ def statextract(imbw, timestamp, imc,
     region_properties = measure_particles(imbw, max_particles=max_particles)
 
     # build the stats and export to HDF5
-    s = np.shape(imc)
-    if len(s) == 2:
-        imref = np.copy(imc)
-        imc = np.zeros((np.shape(imc)[0], np.shape(imc)[1], 3), dtype=np.uint8)
-        # Convert from floats in [0, 1] to ints in [0, 255]
-        imc[:, :, 0] = 255 * imref
-        imc[:, :, 1] = 255 * imref
-        imc[:, :, 2] = 255 * imref
+    if imc.ndim == 2:
+        imc = np.stack([imc] * 3, axis=2)
         print('WARNING! Unexpected image dimension. extract_particles modified for 2-d images without color!')
 
     stats = extract_particles(imc, timestamp, Classification, region_properties,
@@ -448,7 +441,7 @@ class Segment():
 
         containing the following keys:
 
-        :attr:`pyopia.pipeline.Data.imc`
+        :attr:`pyopia.pipeline.Data.im_corrected`
 
     Parameters:
     ----------
@@ -458,6 +451,9 @@ class Segment():
         threshold for segmentation. Defaults to 0.98.
     fill_holes : (bool)
         runs ndi.binary_fill_holes if True. Defaults to True.
+    segment_source: (str, optional)
+        The key in Pipeline.data of the image to be segmented.
+        Defaults to 'im_corrected'
 
     Returns:
     --------
@@ -470,11 +466,13 @@ class Segment():
     def __init__(self,
                  minimum_area=12,
                  threshold=0.98,
-                 fill_holes=True):
+                 fill_holes=True,
+                 segment_source='im_corrected'):
 
         self.minimum_area = minimum_area
         self.threshold = threshold
         self.fill_holes = fill_holes
+        self.segment_source = segment_source
 
     def __call__(self, data):
         data['imbw'] = segment(data['imc'], threshold=self.threshold, fill_holes=self.fill_holes,
@@ -495,8 +493,6 @@ class CalculateStats():
 
         :attr:`pyopia.pipeline.Data.timestamp`
 
-        :attr:`pyopia.pipeline.Data.imc`
-
         :attr:`pyopia.pipeline.Data.cl`
 
     Parameters:
@@ -514,6 +510,9 @@ class CalculateStats():
     propnames: (list, optional)
         Specifies properties wanted from skimage.regionprops.
         Defaults to ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']
+    roi_source: (str, optional)
+        Key of an image in Pipeline.data that is used for outputting ROIs and passing to the classifier.
+        Defaults to 'im_corrected'
 
     Returns:
     --------
@@ -527,23 +526,19 @@ class CalculateStats():
                  max_particles=5000,
                  export_outputpath=None,
                  min_length=0,
-                 propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter']):
+                 propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter'],
+                 roi_source='im_corrected'):
 
         self.max_coverage = max_coverage
         self.max_particles = max_particles
         self.export_outputpath = export_outputpath
         self.min_length = min_length
         self.propnames = propnames
+        self.roi_source = roi_source
 
     def __call__(self, data):
         print('statextract')
-        if 'imref' not in data.keys():
-            if data['cl'] is not None:
-                print('WARNING. No reference image ("imref") for classifier. Resorting to "imc"')
-            imc = data['imc']
-        else:
-            imc = data['imref']
-        stats, saturation = statextract(data['imbw'], data['timestamp'], imc,
+        stats, saturation = statextract(data['imbw'], data['timestamp'], data[self.roi_source],
                                         Classification=data['cl'],
                                         max_coverage=self.max_coverage,
                                         max_particles=self.max_particles,
