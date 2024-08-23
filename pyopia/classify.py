@@ -100,7 +100,8 @@ class Classify():
 
         # convert back to 0-255 scaling (because of this layer in the network:
         # layers.Rescaling(1./255, input_shape=(img_height, img_width, 3)))
-        # This is useful because it allows training to use tf.keras.utils.image_dataset_from_directory, which loads images in 0-255 range
+        # This is useful because it allows training to use tf.keras.utils.image_dataset_from_directory,
+        # which loads images in 0-255 range
         img = keras.utils.img_to_array(img_input * 255)
 
         # resize to match the dimentions expected by the network
