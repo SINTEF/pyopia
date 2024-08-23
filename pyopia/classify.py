@@ -3,10 +3,7 @@ Module containing tools for classifying particle ROIs
 '''
 
 import os
-
-import numpy as np
 import pandas as pd
-from PIL import Image
 
 # import tensorflow here. It must be imported on the processor where it will be used!
 # import is therefore here instead of at the top of file.
