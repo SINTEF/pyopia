@@ -36,9 +36,6 @@ def test_holo_pipeline():
         tempdir_proc = os.path.join(tempdir, 'proc')
         os.makedirs(tempdir_proc, exist_ok=True)
 
-        model_path = testdata.get_example_model(tempdir)
-        print('model_path:', model_path)
-
         holo_filename, holo_background_filename = testdata.get_example_hologram_and_background(tempdir)
         datafile_prefix = os.path.join(tempdir_proc, 'test')
 
@@ -57,10 +54,6 @@ def test_holo_pipeline():
                     'minZ': 0,  # minimum reconstruction distance within sample volume in mm
                     'maxZ': 50,  # maximum reconstruction distance within sample volume in mm
                     'stepZ': 0.5  # step size in mm
-                },
-                'classifier': {
-                    'pipeline_class': 'pyopia.classify.Classify',
-                    'model_path': model_path
                 },
                 'load': {
                     'pipeline_class': 'pyopia.instrument.holo.Load'
