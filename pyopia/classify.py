@@ -143,7 +143,7 @@ class Classify():
         Returns:
             prediction (array) : the probability of the roi belonging to each class
         '''
-        img_preprocessed = self.preprocessing(np.uint8(img_input * 255))
+        img_preprocessed = self.preprocessing(img_input)
         prediction = self.predict(img_preprocessed)
 
         return prediction
