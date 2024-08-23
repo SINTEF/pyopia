@@ -53,3 +53,9 @@ jobs:
         run: poetry install --extras "classification-arm64"
       - name: Run the automated tests
         run: poetry run pytest -v
+      - name: Test single-image-stats.ipynb
+        run: poetry add nbconvert; cd notebooks; jupyter nbconvert --to script single-image-stats.ipynb; python single-image-stats.py
+      - name: Test pipeline-holo.ipynb
+        run: poetry add nbconvert; cd notebooks; jupyter nbconvert --to script pipeline-holo.ipynb; python pipeline-holo.ipynb
+      - name: Test single-image-stats-holo.ipynb
+        run: poetry add nbconvert; cd notebooks; jupyter nbconvert --to script single-image-stats-holo.ipynb; python single-image-stats-holo.ipynb
