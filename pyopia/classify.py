@@ -8,6 +8,20 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
+# import tensorflow here. It must be imported on the processor where it will be used!
+# import is therefore here instead of at the top of file.
+# consider # noqa: E(?) for flake8 / linting
+try:
+    from tensorflow import keras
+    import tensorflow as tf
+except ImportError:
+    info_str = 'ERROR: Could not import Keras. Classify will not work'
+    info_str += ' until you install tensorflow.\n'
+    info_str += 'Use: pip install pyopia[classification]\n'
+    info_str += ' or: pip install pyopia[classification-arm64]'
+    info_str += ' for tensorflow-macos (silicon chips)'
+    raise ImportError(info_str)
+
 
 class Classify():
     '''
@@ -66,19 +80,6 @@ class Classify():
         '''
         model_path = self.model_path
 
-        # import tensorflow here. It must be imported on the processor where it will be used!
-        # import is therefore here instead of at the top of file.
-        # consider # noqa: E(?) for flake8 / linting
-        try:
-            from tensorflow import keras
-        except ImportError:
-            info_str = 'ERROR: Could not import Keras. Classify will not work'
-            info_str += ' until you install tensorflow.\n'
-            info_str += 'Use: pip install pyopia[classification]\n'
-            info_str += ' or: pip install pyopia[classification-arm64]'
-            info_str += ' for tensorflow-macos (silicon chips)'
-            raise ImportError(info_str)
-
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
         keras.backend.clear_session()
 
@@ -86,7 +87,6 @@ class Classify():
         header = pd.read_csv(os.path.join(path, 'header.tfl.txt'))
         self.class_labels = header.columns
         self.model = keras.models.load_model(model_path)
-        print('WARNING: Classification assumes loaded images have values in the range 0-255')
         return
 
     def preprocessing(self, img_input):
@@ -94,21 +94,28 @@ class Classify():
         Preprocess ROI ready for prediction. example here based on the pysilcam network setup
 
         Args:
-            img_input (uint8)        : a particle ROI before preprocessing
+            img_input (float)        : a particle ROI before preprocessing with range 0-1
 
         Returns:
-            img_preprocessed (uint8) : a particle ROI, corrected and preprocessed, ready for prediction
+            img_preprocessed (float) : a particle ROI with range 0.-255., corrected and preprocessed, ready for prediction
         '''
-        # Scale it to 32x32
-        img_preprocessed = Image.fromarray(img_input)
-        img_preprocessed = img_preprocessed.resize((32, 32), Image.BICUBIC)
-        img_preprocessed = np.array(img_preprocessed)
+        imsize = 128
 
-        # Apply temporary fix for image preprocessing that matches the TFL model conversions in the pysilcam
-        # Tensorflow model that has been adapted for faster use with keras.
-        # Eventual plan is to switch to pytorch and then this can be removed,
-        # but we could not get the same accurancy with pytorch as tensorflow
-        img_preprocessed = (img_preprocessed - 195.17760394934288) / 56.10742134506719
+        # convert back to 0-255 scaling (because of this layer in the network:
+        # layers.Rescaling(1./255, input_shape=(img_height, img_width, 3)))
+        # This is useful because it allows training to use tf.keras.utils.image_dataset_from_directory, which loads images in 0-255 range
+        img = keras.utils.img_to_array(img_input * 255)
+
+        # resize to match the dimentions expected by the network
+        img = tf.image.resize(img, [imsize, imsize],
+                              method=tf.image.ResizeMethod.BILINEAR,
+                              preserve_aspect_ratio=True)
+
+        # This would be the alternative to the above two lines if loading an image directly from disc
+        # img = tf.keras.utils.load_img(f, target_size=(img_height, img_width))
+
+        img_array = tf.keras.utils.img_to_array(img)
+        img_preprocessed = tf.expand_dims(img_array, 0)  # Create a batch
         return img_preprocessed
 
     def predict(self, img_preprocessed):
@@ -116,15 +123,15 @@ class Classify():
         Use tensorflow model to classify particles. example here based on the pysilcam network setup.
 
         Args:
-            img_preprocessed (uint8) : a particle ROI, corrected and preprocessed using :meth:`Classify.preprocessing`,
-            ready for prediction using :meth:`Classify.predict`
+            img_preprocessed (float) : a particle ROI arry, corrected and preprocessed using :meth:`Classify.preprocessing`,
+                                       ready for prediction using :meth:`Classify.predict`
 
         Returns:
             prediction (array)       : the probability of the roi belonging to each class
         '''
 
-        prediction = self.model(np.expand_dims(img_preprocessed, 0))
-
+        prediction = self.model.predict(img_preprocessed, verbose=0)
+        prediction = tf.nn.softmax(prediction[0])
         return prediction
 
     def proc_predict(self, img_input):
@@ -133,7 +140,7 @@ class Classify():
         using tensorflow model to classify particles. example here based on the pysilcam network setup.
 
         Args:
-            img_input (uint8)  : a particle ROI before preprocessing
+            img_input (float)  : a particle ROI with range 0-1 before preprocessing
 
         Returns:
             prediction (array) : the probability of the roi belonging to each class
