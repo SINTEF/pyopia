@@ -35,6 +35,14 @@ jobs:
         uses: abatilo/actions-poetry@v2
       - name: Install dependencies
         run: poetry install --extras "classification"
+      - name: install jupyterlab
+        run: poetry add jupyterlab nbconvert
+      - name: Test single-image-stats.ipynb
+        run: cd notebooks; jupyter nbconvert --to script single-image-stats.ipynb; python single-image-stats.py
+      - name: Test pipeline-holo.ipynb
+        run: cd notebooks; jupyter nbconvert --to script pipeline-holo.ipynb; python pipeline-holo.ipynb
+      - name: Test single-image-stats-holo.ipynb
+        run: cd notebooks; jupyter nbconvert --to script single-image-stats-holo.ipynb; python single-image-stats-holo.ipynb
       - name: Run the automated tests
         run: poetry run pytest -v
   MacOS_poetry:
@@ -51,13 +59,5 @@ jobs:
         uses: abatilo/actions-poetry@v2
       - name: Install dependencies
         run: poetry install --extras "classification-arm64"
-      - name: install jupyterlab
-        run: poetry add jupyterlab
-      - name: Test single-image-stats.ipynb
-        run: poetry add nbconvert; cd notebooks; jupyter nbconvert --to script single-image-stats.ipynb; python single-image-stats.py
-      - name: Test pipeline-holo.ipynb
-        run: poetry add nbconvert; cd notebooks; jupyter nbconvert --to script pipeline-holo.ipynb; python pipeline-holo.ipynb
-      - name: Test single-image-stats-holo.ipynb
-        run: poetry add nbconvert; cd notebooks; jupyter nbconvert --to script single-image-stats-holo.ipynb; python single-image-stats-holo.ipynb
       - name: Run the automated tests
         run: poetry run pytest -v
