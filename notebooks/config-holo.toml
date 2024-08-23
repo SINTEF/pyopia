@@ -13,10 +13,6 @@ pixel_size = 4.4 # pixel size of imaging system in microns'wavelength = 658, # l
     maxZ = 50 # maximum reconstruction distance within sample volume in mm
     stepZ = 0.5 #step size in mm
 
-    [steps.classifier]
-    pipeline_class = 'pyopia.classify.Classify'
-    model_path = 'keras_model.h5' # path to trained nn model
-
     [steps.load]
     pipeline_class = 'pyopia.instrument.holo.Load'
 
