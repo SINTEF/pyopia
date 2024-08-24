@@ -47,6 +47,7 @@ tensorflow-cpu = {version = "2.11.0", optional = true}
 tensorflow-io-gcs-filesystem = [
     {version = ">=0.31.0", optional=true}
 ]
+nbconvert = "^7.16.4"
 
 [tool.poetry.extras]
 classification-arm64 = ["tensorflow-io-gcs-filesystem", "tensorflow-macos"]

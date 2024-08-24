@@ -35,8 +35,6 @@ jobs:
         uses: abatilo/actions-poetry@v2
       - name: Install dependencies
         run: poetry install --extras "classification"
-      - name: install nbconvert
-        run: poetry add nbconvert
       - name: Test single-image-stats.ipynb
         run: cd notebooks; jupyter-nbconvert --to script single-image-stats.ipynb; python single-image-stats.py
       - name: Test pipeline-holo.ipynb
