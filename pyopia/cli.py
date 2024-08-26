@@ -8,6 +8,8 @@ from glob import glob
 import os
 import datetime
 from rich.progress import track, Progress
+import logging
+import pandas as pd
 
 import pyopia.background
 import pyopia.classify
@@ -109,6 +111,8 @@ def process(config_filename: str):
         progress.console.print("[blue]LOAD CONFIG")
         pipeline_config = load_toml(config_filename)
 
+        setup_logging(pipeline_config)
+
         progress.console.print("[blue]OBTAIN FILE LIST")
         files = sorted(glob(pipeline_config['general']['raw_files']))
         nfiles = len(files)
@@ -133,6 +137,24 @@ def process(config_filename: str):
 
     for filename in track(files, description=f'[blue]Processing progress through {nfiles} files:'):
         processing_pipeline.run(filename)
+
+
+def setup_logging(pipeline_config):
+    '''Configure logging
+
+    Parameters
+    ----------
+    pipeline_config : dict
+        TOML settings
+    '''
+    if 'log_level' in pipeline_config['general']:
+        logging.basicConfig(level=pipeline_config['general']['log_level'], format='%(message)s')
+    else:
+        logging.basicConfig(level=logging.INFO, format='%(message)s')
+    logger = logging.getLogger()
+    if 'log_file' in pipeline_config['general']:
+        logger.addHandler(logging.FileHandler(pipeline_config['general']['log_file'], 'a'))
+    logger.info(f'PyOPIA process started {pd.Timestamp.now()}')
 
 
 if __name__ == "__main__":

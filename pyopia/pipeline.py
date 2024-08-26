@@ -9,6 +9,9 @@ import pandas as pd
 from operator import methodcaller
 import toml
 import sys
+import logging
+
+logger = logging.getLogger()
 
 
 class Pipeline():
@@ -61,7 +64,7 @@ class Pipeline():
         self.stepnames = list(settings['steps'].keys())
 
         self.initial_steps = initial_steps
-        print('Initialising pipeline')
+        logger.info('Initialising pipeline')
         self.data = Data()
         self.data['cl'] = None
         self.data['settings'] = settings
@@ -155,23 +158,23 @@ class Pipeline():
 
         m = methodcaller(classname, **arguments)
         callobj = m(sys.modules[modulename])
-        print(classname, ' ready with:', arguments, ' and data', self.data.keys())
+        logger.debug(f'{classname} ready with: {arguments} and data: {self.data.keys()}')
         return callobj
 
     def pass_general_settings(self):
         self.data['raw_files'] = self.settings['general']['raw_files']
 
     def print_steps(self):
-        '''Print the steps dictionary
+        '''Print the version number and steps dict (for log_level = DEBUG)
         '''
 
         # an eventual metadata parser could replace this below printing
         # and format into an appropriate standard
-        print('\n-- Pipeline configuration --\n')
+        logger.info('\n-- Pipeline configuration --\n')
         from pyopia import __version__ as pyopia_version
-        print('PyOpia version: ' + pyopia_version + '\n')
-        print(steps_to_string(self.steps))
-        print('\n---------------------------------\n')
+        logger.info(f'PyOpia version: {pyopia_version} + \n')
+        logger.debug(steps_to_string(self.steps))
+        logger.info('\n---------------------------------\n')
 
 
 class Data(TypedDict):
