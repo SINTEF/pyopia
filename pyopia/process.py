@@ -424,14 +424,8 @@ def statextract(imbw, timestamp, imc,
     region_properties = measure_particles(imbw, max_particles=max_particles)
 
     # build the stats and export to HDF5
-    s = np.shape(imc)
-    if len(s) == 2:
-        imref = np.copy(imc)
-        imc = np.zeros((np.shape(imc)[0], np.shape(imc)[1], 3), dtype=np.uint8)
-        # Convert from floats in [0, 1] to ints in [0, 255]
-        imc[:, :, 0] = 255 * imref
-        imc[:, :, 1] = 255 * imref
-        imc[:, :, 2] = 255 * imref
+    if imc.ndim == 2:
+        imc = np.stack([imc] * 3, axis=2)
         print('WARNING! Unexpected image dimension. extract_particles modified for 2-d images without color!')
 
     stats = extract_particles(imc, timestamp, Classification, region_properties,
@@ -484,7 +478,8 @@ class Segment():
         self.segment_source = segment_source
 
     def __call__(self, data):
-        data['imbw'] = segment(data['imc'], threshold=self.threshold, fill_holes=self.fill_holes)
+        data['imbw'] = segment(data[self.segment_source], threshold=self.threshold, fill_holes=self.fill_holes,
+                               minimum_area=self.minimum_area)
         return data
 
 
@@ -545,14 +540,8 @@ class CalculateStats():
         self.roi_source = roi_source
 
     def __call__(self, data):
-        print('statextract')
-        if 'imref' not in data.keys():
-            if data['cl'] is not None:
-                print('WARNING. No reference image ("imref") for classifier. Resorting to "imc"')
-            imc = data['imc']
-        else:
-            imc = data['imref']
-        stats, saturation = statextract(data['imbw'], data['timestamp'], imc,
+        logger.info('statextract')
+        stats, saturation = statextract(data['imbw'], data['timestamp'], data[self.roi_source],
                                         Classification=data['cl'],
                                         max_coverage=self.max_coverage,
                                         max_particles=self.max_particles,
