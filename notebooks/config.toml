@@ -8,17 +8,8 @@ pixel_size = 24 # pixel size of imaging system in microns
     pipeline_class = 'pyopia.classify.Classify'
     model_path = 'keras_model.h5' # path to trained nn model
 
-    #[steps.createbackground]
-    #pipeline_class = 'pyopia.background.CreateBackground'
-    #average_window = 10 # number of images used to create background
-    #instrument_module = 'silcam' # used to determina method for loading images. Either 'silcam', 'holo', or 'imread'
-
     [steps.load]
     pipeline_class = 'pyopia.instrument.silcam.SilCamLoad'
-
-    #[steps.correctbackground]
-    #pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
-    #bgshift_function = 'accurate' # optional 'fast' or 'accurate' method for moving backgrounds. For static background use 'pass' or comment this line.
 
     [steps.imageprep]
     pipeline_class = 'pyopia.instrument.silcam.ImagePrep'
@@ -27,10 +18,13 @@ pixel_size = 24 # pixel size of imaging system in microns
     [steps.segmentation]
     pipeline_class = 'pyopia.process.Segment'
     threshold = 0.85 # threshold used for segmentation
+    segment_source = "im_minimum"
 
     [steps.statextract]
     pipeline_class = 'pyopia.process.CalculateStats'
+    export_outputpath = "silcam_rois"
+    roi_source = "imref"
 
     [steps.output]
     pipeline_class = 'pyopia.io.StatsToDisc'
-    output_datafile = 'proc/test' # prefix path for output nc file
+    output_datafile = 'proc-single-image-stats/test' # prefix path for output nc file
