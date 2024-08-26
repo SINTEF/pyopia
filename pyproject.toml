@@ -45,6 +45,7 @@ poetry-version-plugin = "^0.2.0"
 tensorflow-macos = {version = "^2.16.2", optional = true, markers = "sys_platform == 'darwin' and platform_machine == 'arm64'"}
 tensorflow-cpu = {version = "^2.16.2", optional = true}
 dask = ">=2024.8.1"
+nbconvert = "^7.16.4"
 
 [tool.poetry.extras]
 classification-arm64 = ["tensorflow-macos"]
