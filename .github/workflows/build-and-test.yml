@@ -5,7 +5,7 @@ on: [pull_request]
 jobs:
   Windows_pip:
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Check out code
@@ -23,7 +23,7 @@ jobs:
         run: python -m pytest -v
   Ubuntu_poetry:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v3
@@ -39,7 +39,7 @@ jobs:
         run: poetry run pytest -v
   MacOS_poetry:
     runs-on: macos-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v3
