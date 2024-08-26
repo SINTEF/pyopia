@@ -17,6 +17,7 @@ from datetime import datetime
 import logging
 logger = logging.getLogger()
 
+
 def image2blackwhite_accurate(imc, greythresh):
     ''' converts corrected image (imc) to a binary image
     using greythresh as the threshold value (some auto-scaling of greythresh is done inside)

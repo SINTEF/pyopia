@@ -110,7 +110,7 @@ def process(config_filename: str):
     with Progress(transient=True) as progress:
         progress.console.print("[blue]LOAD CONFIG")
         pipeline_config = load_toml(config_filename)
-        
+
         setup_logging(pipeline_config)
 
         progress.console.print("[blue]OBTAIN FILE LIST")
@@ -152,7 +152,8 @@ def setup_logging(pipeline_config):
     else:
         logging.basicConfig(level=logging.INFO, format='%(message)s')
     logger = logging.getLogger()
-    logger.addHandler(logging.FileHandler('logging_test.log', 'a'))
+    if 'log_file' in pipeline_config['general']:
+        logger.addHandler(logging.FileHandler(pipeline_config['general']['log_file'], 'a'))
     logger.info(f'PyOPIA process started {pd.Timestamp.now()}')
 
 
