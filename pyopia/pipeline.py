@@ -9,8 +9,6 @@ import pandas as pd
 from operator import methodcaller
 import toml
 import sys
-import importlib
-from skimage.io import imread
 import logging
 
 logger = logging.getLogger()
@@ -71,6 +69,9 @@ class Pipeline():
         self.data['cl'] = None
         self.data['settings'] = settings
 
+        # Flag used to control whether remaining pipeline steps should be skipped once it has been set to True
+        self.data['skip_next_steps'] = False
+
         self.pass_general_settings()
 
         for stepname in self.stepnames:
@@ -106,9 +107,15 @@ class Pipeline():
 
             self.run_step(stepname)
 
-        stats = self.data['stats']
+            # Check for signal from this step that we should skip remaining pipeline for this image
+            if self.data['skip_next_steps']:
+                print('Skipping remaining steps of the pipeline and returning')
 
-        return stats
+                # Reset skip flag
+                self.data['skip_next_steps'] = False
+                return
+
+        return
 
     def run_step(self, stepname):
         '''Execute a pipeline step and update the pipeline data
@@ -180,7 +187,7 @@ class Data(TypedDict):
     In future this may be better as a data class with slots (from python 3.10).
 
     This is an example of a link to the imc key doc:
-    :attr:`pyopia.pipeline.Data.imc`
+    :attr:`pyopia.pipeline.Data.im_corrected`
     '''
 
     raw_files: str
@@ -191,19 +198,24 @@ class Data(TypedDict):
     imraw: float
     '''Raw uncorrected image'''
     img: float
-    '''Raw uncorrected image. To be deprecatied and changed to imraw'''
+    '''Deprecatied. Replaced by imraw'''
     imc: float
+    '''Deprecatied. Replaced by im_corrected'''
+    im_corrected: float
     '''Single composite image of focussed particles ready for segmentation
     Obtained from e.g. :class:`pyopia.background.CorrectBackgroundAccurate`
     '''
+    im_minimum: float
+    '''A 2-d flattened RGB image representing the minmum intensity of all channels
+    Obtained from e.g. :class:`pyopia.instrument.silcam.ImagePrep`'''
     bgstack: float
     '''List of images making up the background (either static or moving)
-    Obtained from :class:`pyopia.background.CreateBackground`
+    Obtained from :class:`pyopia.background.CorrectBackgroundAccurate`
     '''
     imbg: float
     '''Background image that can be used to correct :attr:`pyopia.pipeline.Data.imraw`
-    and calcaulte :attr:`pyopia.pipeline.Data.imc`
-    Obtained from :class:`pyopia.background.CreateBackground`
+    and calcaulte :attr:`pyopia.pipeline.Data.im_corrected`
+    Obtained from :class:`pyopia.background.CorrectBackgroundAccurate`
     '''
     filename: str
     '''Filename string'''
@@ -231,6 +243,13 @@ class Data(TypedDict):
     '''Stack summary image used to locate possible particles
     Obtained from :class:`pyopia.instrument.holo.Focus`
     '''
+    im_focussed: float
+    '''Focussed holographic image'''
+    imref: float
+    '''Refereence background corrected image passed to silcam classifier'''
+    im_masked: float
+    '''Masked raw image with removed potentially noisy border region before further processsing
+    Obtained from e.g. :class:`pyopia.instrument.common.RectangularImageMask`'''
 
 
 def steps_to_string(steps):
@@ -250,48 +269,6 @@ def steps_to_string(steps):
                       + '\n   Vars: ' + str(vars(steps[key]))
                       + '\n')
     return steps_str
-
-
-class ReturnData():
-    '''Pipeline compatible class that can be used for debugging
-    if inserted as the last step in the steps dict.
-
-
-    Pipeline input data:
-    --------------------
-    :class:`pyopia.pipeline.Data`
-
-    containing any set of keys
-
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
-
-    Example use:
-    ------------
-
-    Config setup:
-
-    .. code-block:: python
-
-        [steps.returndata]
-        pipeline_class = 'pyopia.pipeline.ReturnData'
-
-    This will allow you to call pipeline.run() like this:
-
-    .. code-block:: python
-
-        data = pipeline.run(filename)
-
-    where `data` will be the available data dictionary available at the point of calling this
-    '''
-
-    def __init__(self):
-        pass
-
-    def __call__(self, data):
-        data['stats'] = data
-        return data
 
 
 def steps_from_xstats(xstats):
@@ -360,11 +337,3 @@ def build_steps(toml_steps):
         steps[step_name] = build_repr(toml_steps, step_name)
 
     return steps
-
-
-def get_load_function(instrument_module='imread'):
-    if instrument_module == 'imread':
-        return imread
-    else:
-        instrument = importlib.import_module(f'pyopia.instrument.{instrument_module}')
-        return instrument.load_image
