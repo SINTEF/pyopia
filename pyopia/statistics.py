@@ -692,7 +692,7 @@ def make_timeseries_vd(stats, pixel_size, path_length):
     time_series['D50'] = d50
     time_series['Time'] = pd.to_datetime(timestamp)
 
-    time_series.sort_values(by='Time', inplace=True, ascending=False)
+    time_series.sort_values(by='Time', inplace=True, ascending=True)
 
     return time_series
 
