@@ -289,7 +289,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
             if Classification is not None:
                 # run a prediction on what type of particle this might be
                 prediction = Classification.proc_predict(np.uint8(roi * 255))
-                predictions[int(i), :] = prediction[0]
+                predictions[int(i), :] = prediction
 
             # add the roi to the HDF5 file
             filenames[int(i)] = put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i)
