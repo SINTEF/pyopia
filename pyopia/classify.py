@@ -96,7 +96,6 @@ class Classify():
         Returns:
             img_preprocessed (float) : a particle ROI with range 0.-255., corrected and preprocessed, ready for prediction
         '''
-        imsize = 32
 
         # convert back to 0-255 scaling (because of this layer in the network:
         # layers.Rescaling(1./255, input_shape=(img_height, img_width, 3)))
@@ -104,10 +103,14 @@ class Classify():
         # which loads images in 0-255 range
         img = keras.utils.img_to_array(img_input * 255)
 
+        # Get config for image resizing from the model
+        _, img_height, img_width, _ = self.model.get_config()['layers'][0]['config']['batch_shape']
+        pad_to_aspect_ratio = getattr(self.model.layers[0], 'pad_to_aspect_ratio', False)
+
         # resize to match the dimentions expected by the network
-        img = tf.image.resize(img, [imsize, imsize],
+        img = tf.image.resize(img, [img_height, img_width],
                               method=tf.image.ResizeMethod.BILINEAR,
-                              preserve_aspect_ratio=False)
+                              preserve_aspect_ratio=pad_to_aspect_ratio)
 
         # This would be the alternative to the above two lines if loading an image directly from disc
         # img = tf.keras.utils.load_img(f, target_size=(img_height, img_width))
