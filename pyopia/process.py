@@ -13,6 +13,7 @@ import skimage.exposure
 import h5py
 from skimage.io import imsave
 from datetime import datetime
+import pyopia.statistics
 
 import logging
 logger = logging.getLogger()
@@ -590,13 +591,33 @@ class CalculateImageStats():
         logger.info('CalculateImageStats')
 
         if 'image_stats' not in data:
-            data['image_stats'] = pd.DataFrame(columns=['filename', 'particle_count', 'saturation']).astype({'particle_count': np.int64, 'saturation': np.float64})
+            data['image_stats'] = pd.DataFrame(columns=['filename', 'particle_count', 'saturation',
+                                                        'd50', 'nc', 'vc', 'sample_volume', 'junge'])
+            data['image_stats'] = data['image_stats'].astype({'particle_count': np.int64, 'saturation': np.float64})
             data['image_stats'].index.name = 'datetime'
 
+        stats = data['stats']
+
         # Add image "global" statistics, separate from the particle stats above (stats)
-        image_saturation = np.nan if data['stats'].empty else data['stats']['saturation'].values[0]
-        data['image_stats'].loc[data['timestamp'], 'filename'] = data['filename']
-        data['image_stats'].loc[data['timestamp'], 'particle_count'] = int(data['stats'].shape[0])
+        image_saturation = np.nan if stats.empty else stats['saturation'].values[0]
+        data['image_stats'].loc[data['timestamp'], 'filename'] = getattr(data, 'filename', '')
+        data['image_stats'].loc[data['timestamp'], 'particle_count'] = int(stats.shape[0])
         data['image_stats'].loc[data['timestamp'], 'saturation'] = image_saturation
+
+        # Skip remaining calculations if no particles where found
+        if data['stats'].size == 0:
+            return data
+
+        # Calculate D50, nc and vc stats
+        pixel_size = data['settings']['general']['pixel_size']
+
+        d50 = pyopia.statistics.d50_from_stats(data['stats'], pixel_size)
+        data['image_stats'].loc[data['timestamp'], 'd50'] = d50
+
+        path_length = getattr(data['settings']['general'], 'path_length', 40)
+        if path_length is not None:
+            nc_vc = pyopia.statistics.nc_vc_from_stats(data['stats'], pixel_size, path_length)
+            for k, v in zip(['nc', 'vc', 'sample_volume', 'junge'], nc_vc):
+                data['image_stats'].loc[data['timestamp'], k] = v
 
         return data
