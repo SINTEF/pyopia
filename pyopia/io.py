@@ -134,11 +134,7 @@ def combine_stats_netcdf_files(path_to_data):
         STATS xarray dataset
     '''
     xstats = xarray.open_mfdataset(os.path.join(path_to_data, '*Image-D*-STATS.nc'), combine='nested', concat_dim='index')
-    try:
-        xstats = xstats.set_index(range(0, xstats.index.size))
-    except ValueError:
-        print('Couldn''t set index.')
-        pass
+    xstats.index.values[:] = range(0, xstats.index.size)
     return xstats
 
 
