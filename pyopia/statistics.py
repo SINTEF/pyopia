@@ -649,7 +649,7 @@ def make_timeseries_vd(stats, pixel_size, path_length):
 
     Returns:
         dataframe: of time series volume concentrations are in uL/L columns with number headings are diameter min-points
-    
+
     Example
     -------
     .. code-block:: python
