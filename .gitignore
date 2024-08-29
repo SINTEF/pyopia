@@ -269,3 +269,4 @@ header.tfl.txt
 *.tiff
 notebooks/__MACOSX/*
 notebooks/silcam240822.keras
+model/*
