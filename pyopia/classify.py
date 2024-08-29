@@ -92,9 +92,9 @@ class Classify():
         # Try to create model output class name list from last model layer name
         class_labels = None
         try:
-            class_labels = self.model.layers[-1].name.split('_')
+            class_labels = self.model.layers[-1].name.split('.')
         except:  # noqa E722
-            pass
+            print('Could not get class names from model layer name, reverting to old method with header file.')
 
         # If we could not create correct class names above, revert to old header file method
         expected_class_number = self.model.layers[-1].output.shape[1]
