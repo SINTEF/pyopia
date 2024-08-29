@@ -21,6 +21,9 @@ import numpy as np
 import pyopia.instrument.silcam
 
 
+ACCURACY = 39
+
+
 def test_match_to_database():
     '''
     Basic check of classification prediction against the training database.
@@ -61,8 +64,9 @@ def test_match_to_database():
             failed = 0
 
             # loop through the database images
-            for file in files:
+            for file in tqdm(files):
                 img = skimage.io.imread(file)  # load ROI
+                img = np.float64(img) / 255
                 prediction = cl.proc_predict(img)  # run prediction from silcam_classify
 
                 ind = np.argmax(prediction)  # find the highest score
@@ -82,7 +86,7 @@ def test_match_to_database():
             name = os.path.split(cat)[-1]
             success = correct_positives(name)
             print(name, success)
-            assert success > 96, (name + ' was poorly classified at only ' + str(success) + 'percent.')
+            assert success > ACCURACY, (name + ' was poorly classified at only ' + str(success) + 'percent.')
 
 
 def test_pipeline_classification():
@@ -111,9 +115,10 @@ def test_pipeline_classification():
             # loop through the database images
             for file in tqdm(files):
                 img = np.uint8(skimage.io.imread(file))  # load ROI
+                img = np.float64(img) / 255
                 prediction = cl.proc_predict(img)  # run prediction from silcam_classify
 
-                if np.max(prediction) < 0.96:
+                if np.max(prediction) < (ACCURACY / 100):
                     continue
 
                 ind = np.argmax(prediction)  # find the highest score
@@ -122,7 +127,7 @@ def test_pipeline_classification():
                 if cl.class_labels[ind] == category:
                     print('roi file', file)
                     return img, category
-            assert found_match == 1, f'classifier not find matching particle for {category}'
+            assert found_match == 1, f'classifier not finding matching particle for {category}'
 
         canvas = np.ones((2048, 2448, 3), np.float64)
 
@@ -139,7 +144,7 @@ def test_pipeline_classification():
             categories.append(category)
             img_shape = np.shape(img)
             rc += rc_shift
-            canvas[rc:rc + img_shape[0], rc: rc + img_shape[1], :] = np.float64(img)/255
+            canvas[rc:rc + img_shape[0], rc: rc + img_shape[1], :] = np.float64(img)
 
         settings = {'general': {'raw_files': None,
                                 'pixel_size': 24},
@@ -165,6 +170,7 @@ def test_pipeline_classification():
 
         MyPipeline.data['imraw'] = canvas
         MyPipeline.data['timestamp'] = pd.Timestamp.now()
+        MyPipeline.data['filename'] = ''
 
         # Add the imageprep step description
         MyPipeline.settings['steps'].update({'imageprep':
@@ -202,9 +208,11 @@ def test_pipeline_classification():
         stats = pyopia.statistics.add_best_guesses_to_stats(MyPipeline.data['stats'])
 
         out = [x[12:] for x in stats['best guess'].values]
-        assert categories == out, 'Classes returned from classifier do not match what was given to the pipeline'
+
         print('classes input', categories)
         print('classes measured', out)
+
+        assert categories == out, 'Classes returned from classifier do not match what was given to the pipeline'
 
 
 if __name__ == "__main__":

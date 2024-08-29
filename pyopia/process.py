@@ -560,6 +560,7 @@ class CalculateStats():
 
         return data
 
+
 class CalculateImageStats():
     '''PyOpia pipline-compatible class for collecting whole-image statistics
 
@@ -595,7 +596,7 @@ class CalculateImageStats():
                                                         'd50', 'nc', 'vc', 'sample_volume', 'junge'])
             data['image_stats'] = data['image_stats'].astype({'particle_count': np.int64, 'saturation': np.float64})
             data['image_stats'].index.name = 'datetime'
-
+ 
         stats = data['stats']
 
         # Add image "global" statistics, separate from the particle stats above (stats)
