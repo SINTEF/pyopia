@@ -230,7 +230,7 @@ class StatsToDisc():
                     settings=data['settings'],
                     dataformat=self.dataformat,
                     export_name_len=self.export_name_len,
-                    append=self.append, 
+                    append=self.append,
                     image_stats=data['image_stats'])
 
         return data
