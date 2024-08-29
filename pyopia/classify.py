@@ -3,6 +3,7 @@ Module containing tools for classifying particle ROIs
 '''
 
 import os
+import numpy as np
 import pandas as pd
 
 # import tensorflow here. It must be imported on the processor where it will be used!
@@ -66,25 +67,43 @@ class Classify():
         self.model_path = model_path
         self.load_model()
 
+        # Enable this to perform whitebalance correction in the preprocessing step
+        self.correct_whitebalance = False
+
     def __call__(self):
         return self
 
     def load_model(self):
         '''
-        Load the trained tensorflow keras model into the Classify class. example here based on the pysilcam network setup
+        Load a trained Keras model into the Classify class.
 
-        model (tf model object) : loaded tf.keras model from load_model()
+        self.model (tf model object) : loaded Keras model
+        self.class_names (list) : names for the model output classes
         '''
         model_path = self.model_path
 
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
         keras.backend.clear_session()
 
+        # Instantiate Keras model from file
         path, filename = os.path.split(model_path)
-        header = pd.read_csv(os.path.join(path, 'header.tfl.txt'))
-        self.class_labels = header.columns
         self.model = keras.models.load_model(model_path)
-        return
+
+        # Try to create model output class name list from last model layer name
+        class_labels = None
+        try:
+            class_labels = self.model.layers[-1].name.split('_')
+        except:
+            pass
+
+        # If we could not create correct class names above, revert to old header file method
+        expected_class_number = cl.model.layers[-1].output.shape[1]
+        if class_labels is None or len(class_labels) != expected_class_number: 
+            header = pd.read_csv(os.path.join(path, 'header.tfl.txt'))
+            class_labels = header.columns
+
+        self.class_labels = class_labels
+        print(self.class_labels)
 
     def preprocessing(self, img_input):
         '''
@@ -98,19 +117,26 @@ class Classify():
         '''
         imsize = 128
 
+        whitebalanced = np.copy(img_input).astype(np.float64)
+
+        # Do white-balance correction as a per-channel histogram shift
+        if self.correct_whitebalance:
+            p = 99
+            for c in range(3):
+                whitebalanced[:,:,c] += (p/100) - np.percentile(whitebalanced[:, :, c], p)
+            whitebalanced[whitebalanced > 1] = 1
+            whitebalanced[whitebalanced < 0] = 0
+
         # convert back to 0-255 scaling (because of this layer in the network:
         # layers.Rescaling(1./255, input_shape=(img_height, img_width, 3)))
         # This is useful because it allows training to use tf.keras.utils.image_dataset_from_directory,
         # which loads images in 0-255 range
-        img = keras.utils.img_to_array(img_input * 255)
+        img = keras.utils.img_to_array(whitebalanced * 255)
 
         # resize to match the dimentions expected by the network
         img = tf.image.resize(img, [imsize, imsize],
                               method=tf.image.ResizeMethod.BILINEAR,
                               preserve_aspect_ratio=True)
-
-        # This would be the alternative to the above two lines if loading an image directly from disc
-        # img = tf.keras.utils.load_img(f, target_size=(img_height, img_width))
 
         img_array = tf.keras.utils.img_to_array(img)
         img_preprocessed = tf.expand_dims(img_array, 0)  # Create a batch
@@ -143,7 +169,7 @@ class Classify():
         Returns:
             prediction (array) : the probability of the roi belonging to each class
         '''
-        img_preprocessed = self.preprocessing(np.uint8(img_input * 255))
+        img_preprocessed = self.preprocessing(img_input)
         prediction = self.predict(img_preprocessed)
 
         return prediction
