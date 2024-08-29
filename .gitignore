@@ -271,3 +271,6 @@ notebooks/__MACOSX/*
 notebooks/silcam240822.keras
 model/*
 notebooks/model/*
+*.keras
+*.png
+*-summary.txt
