@@ -93,12 +93,12 @@ class Classify():
         class_labels = None
         try:
             class_labels = self.model.layers[-1].name.split('_')
-        except:
+        except:  # noqa E722
             pass
 
         # If we could not create correct class names above, revert to old header file method
-        expected_class_number = cl.model.layers[-1].output.shape[1]
-        if class_labels is None or len(class_labels) != expected_class_number: 
+        expected_class_number = self.model.layers[-1].output.shape[1]
+        if class_labels is None or len(class_labels) != expected_class_number:
             header = pd.read_csv(os.path.join(path, 'header.tfl.txt'))
             class_labels = header.columns
 
@@ -122,7 +122,7 @@ class Classify():
         if self.correct_whitebalance:
             p = 99
             for c in range(3):
-                whitebalanced[:,:,c] += (p/100) - np.percentile(whitebalanced[:, :, c], p)
+                whitebalanced[:, :, c] += (p/100) - np.percentile(whitebalanced[:, :, c], p)
             whitebalanced[whitebalanced > 1] = 1
             whitebalanced[whitebalanced < 0] = 0
 
