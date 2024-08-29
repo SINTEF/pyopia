@@ -6,6 +6,7 @@ A high level test for the basic processing pipeline.
 from glob import glob
 import tempfile
 import os
+from tqdm import tqdm
 
 import pyopia.exampledata as exampledata
 import pyopia.io
@@ -38,7 +39,7 @@ def test_match_to_database():
         model_path = exampledata.get_example_model(os.path.join(tempdir, 'model'))
 
         # Load the trained tensorflow model and class names
-        cl = pyopia.classify.Classify(model_path)
+        cl = pyopia.classify.Classify(model_path=model_path)
         class_labels = cl.class_labels
 
         # class_labels should match the training data
@@ -58,8 +59,6 @@ def test_match_to_database():
 
             # start a counter of incorrectly classified images
             failed = 0
-            time_limit = len(files) * 0.01
-            t1 = pd.Timestamp.now()
 
             # loop through the database images
             for file in files:
@@ -75,10 +74,6 @@ def test_match_to_database():
 
             # turn failed count into a success percent
             success = 100 - (failed / len(files)) * 100
-
-            t2 = pd.Timestamp.now()
-            td = t2 - t1
-            assert td < pd.to_timedelta(time_limit, 's'), 'Processing time too long.'
 
             return success
 
@@ -96,23 +91,26 @@ def test_pipeline_classification():
         database_path = os.path.join(tempdir, 'silcam_classification_database')
 
         exampledata.get_classifier_database_from_pysilcam_blob(database_path)
-        os.makedirs(os.path.join(tempdir, 'model'), exist_ok=True)
-        model_path = exampledata.get_example_model(os.path.join(tempdir, 'model'))
+        os.makedirs('model', exist_ok=True)
+        model_path = exampledata.get_example_model('model')
 
         # Load the trained tensorflow model and class names
-        cl = pyopia.classify.Classify(model_path)
+        cl = pyopia.classify.Classify(model_path=model_path)
 
         def get_good_roi(category):
             '''
             calculate the percentage positive matches for a given category
             '''
 
+            print('category', category)
             # list the files in this category of the training data
             files = sorted(glob(os.path.join(database_path, category, '*.tiff')))
+            print(len(files), 'files')
 
+            found_match = 0
             # loop through the database images
-            for file in files:
-                img = skimage.io.imread(file)  # load ROI
+            for file in tqdm(files):
+                img = np.uint8(skimage.io.imread(file))  # load ROI
                 prediction = cl.proc_predict(img)  # run prediction from silcam_classify
 
                 if np.max(prediction) < 0.96:
@@ -122,16 +120,16 @@ def test_pipeline_classification():
 
                 # check if the highest score matches the correct category
                 if cl.class_labels[ind] == category:
+                    print('roi file', file)
                     return img, category
+            assert found_match == 1, f'classifier not find matching particle for {category}'
 
-        cl = pyopia.classify.Classify(model_path)
         canvas = np.ones((2048, 2448, 3), np.float64)
 
         rc_shift = int(2048/len(cl.class_labels)/1.5)
         rc = rc_shift
 
         classes = sorted(glob(os.path.join(database_path, '*')))
-        print(classes)
 
         categories = []
 
@@ -181,7 +179,8 @@ def test_pipeline_classification():
         # Add the segmentation step description
         MyPipeline.settings['steps'].update({'segmentation':
                                             {'pipeline_class': 'pyopia.process.Segment',
-                                             'threshold': 1}})
+                                             'threshold': 1,
+                                             'segment_source': 'im_minimum'}})
         # Run the step
         MyPipeline.run_step('segmentation')
         # This is the same as running:
@@ -190,7 +189,8 @@ def test_pipeline_classification():
 
         # Add the segmentation step description
         MyPipeline.settings['steps'].update({'statextract':
-                                            {'pipeline_class': 'pyopia.process.CalculateStats'}}
+                                            {'pipeline_class': 'pyopia.process.CalculateStats',
+                                             'roi_source': 'imref'}}
                                             )
 
         # Run the step

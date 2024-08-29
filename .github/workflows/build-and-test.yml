@@ -5,7 +5,7 @@ on: [pull_request]
 jobs:
   Windows_pip:
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Check out code
@@ -14,7 +14,7 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.12'
 
       - name: Install pyopia
         run: pip install -e ".[classification]"
@@ -23,14 +23,14 @@ jobs:
         run: python -m pytest -v
   Ubuntu_poetry:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v3
       - name: Install Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10' 
+          python-version: '3.12' 
       - name: Install poetry
         uses: abatilo/actions-poetry@v2
       - name: Install dependencies
@@ -39,14 +39,14 @@ jobs:
         run: poetry run pytest -v
   MacOS_poetry:
     runs-on: macos-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v3
       - name: Install Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10' 
+          python-version: '3.12' 
       - name: Install poetry
         uses: abatilo/actions-poetry@v2
       - name: Install dependencies

@@ -614,8 +614,10 @@ def roi_from_export_name(exportname, path):
     # open the H5 file
     fh = h5py.File(fullname, 'r')
 
-    # extract the particle image of interest
-    im = np.float64(fh[pn])
+    if (fh[pn].dtype) == np.uint8:
+        im = np.float64(fh[pn]) / 255
+    else:
+        im = np.float64(fh[pn])
 
     return im
 
@@ -684,7 +686,7 @@ def make_timeseries_vd(stats, pixel_size, path_length):
     time_series['D50'] = d50
     time_series['Time'] = pd.to_datetime(timestamp)
 
-    time_series.sort_values(by='Time', inplace=True, ascending=False)
+    time_series.sort_values(by='Time', inplace=True, ascending=True)
 
     return time_series
 

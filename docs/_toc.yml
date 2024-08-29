@@ -19,6 +19,7 @@ parts:
 - caption: Advanced analysis
   chapters:
   - file: notebooks/pipeline_step_by_step
+  - file: notebooks/background_correction
   - file: notebooks/exploring_pipeline_data
   - file: notebooks/montaging
 - caption: Code docs

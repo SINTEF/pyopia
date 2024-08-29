@@ -115,7 +115,6 @@ class Classify():
         Returns:
             img_preprocessed (float) : a particle ROI with range 0.-255., corrected and preprocessed, ready for prediction
         '''
-        imsize = 128
 
         whitebalanced = np.copy(img_input).astype(np.float64)
 
@@ -133,10 +132,14 @@ class Classify():
         # which loads images in 0-255 range
         img = keras.utils.img_to_array(whitebalanced * 255)
 
+        # Get config for image resizing from the model
+        _, img_height, img_width, _ = self.model.get_config()['layers'][0]['config']['batch_shape']
+        pad_to_aspect_ratio = getattr(self.model.layers[0], 'pad_to_aspect_ratio', False)
+
         # resize to match the dimentions expected by the network
-        img = tf.image.resize(img, [imsize, imsize],
+        img = tf.image.resize(img, [img_height, img_width],
                               method=tf.image.ResizeMethod.BILINEAR,
-                              preserve_aspect_ratio=True)
+                              preserve_aspect_ratio=pad_to_aspect_ratio)
 
         img_array = tf.keras.utils.img_to_array(img)
         img_preprocessed = tf.expand_dims(img_array, 0)  # Create a batch

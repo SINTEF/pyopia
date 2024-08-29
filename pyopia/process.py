@@ -14,6 +14,9 @@ import h5py
 from skimage.io import imsave
 from datetime import datetime
 
+import logging
+logger = logging.getLogger()
+
 
 def image2blackwhite_accurate(input_image, greythresh):
     ''' converts corrected image (im_corrected) to a binary image
@@ -131,7 +134,7 @@ def concentration_check(imbw, max_coverage=30):
     # acceptable coverage defined in the config
     saturation = covered_pcent / max_coverage * 100
 
-    print('{0:.1f}% saturation'.format(saturation))
+    logger.info(f'{saturation:.1f}% saturation')
 
     # check if the saturation is acceptable
     sat_check = saturation < 100
@@ -250,7 +253,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         isExist = os.path.exists(export_outputpath)
         if not isExist:
             os.makedirs(export_outputpath)
-            print("Export folder " + export_outputpath + " created.")
+            logger.info(f'Export folder {export_outputpath} created.')
 
         # Make the HDF5 file
         hdf_filename = os.path.join(export_outputpath, filename + ".h5")
@@ -285,8 +288,8 @@ def extract_particles(imc, timestamp, Classification, region_properties,
 
             if Classification is not None:
                 # run a prediction on what type of particle this might be
-                prediction = Classification.proc_predict(roi)
-                predictions[int(i), :] = prediction[0]
+                prediction = Classification.proc_predict(np.uint8(roi * 255))
+                predictions[int(i), :] = prediction
 
             # add the roi to the HDF5 file
             filenames[int(i)] = put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i)
@@ -304,7 +307,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
     # put particle statistics into a DataFrame
     stats = pd.DataFrame(columns=column_names, data=cat_data)
 
-    print('EXTRACTING {0} IMAGES from {1}'.format(nb_extractable_part, len(stats['major_axis_length'])))
+    logger.info(f'EXTRACTING {nb_extractable_part} IMAGES from {len(stats["major_axis_length"])}')
 
     if Classification is not None:
         # add classification predictions to the particle statistics data
@@ -331,7 +334,7 @@ def measure_particles(imbw, max_particles=5000):
     '''
     # label the segmented image
     iml = morphology.label(imbw > 0)
-    print('  {0} particles found'.format(iml.max()))
+    logger.info(f'  {iml.max()} particles found')
 
     # if there are too many particles then do no proceed with analysis
     if (iml.max() > max_particles):
@@ -362,11 +365,11 @@ def segment(img, threshold=0.98, minimum_area=12, fill_holes=True):
     imbw : np.array
         segmented image
     '''
-    print('segment')
+    logger.info('segment')
 
     imbw = image2blackwhite_fast(img, threshold)
 
-    print('clean')
+    logger.info('clean')
 
     # clean segmented image (small particles and border particles)
     imbw = clean_bw(imbw, minimum_area)
@@ -412,11 +415,11 @@ def statextract(imbw, timestamp, imc,
     # check the converage of the image of particles is acceptable
     sat_check, saturation = concentration_check(imbw, max_coverage=max_coverage)
     if (sat_check is False):
-        print('....breached concentration limit! Skipping image.')
+        logger.info('....breached concentration limit! Skipping image.')
         imbw *= 0  # this is not a good way to handle this condition
         # @todo handle situation when too many particles are found
 
-    print('measure')
+    logger.info('measure')
     # calculate particle statistics
     region_properties = measure_particles(imbw, max_particles=max_particles)
 
@@ -475,7 +478,7 @@ class Segment():
         self.segment_source = segment_source
 
     def __call__(self, data):
-        data['imbw'] = segment(data['imc'], threshold=self.threshold, fill_holes=self.fill_holes,
+        data['imbw'] = segment(data[self.segment_source], threshold=self.threshold, fill_holes=self.fill_holes,
                                minimum_area=self.minimum_area)
         return data
 
@@ -537,7 +540,7 @@ class CalculateStats():
         self.roi_source = roi_source
 
     def __call__(self, data):
-        print('statextract')
+        logger.info('statextract')
         stats, saturation = statextract(data['imbw'], data['timestamp'], data[self.roi_source],
                                         Classification=data['cl'],
                                         max_coverage=self.max_coverage,

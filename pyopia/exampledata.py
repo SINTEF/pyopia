@@ -49,58 +49,6 @@ def get_file_from_pysilcam_blob(filename, download_directory='./'):
     return download_directory
 
 
-def get_gas_from_pysilcam_blob(download_directory='./gas_silcam_images'):
-    '''Downloads a specified filename from the pysilcam.blob into the working dir. if it doesn't already exist
-
-    only works for known filenames that are on this blob
-
-    Parameters
-    ----------
-    filename : string
-        known filename on the blob
-
-    '''
-    if os.path.exists(os.path.join(download_directory)):
-        print(download_directory, 'already exists. Returning nothing')
-        return
-    os.makedirs(download_directory, exist_ok=False)
-    url = 'https://pysilcam.blob.core.windows.net/test-data/gas.zip'
-    print('Downloading....')
-    urllib.request.urlretrieve(url, download_directory + '/gas.zip')
-    print('Unzipping....')
-    with zipfile.ZipFile(os.path.join(download_directory, 'gas.zip'), 'r') as zipit:
-        zipit.extractall(download_directory)
-    print('Done.')
-
-
-def get_oil_from_pysilcam_blob(download_directory='./oil_silcam_images'):
-    '''Downloads a specified filename from the pysilcam.blob into the working dir. if it doesn't already exist
-
-    only works for known filenames that are on this blob
-
-    Parameters
-    ----------
-    filename : string
-        known filename on the blob
-
-    '''
-    local_zip_file = os.path.join(download_directory, 'oil.zip')
-    extract_dir = os.path.join(download_directory, 'oil')
-    if os.path.exists(local_zip_file):
-        print(download_directory, 'already exists. Returning nothing')
-        return extract_dir
-    os.makedirs(download_directory, exist_ok=False)
-    url = 'https://pysilcam.blob.core.windows.net/test-data/oil.zip'
-    print('Downloading....')
-    urllib.request.urlretrieve(url, local_zip_file)
-    print('Unzipping....')
-    with zipfile.ZipFile(local_zip_file, 'r') as zipit:
-        zipit.extractall(download_directory)
-    print('Done.')
-
-    return extract_dir
-
-
 def get_example_silc_image(download_directory='./'):
     '''calls `get_file_from_pysilcam_blob` for a silcam iamge
 
@@ -126,16 +74,16 @@ def get_example_model(download_directory='./'):
     string
         model_filename
     '''
-    model_filename = 'keras_model.h5'
+    model_filename = 'silcam-classification_database_20240822-200-20240829T091048.keras'
     if os.path.exists(model_filename):
         return model_filename
     # -- Download and unzip the model --#
-    url = 'https://github.com/SINTEF/PySilCam/wiki/ml_models/keras_model.zip'
-    model_filename = 'keras_model.zip'
+    url = 'https://pysilcam.blob.core.windows.net/test-data/silcam-classification_database_20240822-200-20240829T091048.zip'
+    model_filename = 'silcam-classification_database_20240822-200-20240829T091048.zip'
     urllib.request.urlretrieve(url, os.path.join(download_directory, model_filename))
     with zipfile.ZipFile(os.path.join(download_directory, model_filename), 'r') as zipit:
         zipit.extractall(download_directory)
-    model_filename = 'keras_model.h5'
+    model_filename = 'silcam-classification_database_20240822-200-20240829T091048.keras'
     return os.path.join(download_directory, model_filename)
 
 
