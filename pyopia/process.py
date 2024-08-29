@@ -539,6 +539,8 @@ class CalculateStats():
         self.propnames = propnames
         self.roi_source = roi_source
 
+        self.calc_image_stats = CalculateImageStats()
+
     def __call__(self, data):
         logger.info('statextract')
         stats, saturation = statextract(data['imbw'], data['timestamp'], data[self.roi_source],
@@ -552,4 +554,49 @@ class CalculateStats():
         stats['saturation'] = saturation
 
         data['stats'] = stats
+
+        self.calc_image_stats(data)
+
+        return data
+
+class CalculateImageStats():
+    '''PyOpia pipline-compatible class for collecting whole-image statistics
+
+    Pipeline input data:
+    ---------
+    :class:`pyopia.pipeline.Data`
+
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.stats`
+
+        :attr:`pyopia.pipeline.Data.timestamp`
+
+    Parameters:
+    ----------
+    None
+
+    Returns:
+    --------
+    :class:`pyopia.pipeline.Data`
+        containing the following new keys:
+
+        :attr:`pyopia.pipeline.Data.image_stats`
+    '''
+    def __init__(self):
+        pass
+
+    def __call__(self, data):
+        logger.info('CalculateImageStats')
+
+        if 'image_stats' not in data:
+            data['image_stats'] = pd.DataFrame(columns=['filename', 'particle_count', 'saturation']).astype({'particle_count': np.int64, 'saturation': np.float64})
+            data['image_stats'].index.name = 'datetime'
+
+        # Add image "global" statistics, separate from the particle stats above (stats)
+        image_saturation = np.nan if data['stats'].empty else data['stats']['saturation'].values[0]
+        data['image_stats'].loc[data['timestamp'], 'filename'] = data['filename']
+        data['image_stats'].loc[data['timestamp'], 'particle_count'] = int(data['stats'].shape[0])
+        data['image_stats'].loc[data['timestamp'], 'saturation'] = image_saturation
+
         return data

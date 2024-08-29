@@ -46,6 +46,7 @@ tensorflow-macos = {version = "^2.16.2", optional = true, markers = "sys_platfor
 tensorflow-cpu = {version = "^2.16.2", optional = true}
 dask = ">=2024.8.1"
 nbconvert = "^7.16.4"
+h5netcdf = ">= 1.3.0"
 
 [tool.poetry.extras]
 classification-arm64 = ["tensorflow-macos"]

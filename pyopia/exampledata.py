@@ -84,7 +84,7 @@ def get_example_model(download_directory='./'):
     with zipfile.ZipFile(os.path.join(download_directory, model_filename), 'r') as zipit:
         zipit.extractall(download_directory)
     model_filename = 'silcam-classification_database_20240822-200-20240829T091048.keras'
-    return os.path.join(download_directory, model_filename)
+    return os.path.join(download_directory, model_filename.replace('.keras', ''), model_filename)
 
 
 def get_example_hologram_and_background(download_directory='./'):
