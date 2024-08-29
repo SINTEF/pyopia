@@ -649,6 +649,29 @@ def make_timeseries_vd(stats, pixel_size, path_length):
 
     Returns:
         dataframe: of time series volume concentrations are in uL/L columns with number headings are diameter min-points
+    
+    Example
+    -------
+    .. code-block:: python
+        time_series_vd = pyopia.statistics.make_timeseries_vd(stats,
+                                settings['general']['pixel_size'],
+                                path_length=40)
+
+        # particle diameters
+        dias = np.array(time_series_vd.columns[0:52], dtype=float)
+
+        # an array of volume concentrations with shape (diameter, time)
+        vdarray = time_series_vd.iloc[:, 0:52].to_numpy(dtype=float)
+
+        # time-series of d50 in each image
+        d50 = time_series_vd.iloc[:, 52].to_numpy(dtype=float)
+
+        # time variable
+        time = pd.to_datetime(time_series_vd['Time'].values)
+
+        # time-series of total volume concentration
+        vc = np.sum(vdarray, axis=1)
+
     '''
     stats['timestamp'] = pd.to_datetime(stats['timestamp'])
 
@@ -689,6 +712,68 @@ def make_timeseries_vd(stats, pixel_size, path_length):
     time_series.sort_values(by='Time', inplace=True, ascending=True)
 
     return time_series
+
+
+def fill_zero_concentration_images(time, total_vc, class_time, class_vc):
+    '''if zero particles are detected in a sub-class given to
+    :func:`pyopia.statistics.make_timeseries_vd`,
+    then instead of having times of 0 concentration
+    they will just be missing from the output.
+    Use this function to re-fill the zeros back to align with the total population.
+
+    Parameters
+    ----------
+    time : array
+        time
+    total_vc : array
+        total concentration (of length time array)
+    class_time : array
+        time array associated with class_vc
+    class_vc : array
+        class concentration (of length class_time array)
+
+    Returns
+    -------
+    new_class_vc
+        zero-filled class concentration (of length time array)
+
+    Example
+    -------
+
+    .. code-block:: python
+
+        time_series_vd = pyopia.statistics.make_timeseries_vd(stats,
+                                settings['general']['pixel_size'],
+                                path_length=40)
+
+        # time variable
+        time = pd.to_datetime(time_series_vd['Time'].values)
+        # time-series of total volume concentration
+        total_vc = np.sum(vdarray, axis=1)
+
+        bubbles = stats[stats['probability_bubble'] > 0.8]
+
+        time_series_vd_bubbles = pyopia.statistics.make_timeseries_vd(bubbles,
+                                settings['general']['pixel_size'],
+                                path_length=40)
+
+        # time variable
+        time_bubbles = pd.to_datetime(time_series_vd['Time'].values)
+        # time-series of total volume concentration
+        vc_bubbles = np.sum(vdarray, axis=1)
+
+        vc_bubbles = fill_zero_concentration_images(time, total_vc, time_bubbles, vc_bubbles)
+
+        plt.plot(time, total_vc)
+        plt.plot(time, vc_bubbles)
+
+    '''
+    new_vc = np.zeros_like(total_vc)
+
+    for i in range(len(class_time)):
+        idx = np.argwhere(class_time[i] == time).flatten()
+        new_vc[idx] = class_vc[i]
+    return new_vc
 
 
 def statscsv_to_statshdf(stats_file):
