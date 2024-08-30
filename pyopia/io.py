@@ -12,13 +12,17 @@ import os
 
 from pyopia import __version__ as pyopia_version
 
+# The netcdf4 engine seems to produce errors with the stats dataset, so we use h5netcdf instead
+NETCDF_ENGINE = 'h5netcdf'
+
 
 def write_stats(stats,
                 datafilename,
                 settings=None,
                 export_name_len=40,
                 dataformat='nc',
-                append=True):
+                append=True,
+                image_stats=None):
     '''
     Writes particle stats into the ouput file.
     Appends if file already exists.
@@ -60,13 +64,15 @@ def write_stats(stats,
         if append and os.path.isfile(datafilename + '-STATS.nc'):
             existing_stats = load_stats(datafilename + '-STATS.nc')
             xstats = xarray.concat([existing_stats, xstats], 'index')
-            xstats.index.values[:] = range(0, xstats.index.size)
         elif not append:
-            xstats = xstats.set_index(index="index")
             datafilename += ('-Image-D' +
                              str(xstats['timestamp'][0].values).replace('-', '').replace(':', '').replace('.', '-'))
         encoding = {k: {'dtype': 'str'} for k in ['export name', 'holo_filename'] if k in xstats.data_vars}
-        xstats.to_netcdf(datafilename + '-STATS.nc', encoding=encoding)
+        xstats.to_netcdf(datafilename + '-STATS.nc', encoding=encoding, engine=NETCDF_ENGINE, format='NETCDF4')
+
+        # If we have image statistics, add this to a group
+        if image_stats is not None:
+            image_stats.to_xarray().to_netcdf(datafilename + '-STATS.nc', group='image_stats', mode='a', engine=NETCDF_ENGINE)
 
 
 def make_xstats(stats, toml_steps):
@@ -107,7 +113,7 @@ def load_stats(datafilename):
     '''
 
     if datafilename.endswith('.nc'):
-        with xarray.open_dataset(datafilename) as stats:
+        with xarray.open_dataset(datafilename, engine=NETCDF_ENGINE) as stats:
             stats.load()
     elif datafilename.endswith('.h5'):
         stats = pd.read_hdf(datafilename, 'ParticleStats/stats')
@@ -134,7 +140,6 @@ def combine_stats_netcdf_files(path_to_data):
         STATS xarray dataset
     '''
     xstats = xarray.open_mfdataset(os.path.join(path_to_data, '*Image-D*-STATS.nc'), combine='nested', concat_dim='index')
-    xstats = xstats.set_index(range(0, xstats.index.size))
     return xstats
 
 
@@ -222,7 +227,8 @@ class StatsToDisc():
                     settings=data['settings'],
                     dataformat=self.dataformat,
                     export_name_len=self.export_name_len,
-                    append=self.append)
+                    append=self.append,
+                    image_stats=data['image_stats'])
 
         return data
 

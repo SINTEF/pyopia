@@ -259,7 +259,7 @@ def nd_from_stats(stats, pix_size):
     ecd = stats['equivalent_diameter'] * pix_size
 
     # ignore nans
-    ecd = ecd[~np.isnan(ecd)]
+    ecd = ecd[~np.isnan(ecd.values)]
 
     # get the size bins into which particles will be counted
     dias, bin_limits_um = get_size_bins()

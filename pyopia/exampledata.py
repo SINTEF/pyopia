@@ -74,17 +74,17 @@ def get_example_model(download_directory='./'):
     string
         model_filename
     '''
-    model_filename = 'keras_model.h5'
+    model_filename = 'silcam-classification_database_20240822-200-20240829T091048.keras'
     if os.path.exists(model_filename):
         return model_filename
     # -- Download and unzip the model --#
-    url = 'https://github.com/SINTEF/PySilCam/wiki/ml_models/keras_model.zip'
-    model_filename = 'keras_model.zip'
+    url = 'https://pysilcam.blob.core.windows.net/test-data/silcam-classification_database_20240822-200-20240829T091048.zip'
+    model_filename = 'silcam-classification_database_20240822-200-20240829T091048.zip'
     urllib.request.urlretrieve(url, os.path.join(download_directory, model_filename))
     with zipfile.ZipFile(os.path.join(download_directory, model_filename), 'r') as zipit:
         zipit.extractall(download_directory)
-    model_filename = 'keras_model.h5'
-    return os.path.join(download_directory, model_filename)
+    model_filename = 'silcam-classification_database_20240822-200-20240829T091048.keras'
+    return os.path.join(download_directory, model_filename.replace('.keras', ''), model_filename)
 
 
 def get_example_hologram_and_background(download_directory='./'):
