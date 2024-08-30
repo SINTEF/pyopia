@@ -98,6 +98,24 @@ def make_xstats(stats, toml_steps):
     return xstats
 
 
+def load_image_stats(datafilename):
+    '''Load the summary stats and time information for each image
+
+    Parameters
+    ----------
+    datafilename : str
+        filename of -STATS.nc
+
+    Returns
+    -------
+    xarray.DataArray
+        image_stats
+    '''
+    with xarray.open_dataset(datafilename, engine=NETCDF_ENGINE, group='image_stats') as image_stats:
+        image_stats.load()
+    return image_stats
+
+
 def load_stats(datafilename):
     '''Load STATS file as a DataFrame
 

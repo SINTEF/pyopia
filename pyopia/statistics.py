@@ -642,7 +642,15 @@ def extract_latest_stats(stats, window_size):
 def make_timeseries_vd(stats, pixel_size, path_length, time_reference):
     '''makes a dataframe of time-series volume distribution and d50
     similar to Sequoia LISST-100 output,
-    and exportable to things like Excel or csv
+    and exportable to things like Excel or csv.
+
+    Note: If zero particles are detected within the stats daraframe,
+    then the volume concentration should be reported as zero for that
+    time. For this function to have awareness of these times, it requires
+    time_reference variable. If you use `stats['timestamp'].unique()` for this,
+    then you are assuming you have at least one particle per image.
+    It is better to use image_stats['timestamp'] instead, which can be obtained from
+    :func:`pyopia.io.load_image_stats`
 
     Args:
         stats (pandas dataframe)       : loaded from a *-STATS.nc file
@@ -681,7 +689,7 @@ def make_timeseries_vd(stats, pixel_size, path_length, time_reference):
     sample_volume = get_sample_volume(pixel_size, path_length=path_length)
 
     vdts = np.zeros((len(time_reference), len(get_size_bins()[0])), dtype=np.float64)
-    d50 = np.zeros((len(time_reference)), dtype=np.float64)
+    d50 = np.zeros((len(time_reference)), dtype=np.float64) * np.nan
     for i, s in enumerate(tqdm(time_reference)):
         nims = count_images_in_stats(stats[stats['timestamp'] == s])
         if nims > 0:
@@ -702,7 +710,6 @@ def make_timeseries_vd(stats, pixel_size, path_length, time_reference):
 
         return time_series
 
-    d50[d50 == 0] = np.nan
     time_series = pd.DataFrame(data=np.squeeze(vdts), columns=dias)
 
     time_series['D50'] = d50
