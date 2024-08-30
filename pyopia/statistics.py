@@ -649,7 +649,7 @@ def make_timeseries_vd(stats, pixel_size, path_length, time_reference):
     time. For this function to have awareness of these times, it requires
     time_reference variable. If you use `stats['timestamp'].unique()` for this,
     then you are assuming you have at least one particle per image.
-    It is better to use image_stats['timestamp'] instead, which can be obtained from
+    It is better to use image_stats['datetime'].values instead, which can be obtained from
     :func:`pyopia.io.load_image_stats`
 
     Args:
