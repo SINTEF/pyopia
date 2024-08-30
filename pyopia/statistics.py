@@ -639,13 +639,17 @@ def extract_latest_stats(stats, window_size):
     return stats
 
 
-def make_timeseries_vd(stats, pixel_size, path_length):
+def make_timeseries_vd(stats, pixel_size, path_length, time_reference):
     '''makes a dataframe of time-series volume distribution and d50
+    similar to Sequoia LISST-100 output,
+    and exportable to things like Excel or csv
 
     Args:
-        stats (silcam stats dataframe): loaded from a *-STATS.h5 file
-        pixel_size () : pixel size in microns per pixel
-        path_length : path length of the sample volume in mm
+        stats (pandas dataframe)       : loaded from a *-STATS.nc file
+                                         (convert from xarray like this: `stats = xstats.to_dataframe()`)
+        pixel_size (float)             : pixel size in microns per pixel
+        path_length (float)            : path length of the sample volume in mm
+        time_reference (array)         : time-series associated with the stats dataset stats['timestamp'].unique()
 
     Returns:
         dataframe: of time series volume concentrations are in uL/L columns with number headings are diameter min-points
@@ -673,25 +677,19 @@ def make_timeseries_vd(stats, pixel_size, path_length):
         vc = np.sum(vdarray, axis=1)
 
     '''
-    stats['timestamp'] = pd.to_datetime(stats['timestamp'])
-
-    u = stats['timestamp'].unique()
 
     sample_volume = get_sample_volume(pixel_size, path_length=path_length)
 
-    vdts = []
-    d50 = []
-    timestamp = []
-    dias = []
-    for s in tqdm(u):
-        dias, vd = vd_from_stats(stats[stats['timestamp'] == s], pixel_size)
+    vdts = np.zeros((len(time_reference), len(get_size_bins()[0])), dtype=np.float64)
+    d50 = np.zeros((len(time_reference)), dtype=np.float64)
+    for i, s in enumerate(tqdm(time_reference)):
         nims = count_images_in_stats(stats[stats['timestamp'] == s])
-        sv = sample_volume * nims
-        vd /= sv
-        d50_ = d50_from_vd(vd, dias)
-        d50.append(d50_)
-        timestamp.append(pd.to_datetime(s))
-        vdts.append(vd)
+        if nims > 0:
+            dias, vd = vd_from_stats(stats[stats['timestamp'] == s], pixel_size)
+            sv = sample_volume * nims
+            vd /= sv
+            d50[i] = d50_from_vd(vd, dias)
+            vdts[i, :] = vd
 
     if len(vdts) == 0:
         dias, limits = get_size_bins()
@@ -704,10 +702,11 @@ def make_timeseries_vd(stats, pixel_size, path_length):
 
         return time_series
 
+    d50[d50 == 0] = np.nan
     time_series = pd.DataFrame(data=np.squeeze(vdts), columns=dias)
 
     time_series['D50'] = d50
-    time_series['Time'] = pd.to_datetime(timestamp)
+    time_series['Time'] = pd.to_datetime(time_reference)
 
     time_series.sort_values(by='Time', inplace=True, ascending=True)
 
