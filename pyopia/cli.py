@@ -15,6 +15,7 @@ import pyopia.background
 import pyopia.classify
 import pyopia.instrument.silcam
 import pyopia.instrument.holo
+import pyopia.instrument.common
 import pyopia.io
 import pyopia.pipeline
 import pyopia.plotting

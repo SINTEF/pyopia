@@ -13,6 +13,7 @@ import skimage.exposure
 import h5py
 from skimage.io import imsave
 from datetime import datetime
+import pyopia.statistics
 
 import logging
 logger = logging.getLogger()
@@ -288,8 +289,8 @@ def extract_particles(imc, timestamp, Classification, region_properties,
 
             if Classification is not None:
                 # run a prediction on what type of particle this might be
-                prediction = Classification.proc_predict(np.uint8(roi * 255))
-                predictions[int(i), :] = prediction[0]
+                prediction = Classification.proc_predict(roi)
+                predictions[int(i), :] = prediction
 
             # add the roi to the HDF5 file
             filenames[int(i)] = put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i)
@@ -539,6 +540,8 @@ class CalculateStats():
         self.propnames = propnames
         self.roi_source = roi_source
 
+        self.calc_image_stats = CalculateImageStats()
+
     def __call__(self, data):
         logger.info('statextract')
         stats, saturation = statextract(data['imbw'], data['timestamp'], data[self.roi_source],
@@ -552,4 +555,70 @@ class CalculateStats():
         stats['saturation'] = saturation
 
         data['stats'] = stats
+
+        self.calc_image_stats(data)
+
+        return data
+
+
+class CalculateImageStats():
+    '''PyOpia pipline-compatible class for collecting whole-image statistics
+
+    Pipeline input data:
+    ---------
+    :class:`pyopia.pipeline.Data`
+
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.stats`
+
+        :attr:`pyopia.pipeline.Data.timestamp`
+
+    Parameters:
+    ----------
+    None
+
+    Returns:
+    --------
+    :class:`pyopia.pipeline.Data`
+        containing the following new keys:
+
+        :attr:`pyopia.pipeline.Data.image_stats`
+    '''
+    def __init__(self):
+        pass
+
+    def __call__(self, data):
+        logger.info('CalculateImageStats')
+
+        if 'image_stats' not in data:
+            data['image_stats'] = pd.DataFrame(columns=['filename', 'particle_count', 'saturation',
+                                                        'd50', 'nc', 'vc', 'sample_volume', 'junge'])
+            data['image_stats'] = data['image_stats'].astype({'particle_count': np.int64, 'saturation': np.float64})
+            data['image_stats'].index.name = 'datetime'
+
+        stats = data['stats']
+
+        # Add image "global" statistics, separate from the particle stats above (stats)
+        image_saturation = np.nan if stats.empty else stats['saturation'].values[0]
+        data['image_stats'].loc[data['timestamp'], 'filename'] = getattr(data, 'filename', '')
+        data['image_stats'].loc[data['timestamp'], 'particle_count'] = int(stats.shape[0])
+        data['image_stats'].loc[data['timestamp'], 'saturation'] = image_saturation
+
+        # Skip remaining calculations if no particles where found
+        if data['stats'].size == 0:
+            return data
+
+        # Calculate D50, nc and vc stats
+        pixel_size = data['settings']['general']['pixel_size']
+
+        d50 = pyopia.statistics.d50_from_stats(data['stats'], pixel_size)
+        data['image_stats'].loc[data['timestamp'], 'd50'] = d50
+
+        path_length = getattr(data['settings']['general'], 'path_length', 40)
+        if path_length is not None:
+            nc_vc = pyopia.statistics.nc_vc_from_stats(data['stats'], pixel_size, path_length)
+            for k, v in zip(['nc', 'vc', 'sample_volume', 'junge'], nc_vc):
+                data['image_stats'].loc[data['timestamp'], k] = v
+
         return data
