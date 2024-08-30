@@ -157,8 +157,23 @@ def combine_stats_netcdf_files(path_to_data):
     DataFrame
         STATS xarray dataset
     '''
-    xstats = xarray.open_mfdataset(os.path.join(path_to_data, '*Image-D*-STATS.nc'), combine='nested', concat_dim='index')
-    return xstats
+
+    sorted_filelist = sorted(os.path.join(path_to_data, '*Image-D*-STATS.nc'))
+    with xarray.open_mfdataset(sorted_filelist, combine='nested', concat_dim='index') as ds:
+        xstats = ds.load()
+
+    # Check if we have image statistics in the last file, if so, load it.
+    # The last file should contain the entire time series of processed images.
+    try:
+        ds = xarray.open_dataset(sorted_filelist[-1], group='image_stats', engine=NETCDF_ENGINE)
+    except OSError:
+        image_stats = None
+    else:
+        image_stats = ds.load()
+    finally:
+        ds.close()
+
+    return xstats, image_stats
 
 
 def load_stats_as_dataframe(stats_file):
