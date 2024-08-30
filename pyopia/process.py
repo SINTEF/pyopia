@@ -416,7 +416,8 @@ def statextract(imbw, timestamp, imc,
     # check the converage of the image of particles is acceptable
     sat_check, saturation = concentration_check(imbw, max_coverage=max_coverage)
     if (sat_check is False):
-        logger.warning('{timestamp}: Breached concentration limit! Skipping image. This can affect the accuary of concentration calculations!')
+        logger.warning('{timestamp}: Breached concentration limit! Skipping image. \
+                       This can affect the accuary of concentration calculations!')
         imbw[:] = False  # this is not a good way to handle this condition
         # @todo handle situation when too many particles are found
 
