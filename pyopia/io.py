@@ -132,7 +132,7 @@ def load_stats(datafilename):
     '''
 
     if datafilename.endswith('.nc'):
-        with xarray.open_dataset(datafilename, engine=NETCDF_ENGINE) as stats:
+        with xarray.open_dataset(datafilename) as stats:
             stats.load()
     elif datafilename.endswith('.h5'):
         stats = pd.read_hdf(datafilename, 'ParticleStats/stats')
@@ -160,13 +160,13 @@ def combine_stats_netcdf_files(path_to_data):
     '''
 
     sorted_filelist = sorted(glob(os.path.join(path_to_data, '*Image-D*-STATS.nc')))
-    with xarray.open_mfdataset(sorted_filelist, combine='nested', concat_dim='index', engine=NETCDF_ENGINE) as ds:
+    with xarray.open_mfdataset(sorted_filelist, combine='nested', concat_dim='index') as ds:
         xstats = ds.load()
 
     # Check if we have image statistics in the last file, if so, load it.
     # The last file should contain the entire time series of processed images.
     try:
-        ds = xarray.open_dataset(sorted_filelist[-1], group='image_stats', engine=NETCDF_ENGINE)
+        ds = xarray.open_dataset(sorted_filelist[-1], group='image_stats')
     except OSError:
         image_stats = None
     else:
