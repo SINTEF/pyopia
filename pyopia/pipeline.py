@@ -109,7 +109,7 @@ class Pipeline():
 
             # Check for signal from this step that we should skip remaining pipeline for this image
             if self.data['skip_next_steps']:
-                print('Skipping remaining steps of the pipeline and returning')
+                logger.info('Skipping remaining steps of the pipeline and returning')
 
                 # Reset skip flag
                 self.data['skip_next_steps'] = False

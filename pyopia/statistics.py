@@ -10,6 +10,9 @@ import h5py
 from tqdm import tqdm
 from pyopia.io import write_stats, load_stats_as_dataframe
 
+import logging
+logger = logging.getLogger()
+
 
 def d50_from_stats(stats, pixel_size):
     '''
@@ -340,7 +343,7 @@ def make_montage(stats_file_or_df, pixel_size, roidir,
     montage = np.zeros((msize, msize, 3), dtype=np.float64())
     # pre-allocate an empty test canvas
     immap_test = np.zeros_like(montage[:, :, 0])
-    print('making a montage - this might take some time....')
+    logger.info('making a montage - this might take some time....')
 
     # loop through each extracted particle and attempt to add it to the canvas
     for files in tqdm(roifiles):
@@ -401,7 +404,7 @@ def make_montage(stats_file_or_df, pixel_size, roidir,
     montageplot = np.copy(montage)
     montageplot[montage > 1] = 1
     montageplot[montage == 0] = 1
-    print('montage complete')
+    logger.info('montage complete')
 
     return montageplot
 
@@ -420,11 +423,11 @@ def gen_roifiles(stats, auto_scaler=500):
     roifiles = stats['export name'][stats['export name'] != 'not_exported'].values
 
     # subsample the particles if necessary
-    print('rofiles: {0}'.format(len(roifiles)))
+    logger.info('rofiles: {0}'.format(len(roifiles)))
     IMSTEP = np.max([int(np.round(len(roifiles) / auto_scaler)), 1])
-    print('reducing particles by factor of {0}'.format(IMSTEP))
+    logger.info('reducing particles by factor of {0}'.format(IMSTEP))
     roifiles = roifiles[np.arange(0, len(roifiles), IMSTEP)]
-    print('rofiles: {0}'.format(len(roifiles)))
+    logger.info('rofiles: {0}'.format(len(roifiles)))
 
     return roifiles
 
@@ -727,7 +730,7 @@ def trim_stats(stats_file, start_time, end_time, write_new=False, stats=[]):
         (pd.to_datetime(stats['timestamp']) > start_time) & (pd.to_datetime(stats['timestamp']) < end_time)]
 
     if np.isnan(trimmed_stats.equivalent_diameter.max()) or len(trimmed_stats) == 0:
-        print('No data in specified time range!')
+        logger.info('No data in specified time range!')
         outname = ''
         return trimmed_stats, outname
 
@@ -786,8 +789,8 @@ def show_h5_meta(h5file):
         keys = list(f['Meta'].attrs.keys())
 
         for k in keys:
-            print(k + ':')
-            print('    ' + f['Meta'].attrs[k])
+            logger.info(k + ':')
+            logger.info('    ' + f['Meta'].attrs[k])
 
 
 def vd_to_nd(vd, dias):

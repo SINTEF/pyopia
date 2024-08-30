@@ -14,6 +14,9 @@ import struct
 from datetime import timedelta, datetime
 from glob import glob
 
+import logging
+logger = logging.getLogger()
+
 '''
 This is a module containing basic processing for reconstruction of in-line holographic images.
 
@@ -65,15 +68,15 @@ class Initial():
         self.stepZ = stepZ
 
     def __call__(self, data):
-        print('Using first raw file from list in general settings to determine image dimensions')
+        logger.info('Using first raw file from list in general settings to determine image dimensions')
         raw_files = glob(data['settings']['general']['raw_files'])
         self.filename = raw_files[0]
         imtmp = load_image(self.filename)
         self.pixel_size = data['settings']['general']['pixel_size']
-        print('Build kernel with pixel_size = ', self.pixel_size, 'um')
+        logger.info('Build kernel with pixel_size = ', self.pixel_size, 'um')
         kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.n, self.offset, self.minZ, self.maxZ, self.stepZ)
         im_stack = np.zeros(np.shape(kern)).astype(np.float64)
-        print('HoloInitial done', datetime.now())
+        logger.info('HoloInitial done', datetime.now())
         data['kern'] = kern
         data['im_stack'] = im_stack
         return data
@@ -116,12 +119,12 @@ class Load():
         pass
 
     def __call__(self, data):
-        print(data['filename'])
+        logger.info(data['filename'])
         try:
             timestamp = read_lisst_holo_info(data['filename'])
         except ValueError:
             timestamp = pd.to_datetime(os.path.splitext(os.path.basename(data['filename']))[0][1:])
-        print(timestamp)
+        logger.info(timestamp)
         im = load_image(data['filename'])
         data['timestamp'] = timestamp
         data['imraw'] = im
@@ -608,7 +611,7 @@ def read_lisst_holo_info(filename):
     filenum = int(filenum.rsplit('.', 1)[0])
     timestamp = timestamp + timedelta(microseconds=filenum)
     timestamp = timestamp[0]
-    print(timestamp.strftime('D%Y%m%dT%H%M%S.%f'))
+    logger.info(timestamp.strftime('D%Y%m%dT%H%M%S.%f'))
     f.close()
 
     return timestamp
