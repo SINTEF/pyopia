@@ -148,6 +148,7 @@ class Classify():
         img_preprocessed = tf.expand_dims(img_array, 0)  # Create a batch
         return img_preprocessed
 
+    @tf.function
     def predict(self, img_preprocessed):
         '''
         Use tensorflow model to classify particles. example here based on the pysilcam network setup.
@@ -160,7 +161,7 @@ class Classify():
             prediction (array)       : the probability of the roi belonging to each class
         '''
 
-        prediction = self.model.predict(img_preprocessed, verbose=0)
+        prediction = self.model(img_preprocessed, training=False)
         prediction = tf.nn.softmax(prediction[0])
         return prediction
 
