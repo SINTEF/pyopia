@@ -648,10 +648,6 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
                 'maxZ': 50,  # maximum reconstruction distance within sample volume in mm
                 'stepZ': 0.5  # step size in mm
             },
-            'classifier': {
-                'pipeline_class': 'pyopia.classify.Classify',
-                'model_path': model_path
-            },
             'load': {
                 'pipeline_class': 'pyopia.instrument.holo.Load'
             },
