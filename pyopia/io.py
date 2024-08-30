@@ -13,6 +13,9 @@ from glob import glob
 
 from pyopia import __version__ as pyopia_version
 
+import logging
+logger = logging.getLogger()
+
 # The netcdf4 engine seems to produce errors with the stats dataset, so we use h5netcdf instead
 NETCDF_ENGINE = 'h5netcdf'
 
@@ -137,9 +140,9 @@ def load_stats(datafilename):
     elif datafilename.endswith('.h5'):
         stats = pd.read_hdf(datafilename, 'ParticleStats/stats')
     else:
-        print('WARNING. File extension not specified.' +
-              'Assuming prefix of -STATS.h5 for backwards compatability.' +
-              'In future, this function will only take .nc files')
+        logger.warning('WARNING. File extension not specified.' +
+                       'Assuming prefix of -STATS.h5 for backwards compatability.' +
+                       'In future, this function will only take .nc files')
         stats = pd.read_hdf(datafilename + '-STATS.h5', 'ParticleStats/stats')
     return stats
 
@@ -195,7 +198,8 @@ def load_stats_as_dataframe(stats_file):
     try:
         stats = stats.to_dataframe()
     except AttributeError:
-        print('STATS was likely loaded from an old h5 format, which will be deprecated in future. Please use NetCDF in future.')
+        logger.info('STATS was likely loaded from an old h5 format, \
+                    which will be deprecated in future. Please use NetCDF in future.')
         pass
     return stats
 
@@ -212,8 +216,8 @@ def show_h5_meta(h5file):
         keys = list(f['Meta'].attrs.keys())
 
         for k in keys:
-            print(k + ':')
-            print('    ' + f['Meta'].attrs[k])
+            logger.info(k + ':')
+            logger.info('    ' + f['Meta'].attrs[k])
 
 
 class StatsToDisc():

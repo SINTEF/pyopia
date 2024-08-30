@@ -428,7 +428,7 @@ def statextract(imbw, timestamp, imc,
     # build the stats and export to HDF5
     if imc.ndim == 2:
         imc = np.stack([imc] * 3, axis=2)
-        print('WARNING! Unexpected image dimension. extract_particles modified for 2-d images without color!')
+        logger.warning('WARNING! Unexpected image dimension. extract_particles modified for 2-d images without color!')
 
     stats = extract_particles(imc, timestamp, Classification, region_properties,
                               export_outputpath=export_outputpath, min_length=min_length,

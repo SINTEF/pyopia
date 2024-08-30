@@ -6,6 +6,9 @@ import os
 import numpy as np
 import pandas as pd
 
+import logging
+logger = logging.getLogger()
+
 # import tensorflow here. It must be imported on the processor where it will be used!
 # import is therefore here instead of at the top of file.
 # consider # noqa: E(?) for flake8 / linting
@@ -94,7 +97,7 @@ class Classify():
         try:
             class_labels = self.model.layers[-1].name.split('.')
         except:  # noqa E722
-            print('Could not get class names from model layer name, reverting to old method with header file.')
+            logger.info('Could not get class names from model layer name, reverting to old method with header file.')
 
         # If we could not create correct class names above, revert to old header file method
         expected_class_number = self.model.layers[-1].output.shape[1]
@@ -103,7 +106,7 @@ class Classify():
             class_labels = header.columns
 
         self.class_labels = class_labels
-        print(self.class_labels)
+        logger.info(self.class_labels)
 
     def preprocessing(self, img_input):
         '''
