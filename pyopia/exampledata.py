@@ -83,7 +83,7 @@ def get_example_model(download_directory='./'):
     urllib.request.urlretrieve(url, os.path.join(download_directory, model_filename))
     with zipfile.ZipFile(os.path.join(download_directory, model_filename), 'r') as zipit:
         zipit.extractall(download_directory)
-    model_filename = 'silcam-classification_database_20240822-200-20240829T091048.keras'
+    model_filename = 'silcam-classification_database_20240822-200-20240829T091048-best-epoch.keras'
     return os.path.join(download_directory, model_filename.replace('.keras', ''), model_filename)
 
 
