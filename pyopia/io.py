@@ -9,6 +9,7 @@ import pandas as pd
 import toml
 import xarray
 import os
+from glob import glob
 
 from pyopia import __version__ as pyopia_version
 
@@ -158,8 +159,8 @@ def combine_stats_netcdf_files(path_to_data):
         STATS xarray dataset
     '''
 
-    sorted_filelist = sorted(os.path.join(path_to_data, '*Image-D*-STATS.nc'))
-    with xarray.open_mfdataset(sorted_filelist, combine='nested', concat_dim='index') as ds:
+    sorted_filelist = sorted(glob(os.path.join(path_to_data, '*Image-D*-STATS.nc')))
+    with xarray.open_mfdataset(sorted_filelist, combine='nested', concat_dim='index', engine=NETCDF_ENGINE) as ds:
         xstats = ds.load()
 
     # Check if we have image statistics in the last file, if so, load it.
