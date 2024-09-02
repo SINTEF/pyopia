@@ -62,6 +62,8 @@ def test_match_to_database():
 
             # start a counter of incorrectly classified images
             failed = 0
+            time_limit = len(files) * 0.01
+            t1 = pd.Timestamp.now()
 
             # loop through the database images
             for file in tqdm(files):
@@ -78,6 +80,10 @@ def test_match_to_database():
 
             # turn failed count into a success percent
             success = 100 - (failed / len(files)) * 100
+
+            t2 = pd.Timestamp.now()
+            td = t2 - t1
+            assert td < pd.to_timedelta(time_limit, 's'), 'Processing time too long.'
 
             return success
 
