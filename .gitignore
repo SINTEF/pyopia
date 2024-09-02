@@ -263,5 +263,14 @@ docs/jupyter_execute/
 *.nc
 
 poetry.lock
+/notebooks/gas_silcam_images
+/notebooks/oil_silcam_images
 header.tfl.txt
 *.tiff
+notebooks/__MACOSX/*
+notebooks/silcam240822.keras
+model/*
+notebooks/model/*
+*.keras
+*.png
+*-summary.txt
