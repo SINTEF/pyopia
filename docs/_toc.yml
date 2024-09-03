@@ -10,6 +10,7 @@ parts:
   - file: examples
 - caption: Processing examples
   chapters:
+  - file: notebooks/processing_raw_data.ipynb
   - file: notebooks/toml_config.ipynb
   - file: notebooks/cli
 - caption: STATS particle statistics data
