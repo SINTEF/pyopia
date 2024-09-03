@@ -94,6 +94,9 @@ or for arm/silicon systems:
 poetry install --extras "classification-arm64"
 ```
 
+Note: If poetry spends ages resolving dependencies, you can install a development environment with pip, like this: `pip install -e ".[classification]"` or for arm/silicon: `pip install -e ".[classification-arm64]"`
+
+
 3. (optional) Run local tests:
 
 ```bash

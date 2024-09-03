@@ -596,7 +596,7 @@ class CalculateImageStats():
             data['image_stats'] = pd.DataFrame(columns=['filename', 'particle_count', 'saturation',
                                                         'd50', 'nc', 'vc', 'sample_volume', 'junge'])
             data['image_stats'] = data['image_stats'].astype({'particle_count': np.int64, 'saturation': np.float64})
-            data['image_stats'].index.name = 'datetime'
+            data['image_stats'].index.name = 'timestamp'
 
         stats = data['stats']
 

@@ -96,6 +96,11 @@ def test_match_to_database():
 
 
 def test_pipeline_classification():
+    '''Check that the pipeline doesn't change the outcome of the classification.
+    Do this by putting rois of know classificion (which we know get correctly classified independintly),
+    and then use the same model in a pipeline analysing the synthetic image.
+    '''
+
     with tempfile.TemporaryDirectory() as tempdir:
         # location of the training data
         database_path = os.path.join(tempdir, 'silcam_classification_database')

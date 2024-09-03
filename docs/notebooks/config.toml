@@ -13,7 +13,7 @@ pixel_size = 24 # pixel size of imaging system in microns
 
     [steps.imageprep]
     pipeline_class = 'pyopia.instrument.silcam.ImagePrep'
-    image_level = 'imraw' # the level of processing for further analysis. Either 'imraw' for ignoring background or 'imc' for using the backgroun-corrected image. Defaults to 'imc' if not defined.
+    image_level = 'imraw' # the level of processing for further analysis. Either 'im_corrected' for ignoring background or 'imc' for using the backgroun-corrected image. Defaults to 'imc' if not defined.
 
     [steps.segmentation]
     pipeline_class = 'pyopia.process.Segment'

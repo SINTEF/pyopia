@@ -105,6 +105,7 @@ class Pipeline():
             if self.initial_steps.__contains__(stepname):
                 continue
 
+            logger.info(f'Running pipeline step: {stepname}')
             self.run_step(stepname)
 
             # Check for signal from this step that we should skip remaining pipeline for this image
