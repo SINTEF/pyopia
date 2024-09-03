@@ -127,6 +127,7 @@ class Pipeline():
             Name of the step defined in the settings
         '''
         if stepname == 'classifier':
+            import pyopia.classify # noqa: E(F410)
             callobj = self.step_callobj(stepname)
             self.data['cl'] = callobj()
         else:
