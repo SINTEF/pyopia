@@ -10,7 +10,6 @@ import datetime
 import traceback
 import logging
 from rich.progress import track, Progress
-import logging
 import pandas as pd
 
 import pyopia.background
@@ -165,7 +164,7 @@ def setup_logging(pipeline_config):
 
     # Configure logger
     log_format = '%(asctime)s %(levelname)s [%(module)s.%(funcName)s] %(message)s'
-    logging.basicConfig(level=log_level, format=log_format, filename=log_file, 
+    logging.basicConfig(level=log_level, format=log_format, filename=log_file,
                         datefmt='%Y-%m-%d %H:%M:%S')
 
     logger = logging.getLogger()
