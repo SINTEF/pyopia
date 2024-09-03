@@ -9,8 +9,15 @@ import pandas as pd
 import toml
 import xarray
 import os
+from glob import glob
 
 from pyopia import __version__ as pyopia_version
+
+import logging
+logger = logging.getLogger()
+
+# The netcdf4 engine seems to produce errors with the stats dataset, so we use h5netcdf instead
+NETCDF_ENGINE = 'h5netcdf'
 
 
 def write_stats(stats,
@@ -18,7 +25,8 @@ def write_stats(stats,
                 settings=None,
                 export_name_len=40,
                 dataformat='nc',
-                append=True):
+                append=True,
+                image_stats=None):
     '''
     Writes particle stats into the ouput file.
     Appends if file already exists.
@@ -60,13 +68,15 @@ def write_stats(stats,
         if append and os.path.isfile(datafilename + '-STATS.nc'):
             existing_stats = load_stats(datafilename + '-STATS.nc')
             xstats = xarray.concat([existing_stats, xstats], 'index')
-            xstats.index.values[:] = range(0, xstats.index.size)
         elif not append:
-            xstats = xstats.set_index(index="index")
             datafilename += ('-Image-D' +
                              str(xstats['timestamp'][0].values).replace('-', '').replace(':', '').replace('.', '-'))
         encoding = {k: {'dtype': 'str'} for k in ['export name', 'holo_filename'] if k in xstats.data_vars}
-        xstats.to_netcdf(datafilename + '-STATS.nc', encoding=encoding)
+        xstats.to_netcdf(datafilename + '-STATS.nc', encoding=encoding, engine=NETCDF_ENGINE, format='NETCDF4')
+
+        # If we have image statistics, add this to a group
+        if image_stats is not None:
+            image_stats.to_xarray().to_netcdf(datafilename + '-STATS.nc', group='image_stats', mode='a', engine=NETCDF_ENGINE)
 
 
 def make_xstats(stats, toml_steps):
@@ -92,6 +102,24 @@ def make_xstats(stats, toml_steps):
     return xstats
 
 
+def load_image_stats(datafilename):
+    '''Load the summary stats and time information for each image
+
+    Parameters
+    ----------
+    datafilename : str
+        filename of -STATS.nc
+
+    Returns
+    -------
+    xarray.DataArray
+        image_stats
+    '''
+    with xarray.open_dataset(datafilename, engine=NETCDF_ENGINE, group='image_stats') as image_stats:
+        image_stats.load()
+    return image_stats
+
+
 def load_stats(datafilename):
     '''Load STATS file as a DataFrame
 
@@ -112,9 +140,9 @@ def load_stats(datafilename):
     elif datafilename.endswith('.h5'):
         stats = pd.read_hdf(datafilename, 'ParticleStats/stats')
     else:
-        print('WARNING. File extension not specified.' +
-              'Assuming prefix of -STATS.h5 for backwards compatability.' +
-              'In future, this function will only take .nc files')
+        logger.warning('WARNING. File extension not specified.' +
+                       'Assuming prefix of -STATS.h5 for backwards compatability.' +
+                       'In future, this function will only take .nc files')
         stats = pd.read_hdf(datafilename + '-STATS.h5', 'ParticleStats/stats')
     return stats
 
@@ -133,9 +161,23 @@ def combine_stats_netcdf_files(path_to_data):
     DataFrame
         STATS xarray dataset
     '''
-    xstats = xarray.open_mfdataset(os.path.join(path_to_data, '*Image-D*-STATS.nc'), combine='nested', concat_dim='index')
-    xstats = xstats.set_index(range(0, xstats.index.size))
-    return xstats
+
+    sorted_filelist = sorted(glob(os.path.join(path_to_data, '*Image-D*-STATS.nc')))
+    with xarray.open_mfdataset(sorted_filelist, combine='nested', concat_dim='index') as ds:
+        xstats = ds.load()
+
+    # Check if we have image statistics in the last file, if so, load it.
+    # The last file should contain the entire time series of processed images.
+    try:
+        ds = xarray.open_dataset(sorted_filelist[-1], group='image_stats')
+    except OSError:
+        image_stats = None
+    else:
+        image_stats = ds.load()
+    finally:
+        ds.close()
+
+    return xstats, image_stats
 
 
 def load_stats_as_dataframe(stats_file):
@@ -156,7 +198,8 @@ def load_stats_as_dataframe(stats_file):
     try:
         stats = stats.to_dataframe()
     except AttributeError:
-        print('STATS was likely loaded from an old h5 format, which will be deprecated in future. Please use NetCDF in future.')
+        logger.info('STATS was likely loaded from an old h5 format, \
+                    which will be deprecated in future. Please use NetCDF in future.')
         pass
     return stats
 
@@ -173,8 +216,8 @@ def show_h5_meta(h5file):
         keys = list(f['Meta'].attrs.keys())
 
         for k in keys:
-            print(k + ':')
-            print('    ' + f['Meta'].attrs[k])
+            logger.info(k + ':')
+            logger.info('    ' + f['Meta'].attrs[k])
 
 
 class StatsToDisc():
@@ -222,7 +265,8 @@ class StatsToDisc():
                     settings=data['settings'],
                     dataformat=self.dataformat,
                     export_name_len=self.export_name_len,
-                    append=self.append)
+                    append=self.append,
+                    image_stats=data['image_stats'])
 
         return data
 

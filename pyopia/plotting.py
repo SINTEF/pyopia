@@ -8,17 +8,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def show_imc(imc, pixel_size):
+def show_image(image, pixel_size):
     '''
     Plots a scaled figure (in mm) of an image
 
     Args:
-        imc (uint8 or float) : Image (usually a corrected image, such as imc)
+        image (float) : Image (usually a corrected image, such as im_corrected)
         pixel_size (float) : the pixel size (um) of the imaging system used
     '''
-    r, c = np.shape(imc[:, :, 0])
+    r, c = np.shape(image[:, :, 0])
 
-    plt.imshow(np.uint8(imc),
+    plt.imshow(image,
                extent=[0, c * pixel_size / 1000, 0, r * pixel_size / 1000],
                interpolation='nearest')
     plt.xlabel('mm')
@@ -40,7 +40,7 @@ def montage_plot(montage, pixel_size):
     ex = pixel_size * np.float64(msize) / 1000.
 
     ax = plt.gca()
-    ax.imshow(montage, extent=[0, ex, 0, ex])
+    ax.imshow(montage, extent=[0, ex, 0, ex], cmap='grey')
     ax.set_xticks([1, 2], [])
     ax.set_xticklabels(['    1mm', ''])
     ax.set_yticks([], [])

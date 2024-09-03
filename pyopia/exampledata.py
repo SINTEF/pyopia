@@ -3,6 +3,9 @@ import zipfile
 import os
 import gdown
 
+import logging
+logger = logging.getLogger()
+
 
 def get_classifier_database_from_pysilcam_blob(download_directory='./'):
     '''Downloads a specified filename from the pysilcam.blob into the working dir. if it doesn't already exist
@@ -16,18 +19,18 @@ def get_classifier_database_from_pysilcam_blob(download_directory='./'):
 
     '''
     if os.path.exists(os.path.join(download_directory)):
-        print(download_directory, 'already exists. Returning nothing')
+        logger.info(download_directory, 'already exists. Returning nothing')
         return download_directory
     os.makedirs(download_directory, exist_ok=False)
     url = 'https://pysilcam.blob.core.windows.net/test-data/silcam_database.zip'
-    print('Downloading....')
+    logger.info('Downloading....')
     urllib.request.urlretrieve(url, download_directory + '/silcam_database.zip')
-    print('Unzipping....')
+    logger.info('Unzipping....')
     with zipfile.ZipFile(os.path.join(download_directory, 'silcam_database.zip'), 'r') as zipit:
         zipit.extractall(os.path.join(download_directory, '../'))
-    print('Removing zip file')
+    logger.info('Removing zip file')
     os.remove(os.path.join(download_directory, 'silcam_database.zip'))
-    print('Done.')
+    logger.info('Done.')
     return download_directory
 
 
@@ -59,7 +62,7 @@ def get_example_silc_image(download_directory='./'):
     '''
     filename = 'D20181101T142731.838206.silc'
     if os.path.isfile(filename):
-        print('Example image already exists. Skipping download.')
+        logger.info('Example image already exists. Skipping download.')
         return filename
     get_file_from_pysilcam_blob(filename, download_directory)
     return filename
@@ -74,17 +77,16 @@ def get_example_model(download_directory='./'):
     string
         model_filename
     '''
-    model_filename = 'keras_model.h5'
+    model_filename = 'silcam-classification_database_20240822-200-20240829T091048-best-epoch.keras'
     if os.path.exists(model_filename):
         return model_filename
     # -- Download and unzip the model --#
-    url = 'https://github.com/SINTEF/PySilCam/wiki/ml_models/keras_model.zip'
-    model_filename = 'keras_model.zip'
-    urllib.request.urlretrieve(url, os.path.join(download_directory, model_filename))
-    with zipfile.ZipFile(os.path.join(download_directory, model_filename), 'r') as zipit:
+    url = 'https://pysilcam.blob.core.windows.net/test-data/silcam-classification_database_20240822-200-20240829T091048.zip'
+    zip_filename = 'silcam-classification_database_20240822-200-20240829T091048.zip'
+    urllib.request.urlretrieve(url, os.path.join(download_directory, zip_filename))
+    with zipfile.ZipFile(os.path.join(download_directory, zip_filename), 'r') as zipit:
         zipit.extractall(download_directory)
-    model_filename = 'keras_model.h5'
-    return os.path.join(download_directory, model_filename)
+    return os.path.join(download_directory, model_filename.replace('-best-epoch.keras', ''), model_filename)
 
 
 def get_example_hologram_and_background(download_directory='./'):
@@ -134,7 +136,7 @@ def get_folder_from_holo_repository(foldername="holo_test_data_01", existsok=Fal
         url = 'https://drive.google.com/drive/folders/1yNatOaKdWwYQp-5WVEDItoibr-k0lGsP?usp=share_link'
 
     if os.path.exists(foldername) and existsok:
-        print(foldername + ' already exists. Skipping download.')
+        logger.info(foldername + ' already exists. Skipping download.')
         return foldername
 
     gdown.download_folder(url, quiet=True, use_cookies=False)

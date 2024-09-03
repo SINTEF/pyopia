@@ -10,6 +10,9 @@ import h5py
 from tqdm import tqdm
 from pyopia.io import write_stats, load_stats_as_dataframe
 
+import logging
+logger = logging.getLogger()
+
 
 def d50_from_stats(stats, pixel_size):
     '''
@@ -259,7 +262,7 @@ def nd_from_stats(stats, pix_size):
     ecd = stats['equivalent_diameter'] * pix_size
 
     # ignore nans
-    ecd = ecd[~np.isnan(ecd)]
+    ecd = ecd[~np.isnan(ecd.values)]
 
     # get the size bins into which particles will be counted
     dias, bin_limits_um = get_size_bins()
@@ -297,7 +300,7 @@ def vd_from_stats(stats, pix_size):
 
 
 def make_montage(stats_file_or_df, pixel_size, roidir,
-                 auto_scaler=500, msize=1024, maxlength=100000, crop_stats=None, brightness=255, eyecandy=True):
+                 auto_scaler=500, msize=1024, maxlength=100000, crop_stats=None, brightness=1, eyecandy=True):
     '''
     makes nice looking montage from a directory of extracted particle images
 
@@ -310,12 +313,12 @@ def make_montage(stats_file_or_df, pixel_size, roidir,
         msize=1024                  : size of canvas in pixels
         maxlength=100000            : maximum length in microns of particles to be included in montage
         crop_stats=None             : None or 4-tuple of lower-left then upper-right coord of crop
-        brightness=255              : brighness of packaged particles used with eyecandy option
+        brightness=1                : brighness of packaged particles used with eyecandy option
         eyecandy=True               : boolean which if True will explode the contrast of packed particles
                           (nice for natural particles, but not so good for oil and gas).
 
     Returns:
-        montageplot (uint8)         : a nicely-made montage in the form of an image,
+        montageplot (float64        : a nicely-made montage in the form of an image,
                                       which can be plotted using plotting.montage_plot(montage, settings.PostProcess.pix_size)
     '''
 
@@ -337,15 +340,15 @@ def make_montage(stats_file_or_df, pixel_size, roidir,
     roifiles = gen_roifiles(stats, auto_scaler=auto_scaler)
 
     # pre-allocate an empty canvas
-    montage = np.zeros((msize, msize, 3), dtype=np.uint8())
+    montage = np.zeros((msize, msize, 3), dtype=np.float64())
     # pre-allocate an empty test canvas
     immap_test = np.zeros_like(montage[:, :, 0])
-    print('making a montage - this might take some time....')
+    logger.info('making a montage - this might take some time....')
 
     # loop through each extracted particle and attempt to add it to the canvas
     for files in tqdm(roifiles):
         # get the particle image from the HDF5 file
-        particle_image = export_name2im(files, roidir)
+        particle_image = roi_from_export_name(files, roidir)
 
         # measure the size of this image
         [height, width] = np.shape(particle_image[:, :, 0])
@@ -363,10 +366,10 @@ def make_montage(stats_file_or_df, pixel_size, roidir,
             # eye-candy normalization:
             peak = np.median(particle_image.flatten())
             bm = brightness - peak
-            particle_image = np.float64(particle_image) + bm
+            particle_image = particle_image + bm
         else:
-            particle_image = np.float64(particle_image)
-        particle_image[particle_image > 255] = 255
+            particle_image = particle_image
+        particle_image[particle_image > 1] = 1
 
         # initialise a counter
         counter = 0
@@ -392,16 +395,16 @@ def make_montage(stats_file_or_df, pixel_size, roidir,
 
         # if we reach here, then the particle has found a position in the
         # canvas with no overlap, and can then be inserted into the canvas
-        montage[r:r + height, c:c + width, :] = np.uint8(particle_image)
+        montage[r:r + height, c:c + width, :] = particle_image
 
         immap_test[r:r + height, c:c + width, None] = immap_test[r:r + height, c:c + width, None] + 1
 
     # now the montage is finished
     # here are some small eye-candy scaling things to tidy up
     montageplot = np.copy(montage)
-    montageplot[montage > 255] = 255
-    montageplot[montage == 0] = 255
-    print('montage complete')
+    montageplot[montage > 1] = 1
+    montageplot[montage == 0] = 1
+    logger.info('montage complete')
 
     return montageplot
 
@@ -420,11 +423,11 @@ def gen_roifiles(stats, auto_scaler=500):
     roifiles = stats['export name'][stats['export name'] != 'not_exported'].values
 
     # subsample the particles if necessary
-    print('rofiles: {0}'.format(len(roifiles)))
+    logger.info('rofiles: {0}'.format(len(roifiles)))
     IMSTEP = np.max([int(np.round(len(roifiles) / auto_scaler)), 1])
-    print('reducing particles by factor of {0}'.format(IMSTEP))
+    logger.info('reducing particles by factor of {0}'.format(IMSTEP))
     roifiles = roifiles[np.arange(0, len(roifiles), IMSTEP)]
-    print('rofiles: {0}'.format(len(roifiles)))
+    logger.info('rofiles: {0}'.format(len(roifiles)))
 
     return roifiles
 
@@ -506,14 +509,12 @@ def explode_contrast(im):
     ''' eye-candy function for exploding the contrast of a particle iamge (roi)
 
     Args:
-        im   (uint8)       : image (normally a particle ROI)
+        im   (float64)       : image (normally a particle ROI)
 
     Returns:
-        im_mod (uint8)     : image following exploded contrast
+        im_mod (float64)     : image following exploded contrast
 
     '''
-    # make sure iamge is float
-    im = np.float64(im)
 
     # re-scale the instensities in the image to chop off some ends
     p1, p2 = np.percentile(im, (0, 80))
@@ -525,15 +526,10 @@ def explode_contrast(im):
     # set maximum value to one
     im_mod /= np.max(im_mod)
 
-    # re-scale to match uint8 max
-    im_mod *= 255
-
-    # convert to unit8
-    im_mod = np.uint8(im_mod)
     return im_mod
 
 
-def bright_norm(im, brightness=255):
+def bright_norm(im, brightness=1):
     ''' eye-candy function for normalising the image brightness
 
     Args:
@@ -548,9 +544,8 @@ def bright_norm(im, brightness=255):
     bm = brightness - peak
 
     im = np.float64(im) + bm
-    im[im > 255] = 255
+    im[im > 1] = 1
 
-    im = np.uint8(im)
     return im
 
 
@@ -597,7 +592,7 @@ def add_depth_to_stats(stats, time, depth):
     return stats
 
 
-def export_name2im(exportname, path):
+def roi_from_export_name(exportname, path):
     ''' returns an image from the export name string in the -STATS.h5 file
 
     get the exportname like this: exportname = stats['export name'].values[0]
@@ -622,8 +617,10 @@ def export_name2im(exportname, path):
     # open the H5 file
     fh = h5py.File(fullname, 'r')
 
-    # extract the particle image of interest
-    im = fh[pn]
+    if (fh[pn].dtype) == np.uint8:
+        im = np.float64(fh[pn]) / 255
+    else:
+        im = np.float64(fh[pn])
 
     return im
 
@@ -645,36 +642,65 @@ def extract_latest_stats(stats, window_size):
     return stats
 
 
-def make_timeseries_vd(stats, pixel_size, path_length):
+def make_timeseries_vd(stats, pixel_size, path_length, time_reference):
     '''makes a dataframe of time-series volume distribution and d50
+    similar to Sequoia LISST-100 output,
+    and exportable to things like Excel or csv.
+
+    Note: If zero particles are detected within the stats daraframe,
+    then the volume concentration should be reported as zero for that
+    time. For this function to have awareness of these times, it requires
+    time_reference variable. If you use `stats['timestamp'].unique()` for this,
+    then you are assuming you have at least one particle per image.
+    It is better to use image_stats['datetime'].values instead, which can be obtained from
+    :func:`pyopia.io.load_image_stats`
 
     Args:
-        stats (silcam stats dataframe): loaded from a *-STATS.h5 file
-        pixel_size () : pixel size in microns per pixel
-        path_length : path length of the sample volume in mm
+        stats (pandas dataframe)       : loaded from a *-STATS.nc file
+                                         (convert from xarray like this: `stats = xstats.to_dataframe()`)
+        pixel_size (float)             : pixel size in microns per pixel
+        path_length (float)            : path length of the sample volume in mm
+        time_reference (array)         : time-series associated with the stats dataset stats['timestamp'].unique()
 
     Returns:
         dataframe: of time series volume concentrations are in uL/L columns with number headings are diameter min-points
-    '''
-    stats['timestamp'] = pd.to_datetime(stats['timestamp'])
 
-    u = stats['timestamp'].unique()
+    Example
+    -------
+    .. code-block:: python
+        time_series_vd = pyopia.statistics.make_timeseries_vd(stats,
+                                settings['general']['pixel_size'],
+                                path_length=40)
+
+        # particle diameters
+        dias = np.array(time_series_vd.columns[0:52], dtype=float)
+
+        # an array of volume concentrations with shape (diameter, time)
+        vdarray = time_series_vd.iloc[:, 0:52].to_numpy(dtype=float)
+
+        # time-series of d50 in each image
+        d50 = time_series_vd.iloc[:, 52].to_numpy(dtype=float)
+
+        # time variable
+        time = pd.to_datetime(time_series_vd['Time'].values)
+
+        # time-series of total volume concentration
+        vc = np.sum(vdarray, axis=1)
+
+    '''
 
     sample_volume = get_sample_volume(pixel_size, path_length=path_length)
 
-    vdts = []
-    d50 = []
-    timestamp = []
-    dias = []
-    for s in tqdm(u):
-        dias, vd = vd_from_stats(stats[stats['timestamp'] == s], pixel_size)
+    vdts = np.zeros((len(time_reference), len(get_size_bins()[0])), dtype=np.float64)
+    d50 = np.zeros((len(time_reference)), dtype=np.float64) * np.nan
+    for i, s in enumerate(tqdm(time_reference)):
         nims = count_images_in_stats(stats[stats['timestamp'] == s])
-        sv = sample_volume * nims
-        vd /= sv
-        d50_ = d50_from_vd(vd, dias)
-        d50.append(d50_)
-        timestamp.append(pd.to_datetime(s))
-        vdts.append(vd)
+        if nims > 0:
+            dias, vd = vd_from_stats(stats[stats['timestamp'] == s], pixel_size)
+            sv = sample_volume * nims
+            vd /= sv
+            d50[i] = d50_from_vd(vd, dias)
+            vdts[i, :] = vd
 
     if len(vdts) == 0:
         dias, limits = get_size_bins()
@@ -690,7 +716,7 @@ def make_timeseries_vd(stats, pixel_size, path_length):
     time_series = pd.DataFrame(data=np.squeeze(vdts), columns=dias)
 
     time_series['D50'] = d50
-    time_series['Time'] = pd.to_datetime(timestamp)
+    time_series['Time'] = pd.to_datetime(time_reference)
 
     time_series.sort_values(by='Time', inplace=True, ascending=True)
 
@@ -733,7 +759,7 @@ def trim_stats(stats_file, start_time, end_time, write_new=False, stats=[]):
         (pd.to_datetime(stats['timestamp']) > start_time) & (pd.to_datetime(stats['timestamp']) < end_time)]
 
     if np.isnan(trimmed_stats.equivalent_diameter.max()) or len(trimmed_stats) == 0:
-        print('No data in specified time range!')
+        logger.info('No data in specified time range!')
         outname = ''
         return trimmed_stats, outname
 
@@ -792,8 +818,8 @@ def show_h5_meta(h5file):
         keys = list(f['Meta'].attrs.keys())
 
         for k in keys:
-            print(k + ':')
-            print('    ' + f['Meta'].attrs[k])
+            logger.info(k + ':')
+            logger.info('    ' + f['Meta'].attrs[k])
 
 
 def vd_to_nd(vd, dias):

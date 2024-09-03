@@ -86,4 +86,7 @@ Holo
 .. automodule:: pyopia.instrument.holo
     :members:
 
-
+Common
+-------------
+.. automodule:: pyopia.instrument.common
+    :members:

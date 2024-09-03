@@ -14,6 +14,9 @@ import struct
 from datetime import timedelta, datetime
 from glob import glob
 
+import logging
+logger = logging.getLogger()
+
 '''
 This is a module containing basic processing for reconstruction of in-line holographic images.
 
@@ -65,15 +68,15 @@ class Initial():
         self.stepZ = stepZ
 
     def __call__(self, data):
-        print('Using first raw file from list in general settings to determine image dimensions')
+        logger.info('Using first raw file from list in general settings to determine image dimensions')
         raw_files = glob(data['settings']['general']['raw_files'])
         self.filename = raw_files[0]
         imtmp = load_image(self.filename)
         self.pixel_size = data['settings']['general']['pixel_size']
-        print('Build kernel with pixel_size = ', self.pixel_size, 'um')
+        logger.info('Build kernel with pixel_size = ', self.pixel_size, 'um')
         kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.n, self.offset, self.minZ, self.maxZ, self.stepZ)
         im_stack = np.zeros(np.shape(kern)).astype(np.float64)
-        print('HoloInitial done', datetime.now())
+        logger.info('HoloInitial done', datetime.now())
         data['kern'] = kern
         data['im_stack'] = im_stack
         return data
@@ -92,7 +95,7 @@ def load_image(filename):
     array
         raw image
     '''
-    img = imread(filename).astype(np.float64)
+    img = imread(filename).astype(np.float64) / 255
     return img
 
 
@@ -116,12 +119,12 @@ class Load():
         pass
 
     def __call__(self, data):
-        print(data['filename'])
+        logger.info(data['filename'])
         try:
             timestamp = read_lisst_holo_info(data['filename'])
         except ValueError:
             timestamp = pd.to_datetime(os.path.splitext(os.path.basename(data['filename']))[0][1:])
-        print(timestamp)
+        logger.info(timestamp)
         im = load_image(data['filename'])
         data['timestamp'] = timestamp
         data['imraw'] = im
@@ -145,7 +148,7 @@ class Reconstruct():
     :class:`pyopia.pipeline.Data`
         containing the following keys:
 
-        :attr:`pyopia.pipeline.Data.imc`
+        :attr:`pyopia.pipeline.Data.im_corrected`
 
     Returns:
     --------
@@ -161,7 +164,7 @@ class Reconstruct():
         self.inverse_output_option = inverse_output_option
 
     def __call__(self, data):
-        imc = data['imc']
+        imc = data['im_corrected']
         kern = data['kern']
         im_stack = data['im_stack']
 
@@ -340,28 +343,8 @@ def max_map(im_stack):
     return max_map
 
 
-def rescale_stack(im_stack):
-    '''rescale the reconstructed stack so that particles look dark on a light background
-
-    Parameters
-    ----------
-    im_stack : _type_
-        _description_
-
-    Returns
-    -------
-    _type_
-        _description_
-    '''
-    im_max = np.max(im_stack)
-    im_min = np.min(im_stack)
-    im_stack_inverted = 255 * (im_stack - im_min) / (im_max - im_min)
-    im_stack_inverted = 255 - im_stack_inverted
-    return im_stack_inverted
-
-
 def rescale_image(im):
-    '''rescale im (e.g. may be stack summary) to be dark particles on light background, 8 bit
+    '''rescale im (e.g. may be stack summary) to be dark particles on light background
 
     Parameters
     ----------
@@ -375,8 +358,8 @@ def rescale_image(im):
     '''
     im_max = np.max(im)
     im_min = np.min(im)
-    im = 255 * (im - im_min) / (im_max - im_min)
-    im = 255 - im
+    im = (im - im_min) / (im_max - im_min)
+    im = 1 - im
     return im
 
 
@@ -403,14 +386,14 @@ def find_focus_imax(im_stack, bbox, increase_depth_of_field):
     ifocus: int
         index through stack of focussed image
     '''
-    im_seg = im_stack[bbox[0]:bbox[2], bbox[1]:bbox[3], :]
-    focus = np.sum(im_seg, axis=(0, 1))
+    roi = im_stack[bbox[0]:bbox[2], bbox[1]:bbox[3], :]
+    focus = np.sum(roi, axis=(0, 1))
     ifocus = np.argmax(focus)
 
     if increase_depth_of_field:
-        im_focus = np.max(im_seg[:, :, np.max([ifocus-1, 0]):np.min([ifocus+1, im_seg.shape[2]])], axis=2)
+        im_focus = np.max(roi[:, :, np.max([ifocus-1, 0]):np.min([ifocus+1, roi.shape[2]])], axis=2)
     else:
-        im_focus = im_seg[:, :, ifocus]
+        im_focus = roi[:, :, ifocus]
 
     return im_focus, ifocus
 
@@ -439,17 +422,17 @@ def find_focus_sobel(im_stack, bbox, increase_depth_of_field):
         index through stack of focussed image
     '''
     im_bbox = im_stack[bbox[0]:bbox[2], bbox[1]:bbox[3], :]
-    im_seg = np.empty_like(im_bbox)
-    for zi in range(im_seg.shape[2]):
-        im_seg[:, :, zi] = sobel(im_bbox[:, :, zi])
+    roi = np.zeros_like(im_bbox)
+    for zi in range(roi.shape[2]):
+        roi[:, :, zi] = sobel(im_bbox[:, :, zi])
 
-    focus = np.sum(im_seg, axis=(0, 1))
+    focus = np.sum(roi, axis=(0, 1))
     ifocus = np.argmax(focus)
 
     if increase_depth_of_field:
-        im_focus = np.max(im_seg[:, :, np.max([ifocus-1, 0]):np.min([ifocus+1, im_seg.shape[2]])], axis=2)
+        im_focus = np.max(roi[:, :, np.max([ifocus-1, 0]):np.min([ifocus+1, roi.shape[2]])], axis=2)
     else:
-        im_focus = im_seg[:, :, ifocus]
+        im_focus = roi[:, :, ifocus]
 
     return im_focus, ifocus
 
@@ -502,7 +485,7 @@ class Focus():
 
         containing the following keys:
 
-        :attr:`pyopia.pipeline.Data.imc`
+        :attr:`pyopia.pipeline.Data.im_focussed`
 
         :attr:`pyopia.pipeline.Data.imss`
 
@@ -543,27 +526,26 @@ class Focus():
         # identify particles
         region_properties = pyopia.process.measure_particles(imssbw)
         # loop through bounding boxes to focus each particle and add to output imc
-        imc = np.zeros_like(im_stack[:, :, 0])
+        im_focussed = np.zeros_like(im_stack[:, :, 0])
         ifocus = []
         rp_out = []
         for rp in region_properties:
 
             match self.focus_function:
                 case 'find_focus_imax':
-                    focus_result = find_focus_imax(im_stack, rp.bbox, self.increase_depth_of_field)
+                    im_focus_, ifocus_ = find_focus_imax(im_stack, rp.bbox, self.increase_depth_of_field)
                 case 'find_focus_sobel':
-                    focus_result = find_focus_sobel(im_stack, rp.bbox, self.increase_depth_of_field)
+                    im_focus_, ifocus_ = find_focus_sobel(im_stack, rp.bbox, self.increase_depth_of_field)
                 case _:
                     raise ValueError('focus_function in pyopia.instrument.holo.Focus not recognised')
 
-            if self.discard_end_slices and (focus_result[1] == 0 or focus_result[1] == im_stack.shape[2]):
+            if self.discard_end_slices and (ifocus_ == 0 or ifocus_ == im_stack.shape[2]):
                 continue
-            im_focus = 255 - focus_result[0]
-            ifocus.append(focus_result[1])
+            ifocus.append(ifocus_)
             rp_out.append(rp)
-            imc[rp.bbox[0]:rp.bbox[2], rp.bbox[1]:rp.bbox[3]] = im_focus
+            im_focussed[rp.bbox[0]:rp.bbox[2], rp.bbox[1]:rp.bbox[3]] = im_focus_
 
-        data['imc'] = imc
+        data['im_focussed'] = 1 - im_focussed
         data['stack_rp'] = rp_out
         data['stack_ifocus'] = ifocus
         return data
@@ -599,7 +581,7 @@ class MergeStats():
                           + abs(bbox[:, 2] - stats.maxr[idx]) + abs(bbox[:, 3] - stats.maxc[idx]))
             ifocus.append(stack_ifocus[np.argmin(total_diff)])
 
-        stats['ifocus'] = ifocus
+        stats['ifocus'] = np.array(ifocus, dtype=np.int64)
         stats['holo_filename'] = data['filename']
         data['stats'] = stats
         return data
@@ -629,7 +611,7 @@ def read_lisst_holo_info(filename):
     filenum = int(filenum.rsplit('.', 1)[0])
     timestamp = timestamp + timedelta(microseconds=filenum)
     timestamp = timestamp[0]
-    print(timestamp.strftime('D%Y%m%dT%H%M%S.%f'))
+    logger.info(timestamp.strftime('D%Y%m%dT%H%M%S.%f'))
     f.close()
 
     return timestamp
@@ -669,21 +651,13 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
                 'maxZ': 50,  # maximum reconstruction distance within sample volume in mm
                 'stepZ': 0.5  # step size in mm
             },
-            'classifier': {
-                'pipeline_class': 'pyopia.classify.Classify',
-                'model_path': model_path
-            },
-            'createbackground': {
-                'pipeline_class': 'pyopia.background.CreateBackground',
-                'average_window': 10,
-                'instrument_module': 'holo'
-            },
             'load': {
                 'pipeline_class': 'pyopia.instrument.holo.Load'
             },
             'correctbackground': {
                 'pipeline_class': 'pyopia.background.CorrectBackgroundAccurate',
-                'bgshift_function': 'accurate'
+                'bgshift_function': 'accurate',
+                'average_window': 10
             },
             'reconstruct': {
                 'pipeline_class': 'pyopia.instrument.holo.Reconstruct',
@@ -701,13 +675,15 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
             },
             'segmentation': {
                 'pipeline_class': 'pyopia.process.Segment',
-                'threshold': 0.9
+                'threshold': 0.9,
+                'segment_source': 'im_focussed'
             },
             'statextract': {
                 'pipeline_class': 'pyopia.process.CalculateStats',
                 'export_outputpath': outfolder,
                 'propnames': ['major_axis_length', 'minor_axis_length', 'equivalent_diameter',
-                              'feret_diameter_max', 'equivalent_diameter_area']
+                              'feret_diameter_max', 'equivalent_diameter_area'],
+                'roi_source': 'im_focussed'
             },
             'mergeholostats': {
                 'pipeline_class': 'pyopia.instrument.holo.MergeStats',

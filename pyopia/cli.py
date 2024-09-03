@@ -7,12 +7,16 @@ import toml
 from glob import glob
 import os
 import datetime
+import traceback
+import logging
 from rich.progress import track, Progress
+import pandas as pd
 
 import pyopia.background
 import pyopia.classify
 import pyopia.instrument.silcam
 import pyopia.instrument.holo
+import pyopia.instrument.common
 import pyopia.io
 import pyopia.pipeline
 import pyopia.plotting
@@ -105,9 +109,13 @@ def process(config_filename: str):
     from pyopia.io import load_toml
     from pyopia.pipeline import Pipeline
 
+    logger = logging.getLogger()
+
     with Progress(transient=True) as progress:
         progress.console.print("[blue]LOAD CONFIG")
         pipeline_config = load_toml(config_filename)
+
+        setup_logging(pipeline_config)
 
         progress.console.print("[blue]OBTAIN FILE LIST")
         files = sorted(glob(pipeline_config['general']['raw_files']))
@@ -132,7 +140,35 @@ def process(config_filename: str):
         processing_pipeline = Pipeline(pipeline_config)
 
     for filename in track(files, description=f'[blue]Processing progress through {nfiles} files:'):
-        processing_pipeline.run(filename)
+        try:
+            processing_pipeline.run(filename)
+        except Exception as e:
+            progress.console.print("[red]An error occured in processing, skipping rest of pipeline and moving to next image.")
+            logger.error(e)
+            logger.debug(''.join(traceback.format_tb(e.__traceback__)))
+
+
+def setup_logging(pipeline_config):
+    '''Configure logging
+
+    Parameters
+    ----------
+    pipeline_config : dict
+        TOML settings
+    '''
+    # Get user parameters or default values for logging
+    log_file = pipeline_config['general'].get('log_file', None)
+    log_level_name = pipeline_config['general'].get('log_level', 'INFO')
+    log_level = getattr(logging, log_level_name)
+    print(log_level_name, log_level, log_file)
+
+    # Configure logger
+    log_format = '%(asctime)s %(levelname)s [%(module)s.%(funcName)s] %(message)s'
+    logging.basicConfig(level=log_level, format=log_format, filename=log_file,
+                        datefmt='%Y-%m-%d %H:%M:%S')
+
+    logger = logging.getLogger()
+    logger.info(f'PyOPIA process started {pd.Timestamp.now()}')
 
 
 if __name__ == "__main__":

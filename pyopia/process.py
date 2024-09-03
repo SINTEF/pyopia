@@ -13,14 +13,18 @@ import skimage.exposure
 import h5py
 from skimage.io import imsave
 from datetime import datetime
+import pyopia.statistics
+
+import logging
+logger = logging.getLogger()
 
 
-def image2blackwhite_accurate(imc, greythresh):
-    ''' converts corrected image (imc) to a binary image
+def image2blackwhite_accurate(input_image, greythresh):
+    ''' converts corrected image (im_corrected) to a binary image
     using greythresh as the threshold value (some auto-scaling of greythresh is done inside)
 
     Args:
-        imc                         : background-corrected image
+        input_image (float)         : image. Usually a background-corrected image
         greythresh                  : threshold multiplier (greythresh is multiplied by 50th percentile of the image
                                       histogram)
 
@@ -28,19 +32,18 @@ def image2blackwhite_accurate(imc, greythresh):
         imbw                        : segmented image (binary image)
 
     '''
-    img = np.copy(imc)  # create a copy of the input image (not sure why)
 
     # obtain a semi-autimated treshold which can handle
     # some flicker in the illumination by tracking the 50th percentile of the
     # image histogram
-    thresh = greythresh * np.percentile(img, 50)
+    thresh = greythresh * np.percentile(input_image, 50)
 
     # create a segmented image using the crude threshold
-    imbw1 = img < thresh
+    imbw1 = input_image < thresh
 
     # perform an adaptive historgram equalization to handle some
     # less-than-ideal lighting situations
-    img_adapteq = skimage.exposure.equalize_adapthist(img,
+    img_adapteq = skimage.exposure.equalize_adapthist(input_image,
                                                       clip_limit=(greythresh),
                                                       nbins=256)
 
@@ -57,12 +60,12 @@ def image2blackwhite_accurate(imc, greythresh):
     return imbw
 
 
-def image2blackwhite_fast(imc, greythresh):
-    ''' converts corrected image (imc) to a binary image
+def image2blackwhite_fast(input_image, greythresh):
+    ''' converts an image (input_image) to a binary image
     using greythresh as the threshold value (fixed scaling of greythresh is done inside)
 
     Args:
-        imc                         : background-corrected image
+        input_image (float)         : image. Usually a background-corrected image
         greythresh                  : threshold multiplier (greythresh is multiplied by 50th percentile of the image
                                       histogram)
 
@@ -72,8 +75,8 @@ def image2blackwhite_fast(imc, greythresh):
     # obtain a semi-autimated treshold which can handle
     # some flicker in the illumination by tracking the 50th percentile of the
     # image histogram
-    thresh = greythresh * np.percentile(imc, 50)
-    imbw = imc < thresh  # segment the image
+    thresh = greythresh * np.percentile(input_image, 50)
+    imbw = input_image < thresh  # segment the image
 
     return imbw
 
@@ -132,7 +135,7 @@ def concentration_check(imbw, max_coverage=30):
     # acceptable coverage defined in the config
     saturation = covered_pcent / max_coverage * 100
 
-    print('{0:.1f}% saturation'.format(saturation))
+    logger.info(f'{saturation:.1f}% saturation')
 
     # check if the saturation is acceptable
     sat_check = saturation < 100
@@ -159,23 +162,23 @@ def get_spine_length(imbw):
     return spine_length
 
 
-def extract_roi(im, bbox):
+def extract_roi(input_image, bbox):
     ''' given an image (im) and bounding box (bbox), this will return the roi
 
     Args:
-        im                  : any image, such as background-corrected image (imc)
+        input_image         : any image, such as background-corrected image
         bbox                : bounding box from regionprops [r1, c1, r2, c2]
 
     Returns:
         roi                 : image cropped to region of interest
     '''
     # refer to skimage regionprops documentation on how bbox is structured
-    roi = im[bbox[0]:bbox[2], bbox[1]:bbox[3]]
+    roi = input_image[bbox[0]:bbox[2], bbox[1]:bbox[3]]
 
     return roi
 
 
-def write_segmented_images(imbw, imc, settings, timestamp):
+def write_segmented_images(imbw, input_image, settings, timestamp):
     '''writes binary images as bmp files to the same place as hdf5 files if loglevel is in DEBUG mode
     Useful for checking threshold and segmentation
 
@@ -189,7 +192,7 @@ def write_segmented_images(imbw, imc, settings, timestamp):
         imbw_ = np.uint8(255 * imbw)
         imsave(fname, imbw_)
         fname = os.path.join(settings.ExportParticles.outputpath, timestamp.strftime('D%Y%m%dT%H%M%S.%f-IMC.bmp'))
-        imsave(fname, imc)
+        imsave(fname, input_image)
 
 
 def put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i):
@@ -251,7 +254,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         isExist = os.path.exists(export_outputpath)
         if not isExist:
             os.makedirs(export_outputpath)
-            print("Export folder " + export_outputpath + " created.")
+            logger.info(f'Export folder {export_outputpath} created.')
 
         # Make the HDF5 file
         hdf_filename = os.path.join(export_outputpath, filename + ".h5")
@@ -287,7 +290,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
             if Classification is not None:
                 # run a prediction on what type of particle this might be
                 prediction = Classification.proc_predict(roi)
-                predictions[int(i), :] = prediction[0]
+                predictions[int(i), :] = prediction
 
             # add the roi to the HDF5 file
             filenames[int(i)] = put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i)
@@ -305,7 +308,7 @@ def extract_particles(imc, timestamp, Classification, region_properties,
     # put particle statistics into a DataFrame
     stats = pd.DataFrame(columns=column_names, data=cat_data)
 
-    print('EXTRACTING {0} IMAGES from {1}'.format(nb_extractable_part, len(stats['major_axis_length'])))
+    logger.info(f'EXTRACTING {nb_extractable_part} IMAGES from {len(stats["major_axis_length"])}')
 
     if Classification is not None:
         # add classification predictions to the particle statistics data
@@ -332,7 +335,7 @@ def measure_particles(imbw, max_particles=5000):
     '''
     # label the segmented image
     iml = morphology.label(imbw > 0)
-    print('  {0} particles found'.format(iml.max()))
+    logger.info(f'  {iml.max()} particles found')
 
     # if there are too many particles then do no proceed with analysis
     if (iml.max() > max_particles):
@@ -363,11 +366,11 @@ def segment(img, threshold=0.98, minimum_area=12, fill_holes=True):
     imbw : np.array
         segmented image
     '''
-    print('segment')
+    logger.info('segment')
 
     imbw = image2blackwhite_fast(img, threshold)
 
-    print('clean')
+    logger.info('clean')
 
     # clean segmented image (small particles and border particles)
     imbw = clean_bw(imbw, minimum_area)
@@ -413,24 +416,19 @@ def statextract(imbw, timestamp, imc,
     # check the converage of the image of particles is acceptable
     sat_check, saturation = concentration_check(imbw, max_coverage=max_coverage)
     if (sat_check is False):
-        print('....breached concentration limit! Skipping image.')
-        imbw *= 0  # this is not a good way to handle this condition
+        logger.warning(f'{timestamp}: Breached concentration limit! Skipping image. \
+                       This can affect the accuary of concentration calculations!')
+        imbw[:] = False  # this is not a good way to handle this condition
         # @todo handle situation when too many particles are found
 
-    print('measure')
+    logger.info('measure')
     # calculate particle statistics
     region_properties = measure_particles(imbw, max_particles=max_particles)
 
     # build the stats and export to HDF5
-    s = np.shape(imc)
-    if len(s) == 2:
-        imref = np.copy(imc)
-        imc = np.zeros((np.shape(imc)[0], np.shape(imc)[1], 3), dtype=np.uint8)
-        # Convert from floats in [0, 1] to ints in [0, 255]
-        imc[:, :, 0] = 255 * imref
-        imc[:, :, 1] = 255 * imref
-        imc[:, :, 2] = 255 * imref
-        print('WARNING! Unexpected image dimension. extract_particles modified for 2-d images without color!')
+    if imc.ndim == 2:
+        imc = np.stack([imc] * 3, axis=2)
+        logger.warning('WARNING! Unexpected image dimension. extract_particles modified for 2-d images without color!')
 
     stats = extract_particles(imc, timestamp, Classification, region_properties,
                               export_outputpath=export_outputpath, min_length=min_length,
@@ -448,7 +446,7 @@ class Segment():
 
         containing the following keys:
 
-        :attr:`pyopia.pipeline.Data.imc`
+        :attr:`pyopia.pipeline.Data.im_corrected`
 
     Parameters:
     ----------
@@ -458,6 +456,9 @@ class Segment():
         threshold for segmentation. Defaults to 0.98.
     fill_holes : (bool)
         runs ndi.binary_fill_holes if True. Defaults to True.
+    segment_source: (str, optional)
+        The key in Pipeline.data of the image to be segmented.
+        Defaults to 'im_corrected'
 
     Returns:
     --------
@@ -470,14 +471,16 @@ class Segment():
     def __init__(self,
                  minimum_area=12,
                  threshold=0.98,
-                 fill_holes=True):
+                 fill_holes=True,
+                 segment_source='im_corrected'):
 
         self.minimum_area = minimum_area
         self.threshold = threshold
         self.fill_holes = fill_holes
+        self.segment_source = segment_source
 
     def __call__(self, data):
-        data['imbw'] = segment(data['imc'], threshold=self.threshold, fill_holes=self.fill_holes,
+        data['imbw'] = segment(data[self.segment_source], threshold=self.threshold, fill_holes=self.fill_holes,
                                minimum_area=self.minimum_area)
         return data
 
@@ -494,8 +497,6 @@ class CalculateStats():
         :attr:`pyopia.pipeline.Data.imbw`
 
         :attr:`pyopia.pipeline.Data.timestamp`
-
-        :attr:`pyopia.pipeline.Data.imc`
 
         :attr:`pyopia.pipeline.Data.cl`
 
@@ -514,6 +515,9 @@ class CalculateStats():
     propnames: (list, optional)
         Specifies properties wanted from skimage.regionprops.
         Defaults to ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']
+    roi_source: (str, optional)
+        Key of an image in Pipeline.data that is used for outputting ROIs and passing to the classifier.
+        Defaults to 'im_corrected'
 
     Returns:
     --------
@@ -527,23 +531,21 @@ class CalculateStats():
                  max_particles=5000,
                  export_outputpath=None,
                  min_length=0,
-                 propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter']):
+                 propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter'],
+                 roi_source='im_corrected'):
 
         self.max_coverage = max_coverage
         self.max_particles = max_particles
         self.export_outputpath = export_outputpath
         self.min_length = min_length
         self.propnames = propnames
+        self.roi_source = roi_source
+
+        self.calc_image_stats = CalculateImageStats()
 
     def __call__(self, data):
-        print('statextract')
-        if 'imref' not in data.keys():
-            if data['cl'] is not None:
-                print('WARNING. No reference image ("imref") for classifier. Resorting to "imc"')
-            imc = data['imc']
-        else:
-            imc = data['imref']
-        stats, saturation = statextract(data['imbw'], data['timestamp'], imc,
+        logger.info('statextract')
+        stats, saturation = statextract(data['imbw'], data['timestamp'], data[self.roi_source],
                                         Classification=data['cl'],
                                         max_coverage=self.max_coverage,
                                         max_particles=self.max_particles,
@@ -554,4 +556,70 @@ class CalculateStats():
         stats['saturation'] = saturation
 
         data['stats'] = stats
+
+        self.calc_image_stats(data)
+
+        return data
+
+
+class CalculateImageStats():
+    '''PyOpia pipline-compatible class for collecting whole-image statistics
+
+    Pipeline input data:
+    ---------
+    :class:`pyopia.pipeline.Data`
+
+        containing the following keys:
+
+        :attr:`pyopia.pipeline.Data.stats`
+
+        :attr:`pyopia.pipeline.Data.timestamp`
+
+    Parameters:
+    ----------
+    None
+
+    Returns:
+    --------
+    :class:`pyopia.pipeline.Data`
+        containing the following new keys:
+
+        :attr:`pyopia.pipeline.Data.image_stats`
+    '''
+    def __init__(self):
+        pass
+
+    def __call__(self, data):
+        logger.info('CalculateImageStats')
+
+        if 'image_stats' not in data:
+            data['image_stats'] = pd.DataFrame(columns=['filename', 'particle_count', 'saturation',
+                                                        'd50', 'nc', 'vc', 'sample_volume', 'junge'])
+            data['image_stats'] = data['image_stats'].astype({'particle_count': np.int64, 'saturation': np.float64})
+            data['image_stats'].index.name = 'timestamp'
+
+        stats = data['stats']
+
+        # Add image "global" statistics, separate from the particle stats above (stats)
+        image_saturation = np.nan if stats.empty else stats['saturation'].values[0]
+        data['image_stats'].loc[data['timestamp'], 'filename'] = getattr(data, 'filename', '')
+        data['image_stats'].loc[data['timestamp'], 'particle_count'] = int(stats.shape[0])
+        data['image_stats'].loc[data['timestamp'], 'saturation'] = image_saturation
+
+        # Skip remaining calculations if no particles where found
+        if data['stats'].size == 0:
+            return data
+
+        # Calculate D50, nc and vc stats
+        pixel_size = data['settings']['general']['pixel_size']
+
+        d50 = pyopia.statistics.d50_from_stats(data['stats'], pixel_size)
+        data['image_stats'].loc[data['timestamp'], 'd50'] = d50
+
+        path_length = getattr(data['settings']['general'], 'path_length', 40)
+        if path_length is not None:
+            nc_vc = pyopia.statistics.nc_vc_from_stats(data['stats'], pixel_size, path_length)
+            for k, v in zip(['nc', 'vc', 'sample_volume', 'junge'], nc_vc):
+                data['image_stats'].loc[data['timestamp'], k] = v
+
         return data
