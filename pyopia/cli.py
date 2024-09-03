@@ -13,7 +13,6 @@ from rich.progress import track, Progress
 import pandas as pd
 
 import pyopia.background
-import pyopia.classify
 import pyopia.instrument.silcam
 import pyopia.instrument.holo
 import pyopia.instrument.common
