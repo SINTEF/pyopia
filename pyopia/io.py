@@ -147,7 +147,7 @@ def load_stats(datafilename):
     return stats
 
 
-def combine_stats_netcdf_files(path_to_data):
+def combine_stats_netcdf_files(path_to_data, prefix='*'):
     '''Combine a multi-file directory of STATS.nc files into a 'stats' xarray dataset created by :func:`pyopia.io.write_stats`
     when using 'append = false'
 
@@ -156,13 +156,17 @@ def combine_stats_netcdf_files(path_to_data):
     path_to_data : str
         Folder name containing nc files with pattern '*Image-D*-STATS.nc'
 
+    prefix : str
+        Prefix to multi-file dataset (for replacing the wildcard in '*Image-D*-STATS.nc').
+        Defaults to '*'
+
     Returns
     -------
     DataFrame
         STATS xarray dataset
     '''
 
-    sorted_filelist = sorted(glob(os.path.join(path_to_data, '*Image-D*-STATS.nc')))
+    sorted_filelist = sorted(glob(os.path.join(path_to_data, prefix + 'Image-D*-STATS.nc')))
     with xarray.open_mfdataset(sorted_filelist, combine='nested', concat_dim='index') as ds:
         xstats = ds.load()
 
@@ -180,7 +184,7 @@ def combine_stats_netcdf_files(path_to_data):
     return xstats, image_stats
 
 
-def merge_and_save_mfdataset(path_to_data):
+def merge_and_save_mfdataset(path_to_data, prefix='*'):
     '''Combine a multi-file directory of STATS.nc files into a single '-STATS.nc' file
     that can then be loaded with {func}`pyopia.io.load_stats`
 
@@ -188,15 +192,19 @@ def merge_and_save_mfdataset(path_to_data):
     ----------
     path_to_data : str
         Folder name containing nc files with pattern '*Image-D*-STATS.nc'
+
+    prefix : str
+        Prefix to multi-file dataset (for replacing the wildcard in '*Image-D*-STATS.nc').
+        Defaults to '*'
     '''
 
     logging.info(f'combine stats netcdf files from {path_to_data}')
-    xstats, image_stats = combine_stats_netcdf_files(path_to_data)
+    xstats, image_stats = combine_stats_netcdf_files(path_to_data, prefix=prefix)
 
     settings = steps_from_xstats(xstats)
 
-    prefix = os.path.basename(settings['steps']['output']['output_datafile'])
-    output_name = os.path.join(path_to_data, prefix)
+    prefix_out = os.path.basename(settings['steps']['output']['output_datafile'])
+    output_name = os.path.join(path_to_data, prefix_out)
 
     logging.info(f'writing {output_name}')
     write_stats(xstats.to_dataframe(),

@@ -148,11 +148,20 @@ def process(config_filename: str):
 
 
 @app.command()
-def merge_mfdata(path_to_data: str):
+def merge_mfdata(path_to_data: str, prefix='*'):
     '''Combine a multi-file directory of STATS.nc files into a single '-STATS.nc' file
     that can then be loaded with {func}`pyopia.io.load_stats`
+
+    Parameters
+    ----------
+    path_to_data : str
+        Folder name containing nc files with pattern '*Image-D*-STATS.nc'
+
+    prefix : str
+        Prefix to multi-file dataset (for replacing the wildcard in '*Image-D*-STATS.nc').
+        Defaults to '*'
     '''
-    pyopia.io.merge_and_save_mfdataset(path_to_data)
+    pyopia.io.merge_and_save_mfdataset(path_to_data, prefix=prefix)
 
 
 def setup_logging(pipeline_config):
