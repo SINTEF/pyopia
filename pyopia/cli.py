@@ -147,6 +147,14 @@ def process(config_filename: str):
             logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
 
+@app.command()
+def merge_mfdata(path_to_data: str):
+    '''Combine a multi-file directory of STATS.nc files into a single '-STATS.nc' file
+    that can then be loaded with {func}`pyopia.io.load_stats`
+    '''
+    pyopia.io.merge_and_save_mfdataset(path_to_data)
+
+
 def setup_logging(pipeline_config):
     '''Configure logging
 

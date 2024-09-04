@@ -180,6 +180,49 @@ def combine_stats_netcdf_files(path_to_data):
     return xstats, image_stats
 
 
+def merge_and_save_mfdataset(path_to_data):
+    '''Combine a multi-file directory of STATS.nc files into a single '-STATS.nc' file
+    that can then be loaded with {func}`pyopia.io.load_stats`
+
+    Parameters
+    ----------
+    path_to_data : str
+        Folder name containing nc files with pattern '*Image-D*-STATS.nc'
+    '''
+
+    logging.info(f'combine stats netcdf files from {path_to_data}')
+    xstats, image_stats = combine_stats_netcdf_files(path_to_data)
+
+    settings = steps_from_xstats(xstats)
+
+    prefix = os.path.basename(settings['steps']['output']['output_datafile'])
+    output_name = os.path.join(path_to_data, prefix)
+
+    logging.info(f'writing {output_name}')
+    write_stats(xstats.to_dataframe(),
+                output_name,
+                settings,
+                image_stats=image_stats.to_dataframe())
+    logging.info(f'writing {output_name} done.')
+
+
+def steps_from_xstats(xstats):
+    '''Get the steps attribute from xarray version of the particle stats into a dictionary
+
+    Parameters
+    ----------
+    xstats : xarray.DataSet
+        xarray version of the particle stats dataframe, containing metadata
+
+    Returns
+    -------
+    dict
+        TOML-formatted dictionary of pipeline steps
+    '''
+    steps = toml.loads(xstats.__getattr__('steps'))
+    return steps
+
+
 def load_stats_as_dataframe(stats_file):
     '''A loading function for stats files that forces stats into a pandas DataFrame
 
