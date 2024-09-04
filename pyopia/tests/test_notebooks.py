@@ -12,6 +12,7 @@ from glob import glob
 
 def test_notebooks():
     notebooks = sorted(glob('notebooks/*.ipynb'))
+    notebooks.append('docs/notebooks/background_correction.ipynb')
     for notebook_filename in notebooks:
         with open(notebook_filename) as f:
             nb = nbformat.read(f, as_version=4)
