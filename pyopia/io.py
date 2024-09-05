@@ -10,6 +10,7 @@ import toml
 import xarray
 import os
 from glob import glob
+import xarray as xr
 
 from pyopia import __version__ as pyopia_version
 
@@ -32,15 +33,17 @@ def write_stats(stats,
     Appends if file already exists.
 
     Args:
-        datafilename (str):     filame prefix for -STATS.h5 file that may or may not include a path
-        stats_all (DataFrame):  stats dataframe returned from processImage()
-        export_name_len (int):  max number of chars allowed for col 'export name'
-        append (bool):          Append all processed data into one nc file.
-                                Defaults to True.
-                                If False, then one nc file will be generated per raw image,
-                                which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
-                                This is useful for larger datasets, where appending causes substantial slowdown
-                                as the dataset gets larger.
+        datafilename (str)                      :   Filame prefix for -STATS.h5 file that may or may not include a path
+        stats (DataFrame or xr.Dataset)         :   STATS dataframe
+        export_name_len (int)                   :   Max number of chars allowed for col 'export name'
+        append (bool)                           :   Append all processed data into one nc file.
+                                                    Defaults to True.
+                                                    If False, then one nc file will be generated per raw image,
+                                                    which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
+                                                    This is useful for larger datasets,
+                                                    where appending causes substantial slowdown
+                                                    as the dataset gets larger.
+        image_stats (xr.Dataset)                :   image_stats data
     '''
 
     if len(stats) == 0:  # to avoid issue with wrong time datatypes in xarray
@@ -64,7 +67,12 @@ def write_stats(stats,
             meta.attrs['PyOpia version'] = pyopia_version
             meta.attrs['Pipeline steps'] = settings
     elif dataformat == 'nc':
-        xstats = make_xstats(stats, settings)
+
+        if isinstance(stats, xr.Dataset):
+            xstats = stats
+        else:
+            xstats = make_xstats(stats, settings)
+
         if append and os.path.isfile(datafilename + '-STATS.nc'):
             existing_stats = load_stats(datafilename + '-STATS.nc')
             xstats = xarray.concat([existing_stats, xstats], 'index')
@@ -147,7 +155,7 @@ def load_stats(datafilename):
     return stats
 
 
-def combine_stats_netcdf_files(path_to_data):
+def combine_stats_netcdf_files(path_to_data, prefix='*'):
     '''Combine a multi-file directory of STATS.nc files into a 'stats' xarray dataset created by :func:`pyopia.io.write_stats`
     when using 'append = false'
 
@@ -156,14 +164,20 @@ def combine_stats_netcdf_files(path_to_data):
     path_to_data : str
         Folder name containing nc files with pattern '*Image-D*-STATS.nc'
 
+    prefix : str
+        Prefix to multi-file dataset (for replacing the wildcard in '*Image-D*-STATS.nc').
+        Defaults to '*'
+
     Returns
     -------
-    DataFrame
-        STATS xarray dataset
+    tuple
+        xstats STATS xarray dataset, image_stats dataset
     '''
 
-    sorted_filelist = sorted(glob(os.path.join(path_to_data, '*Image-D*-STATS.nc')))
-    with xarray.open_mfdataset(sorted_filelist, combine='nested', concat_dim='index') as ds:
+    sorted_filelist = sorted(glob(os.path.join(path_to_data, prefix + 'Image-D*-STATS.nc')))
+    with xarray.open_mfdataset(sorted_filelist, combine='nested', concat_dim='index',
+                               decode_cf=False, parallel=False,
+                               coords='minimal', compat='override') as ds:
         xstats = ds.load()
 
     # Check if we have image statistics in the last file, if so, load it.
@@ -178,6 +192,53 @@ def combine_stats_netcdf_files(path_to_data):
         ds.close()
 
     return xstats, image_stats
+
+
+def merge_and_save_mfdataset(path_to_data, prefix='*'):
+    '''Combine a multi-file directory of STATS.nc files into a single '-STATS.nc' file
+    that can then be loaded with {func}`pyopia.io.load_stats`
+
+    Parameters
+    ----------
+    path_to_data : str
+        Folder name containing nc files with pattern '*Image-D*-STATS.nc'
+
+    prefix : str
+        Prefix to multi-file dataset (for replacing the wildcard in '*Image-D*-STATS.nc').
+        Defaults to '*'
+    '''
+
+    logging.info(f'combine stats netcdf files from {path_to_data}')
+    xstats, image_stats = combine_stats_netcdf_files(path_to_data, prefix=prefix)
+
+    settings = steps_from_xstats(xstats)
+
+    prefix_out = os.path.basename(settings['steps']['output']['output_datafile'])
+    output_name = os.path.join(path_to_data, prefix_out)
+
+    logging.info(f'writing {output_name}')
+    write_stats(xstats,
+                output_name,
+                settings,
+                image_stats=image_stats)
+    logging.info(f'writing {output_name} done.')
+
+
+def steps_from_xstats(xstats):
+    '''Get the steps attribute from xarray version of the particle stats into a dictionary
+
+    Parameters
+    ----------
+    xstats : xarray.DataSet
+        xarray version of the particle stats dataframe, containing metadata
+
+    Returns
+    -------
+    dict
+        TOML-formatted dictionary of pipeline steps
+    '''
+    steps = toml.loads(xstats.__getattr__('steps'))
+    return steps
 
 
 def load_stats_as_dataframe(stats_file):
