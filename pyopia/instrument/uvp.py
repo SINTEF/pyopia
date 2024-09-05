@@ -110,7 +110,7 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
             },
             'segmentation': {
                 'pipeline_class': 'pyopia.process.Segment',
-                'threshold': 0.85,
+                'threshold': 0.95,
                 'segment_source': 'imraw'
             },
             'statextract': {
