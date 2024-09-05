@@ -175,7 +175,9 @@ def combine_stats_netcdf_files(path_to_data, prefix='*'):
     '''
 
     sorted_filelist = sorted(glob(os.path.join(path_to_data, prefix + 'Image-D*-STATS.nc')))
-    with xarray.open_mfdataset(sorted_filelist, combine='nested', concat_dim='index') as ds:
+    with xarray.open_mfdataset(sorted_filelist, combine='nested', concat_dim='index',
+                               decode_cf=False, parallel=False,
+                               coords='minimal', compat='override') as ds:
         xstats = ds.load()
 
     # Check if we have image statistics in the last file, if so, load it.
