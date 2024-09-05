@@ -8,13 +8,10 @@ import datetime
 import pandas as pd
 from operator import methodcaller
 import sys
+from pyopia.io import steps_from_xstats as steps_from_xstats # noqa: E(F401)
 import logging
-import pyopia.io
 
 logger = logging.getLogger()
-
-
-steps_from_xstats = pyopia.io.steps_from_xstats
 
 
 class Pipeline():

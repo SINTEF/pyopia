@@ -33,15 +33,17 @@ def write_stats(stats,
     Appends if file already exists.
 
     Args:
-        datafilename (str)              :   Filame prefix for -STATS.h5 file that may or may not include a path
-        stats (DataFrame or xr.Dataset) :   STATS dataframe returned from processImage()
-        export_name_len (int)           :   Max number of chars allowed for col 'export name'
-        append (bool)                   :   Append all processed data into one nc file.
-                                            Defaults to True.
-                                            If False, then one nc file will be generated per raw image,
-                                            which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
-                                            This is useful for larger datasets, where appending causes substantial slowdown
-                                            as the dataset gets larger.
+        datafilename (str)                      :   Filame prefix for -STATS.h5 file that may or may not include a path
+        stats (DataFrame or xr.Dataset)         :   STATS dataframe
+        export_name_len (int)                   :   Max number of chars allowed for col 'export name'
+        append (bool)                           :   Append all processed data into one nc file.
+                                                    Defaults to True.
+                                                    If False, then one nc file will be generated per raw image,
+                                                    which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
+                                                    This is useful for larger datasets,
+                                                    where appending causes substantial slowdown
+                                                    as the dataset gets larger.
+        image_stats (xr.Dataset)                :   image_stats data
     '''
 
     if len(stats) == 0:  # to avoid issue with wrong time datatypes in xarray
@@ -168,8 +170,8 @@ def combine_stats_netcdf_files(path_to_data, prefix='*'):
 
     Returns
     -------
-    DataFrame
-        STATS xarray dataset
+    tuple
+        xstats STATS xarray dataset, image_stats dataset
     '''
 
     sorted_filelist = sorted(glob(os.path.join(path_to_data, prefix + 'Image-D*-STATS.nc')))
@@ -213,10 +215,10 @@ def merge_and_save_mfdataset(path_to_data, prefix='*'):
     output_name = os.path.join(path_to_data, prefix_out)
 
     logging.info(f'writing {output_name}')
-    write_stats(xstats.to_dataframe(),
+    write_stats(xstats,
                 output_name,
                 settings,
-                image_stats=image_stats.to_dataframe())
+                image_stats=image_stats)
     logging.info(f'writing {output_name} done.')
 
 
