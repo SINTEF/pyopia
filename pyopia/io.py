@@ -10,6 +10,7 @@ import toml
 import xarray
 import os
 from glob import glob
+import xarray as xr
 
 from pyopia import __version__ as pyopia_version
 
@@ -32,15 +33,15 @@ def write_stats(stats,
     Appends if file already exists.
 
     Args:
-        datafilename (str):     filame prefix for -STATS.h5 file that may or may not include a path
-        stats_all (DataFrame):  stats dataframe returned from processImage()
-        export_name_len (int):  max number of chars allowed for col 'export name'
-        append (bool):          Append all processed data into one nc file.
-                                Defaults to True.
-                                If False, then one nc file will be generated per raw image,
-                                which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
-                                This is useful for larger datasets, where appending causes substantial slowdown
-                                as the dataset gets larger.
+        datafilename (str)              :   Filame prefix for -STATS.h5 file that may or may not include a path
+        stats (DataFrame or xr.Dataset) :   STATS dataframe returned from processImage()
+        export_name_len (int)           :   Max number of chars allowed for col 'export name'
+        append (bool)                   :   Append all processed data into one nc file.
+                                            Defaults to True.
+                                            If False, then one nc file will be generated per raw image,
+                                            which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
+                                            This is useful for larger datasets, where appending causes substantial slowdown
+                                            as the dataset gets larger.
     '''
 
     if len(stats) == 0:  # to avoid issue with wrong time datatypes in xarray
@@ -64,7 +65,12 @@ def write_stats(stats,
             meta.attrs['PyOpia version'] = pyopia_version
             meta.attrs['Pipeline steps'] = settings
     elif dataformat == 'nc':
-        xstats = make_xstats(stats, settings)
+
+        if isinstance(stats, xr.Dataset):
+            xstats = stats
+        else:
+            xstats = make_xstats(stats, settings)
+
         if append and os.path.isfile(datafilename + '-STATS.nc'):
             existing_stats = load_stats(datafilename + '-STATS.nc')
             xstats = xarray.concat([existing_stats, xstats], 'index')
