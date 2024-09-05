@@ -582,6 +582,8 @@ class MergeStats():
             ifocus.append(stack_ifocus[np.argmin(total_diff)])
 
         stats['ifocus'] = np.array(ifocus, dtype=np.int64)
+        z = (np.arange(data['settings']['steps']['initial']['minZ'], (data['settings']['steps']['initial']['maxZ'] + data['settings']['steps']['initial']['stepZ']), data['settings']['steps']['initial']['stepZ']))
+        stats['z'] = z[stats['ifocus']-1]
         stats['holo_filename'] = data['filename']
         data['stats'] = stats
         return data
