@@ -36,7 +36,7 @@ def load_image(filename):
     array
         raw image
     '''
-    img = np.load(filename, allow_pickle=False).astype(np.uint8)
+    img = np.load(filename, allow_pickle=False).astype(np.float64)
     return img
 
 
