@@ -15,6 +15,7 @@ import pandas as pd
 import pyopia.background
 import pyopia.instrument.silcam
 import pyopia.instrument.holo
+import pyopia.instrument.uvp
 import pyopia.instrument.common
 import pyopia.io
 import pyopia.pipeline
@@ -80,7 +81,7 @@ def generate_config(instrument: str, raw_files: str, model_path: str, outfolder:
     Parameters
     ----------
     instrument : str
-        either `silcam` or `holo`
+        either `silcam`, `holo` or `uvp`
     raw_files : str
         raw_files
     model_path : str
@@ -95,6 +96,8 @@ def generate_config(instrument: str, raw_files: str, model_path: str, outfolder:
             pipeline_config = pyopia.instrument.silcam.generate_config(raw_files, model_path, outfolder, output_prefix)
         case 'holo':
             pipeline_config = pyopia.instrument.holo.generate_config(raw_files, model_path, outfolder, output_prefix)
+        case 'uvp':
+            pipeline_config = pyopia.instrument.uvp.generate_config(raw_files, model_path, outfolder, output_prefix)
 
     config_filename = instrument + "-config.toml"
     with open(config_filename, "w") as toml_file:
