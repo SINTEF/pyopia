@@ -133,6 +133,7 @@ def process(config_filename: str, chunks=1):
 
         progress.console.print("[blue]OBTAIN FILE LIST")
         files = sorted(glob(pipeline_config['general']['raw_files']))
+        nfiles = len(files)
         chunked_files = chunk_files(files, chunks)
 
         progress.console.print('[blue]PREPARE FOLDERS')
@@ -152,20 +153,20 @@ def process(config_filename: str, chunks=1):
 
         progress.console.print("[blue]INITIALISE PIPELINE")
 
-    def process_file_list(i, file_list):
-        processing_pipeline = Pipeline(pipeline_config)
-        #for filename in track(file_list, description=f'[blue]Processing progress through {len(file_list)} files:'):
-        for filename in file_list:
-            try:
-                processing_pipeline.run(filename)
-            except Exception as e:
-                progress.console.print("[red]An error occured in processing, skipping rest of pipeline and moving to next image.")
-                logger.error(e)
-                logger.debug(''.join(traceback.format_tb(e.__traceback__)))
+        def process_file_list(file_list, nfiles):
+            processing_pipeline = Pipeline(pipeline_config)
+            for filename in track(file_list, description=f'[blue]Processing progress through {nfiles} files:'):
+                try:
+                    processing_pipeline.run(filename)
+                except Exception as e:
+                    progress.console.print("[red]An error occured in processing, " +
+                                           "skipping rest of pipeline and moving to next image.")
+                    logger.error(e)
+                    logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
-    for i, chunk in enumerate(chunked_files):
-        job = threading.Thread(target=process_file_list, args=(i, chunk, ))
-        job.start()
+        for chunk in chunked_files:
+            job = threading.Thread(target=process_file_list, args=(chunk, nfiles, ))
+            job.start()
 
 
 @app.command()
