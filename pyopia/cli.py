@@ -153,9 +153,17 @@ def process(config_filename: str, chunks=1):
 
         progress.console.print("[blue]INITIALISE PIPELINE")
 
-        def process_file_list(file_list, nfiles):
+        if pipeline_config['steps']['correctbackground']['bgshift_function'] == 'pass':
+            background_pipeline = Pipeline(pipeline_config)
+            for file in files[0:pipeline_config['steps']['correctbackground']['average_window']]:
+                background_pipeline.run(file)
+            pipeline_config['steps']['correctbackground']['average_window'] = 0
+
+        def process_file_list(file_list, imbg):
             processing_pipeline = Pipeline(pipeline_config)
-            for filename in track(file_list, description=f'[blue]Processing progress through {nfiles} files:'):
+            processing_pipeline.data['imbg'] = imbg
+            # for filename in track(file_list, description=f'[blue]Processing progress through {nfiles} files:'):
+            for filename in file_list:
                 try:
                     processing_pipeline.run(filename)
                 except Exception as e:
@@ -165,7 +173,7 @@ def process(config_filename: str, chunks=1):
                     logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
         for chunk in chunked_files:
-            job = threading.Thread(target=process_file_list, args=(chunk, nfiles, ))
+            job = threading.Thread(target=process_file_list, args=(chunk, background_pipeline.data['imbg'], ))
             job.start()
 
 
