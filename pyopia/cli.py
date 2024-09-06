@@ -225,6 +225,7 @@ def prepare_chunking(files, chunks, pipeline_config, Pipeline, logger):
             imbg = None
 
         if pipeline_config['steps']['correctbackground']['bgshift_function'] == 'pass':
+            pipeline_config['steps']['correctbackground']['average_window'] = 0
             chunk_mode = 'block'
 
     logger.info(f'Chunk mode: {chunk_mode}')
