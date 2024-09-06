@@ -11,6 +11,8 @@ import traceback
 import logging
 from rich.progress import track, Progress
 import pandas as pd
+import numpy as np
+import threading
 
 import pyopia.background
 import pyopia.instrument.silcam
@@ -102,9 +104,18 @@ def generate_config(instrument: str, raw_files: str, model_path: str, outfolder:
 
 
 @app.command()
-def process(config_filename: str):
+def process(config_filename: str, chunks=1):
     '''Run a PyOPIA processing pipeline based on given a config.toml
+
+    Parameters
+    ----------
+    config_filename : str
+        config filename
+    chunks : int, optional
+        split the dataset into chucks, and process in parallell, by default 1
+
     '''
+    chunks = int(chunks)
     from pyopia.io import load_toml
     from pyopia.pipeline import Pipeline
 
@@ -115,10 +126,14 @@ def process(config_filename: str):
         pipeline_config = load_toml(config_filename)
 
         setup_logging(pipeline_config)
+        assert chunks > 0, 'you must have at least one chunk'
+
+        if chunks > 1:
+            pipeline_config['steps']['output']['append'] = False
 
         progress.console.print("[blue]OBTAIN FILE LIST")
         files = sorted(glob(pipeline_config['general']['raw_files']))
-        nfiles = len(files)
+        chunked_files = chunk_files(files, chunks)
 
         progress.console.print('[blue]PREPARE FOLDERS')
         if 'output' not in pipeline_config['steps']:
@@ -136,15 +151,21 @@ def process(config_filename: str):
             os.rename(output_datafile + '-STATS.nc', newname)
 
         progress.console.print("[blue]INITIALISE PIPELINE")
-        processing_pipeline = Pipeline(pipeline_config)
 
-    for filename in track(files, description=f'[blue]Processing progress through {nfiles} files:'):
-        try:
-            processing_pipeline.run(filename)
-        except Exception as e:
-            progress.console.print("[red]An error occured in processing, skipping rest of pipeline and moving to next image.")
-            logger.error(e)
-            logger.debug(''.join(traceback.format_tb(e.__traceback__)))
+    def process_file_list(i, file_list):
+        processing_pipeline = Pipeline(pipeline_config)
+        #for filename in track(file_list, description=f'[blue]Processing progress through {len(file_list)} files:'):
+        for filename in file_list:
+            try:
+                processing_pipeline.run(filename)
+            except Exception as e:
+                progress.console.print("[red]An error occured in processing, skipping rest of pipeline and moving to next image.")
+                logger.error(e)
+                logger.debug(''.join(traceback.format_tb(e.__traceback__)))
+
+    for i, chunk in enumerate(chunked_files):
+        job = threading.Thread(target=process_file_list, args=(i, chunk, ))
+        job.start()
 
 
 @app.command()
@@ -185,6 +206,11 @@ def setup_logging(pipeline_config):
 
     logger = logging.getLogger()
     logger.info(f'PyOPIA process started {pd.Timestamp.now()}')
+
+
+def chunk_files(files, chunks):
+    n = int(np.ceil(len(files) / chunks))
+    return [files[i:i + n] for i in range(0, len(files), n)]
 
 
 if __name__ == "__main__":
