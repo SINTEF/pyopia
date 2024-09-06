@@ -1,3 +1,6 @@
+'''
+Module containing tools for assessing statistical reliability of silcam size distributions
+'''
 import numpy as np
 from skimage.draw import disk
 import matplotlib.pyplot as plt
@@ -8,15 +11,56 @@ import pyopia.plotting
 
 
 class SilcamSimulator():
-    def __init__(self) -> None:
-        self.total_volume_concentration = 1000
-        self.d50 = 1000
-        self.MinD = 10
-        self.PIX_SIZE = 28
-        self.PATH_LENGTH = 40
-        self.imx = 2048
-        self.imy = 2448
-        self.nims = 50  # the number of images to simulate
+    def __init__(self, total_volume_concentration=1000,
+                 d50=1000,
+                 MinD=10,
+                 PIX_SIZE=28,
+                 PATH_LENGTH=40,
+                 imx=2048,
+                 imy=2448,
+                 nims=50):
+        '''SilCam simulator
+
+        Parameters
+        ----------
+        total_volume_concentration : int, optional
+            total volume concentration, by default 1000
+        d50 : int, optional
+            median particle size, by default 1000
+        MinD : int, optional
+            minimum diameter to simulate, by default 10
+        PIX_SIZE : int, optional
+            pixel size (um), by default 28
+        PATH_LENGTH : int, optional
+            path length (mm), by default 40
+        imx : int, optional
+            image x dimension, by default 2048
+        imy : int, optional
+            image y dimension, by default 2448
+        nims : int, optional
+            number of images to simulate, by default 50
+
+        Example:
+        --------
+
+        ```python
+        from pyopia.simulator.silcam import SilcamSimulator
+
+        Sim = SilcamSimulator()
+        Sim.check_convergence()
+        Sim.synthesize()
+        Sim.plot()
+        ```
+
+        '''
+        self.total_volume_concentration = total_volume_concentration
+        self.d50 = d50
+        self.MinD = MinD
+        self.PIX_SIZE = PIX_SIZE
+        self.PATH_LENGTH = PATH_LENGTH
+        self.imx = imx
+        self.imy = imy
+        self.nims = nims
 
         self.dias, self.bin_limits = pyopia.statistics.get_size_bins()
 
@@ -26,8 +70,6 @@ class SilcamSimulator():
                                                                  imx=self.imx, imy=self.imy)
 
         self.data = dict()
-        self.data['weibull_x'] = np.linspace(np.min(self.dias), np.max(self.dias), 10000)
-        self.data['weibull_y'] = self.weibull_distribution(self.data['weibull_x'])
 
     def weibull_distribution(self, x):
         '''calculate weibull distribution
@@ -47,6 +89,9 @@ class SilcamSimulator():
         return (a / n) * (x / n) ** (a - 1) * np.exp(-(x / n) ** a)
 
     def check_convergence(self):
+        self.data['weibull_x'] = np.linspace(np.min(self.dias), np.max(self.dias), 10000)
+        self.data['weibull_y'] = self.weibull_distribution(self.data['weibull_x'])
+
         self.data['volume_distribution_input'] = self.weibull_distribution(self.dias)
         self.data['volume_distribution_input'] = self.data['volume_distribution_input'] / \
             np.sum(self.data['volume_distribution_input']) * \
@@ -58,7 +103,6 @@ class SilcamSimulator():
 
         self.data['number_distribution'] = self.data['number_distribution'] * self.sample_volume  # scale the number distribution by the sample volume so resulting units are #/L/bin
         nc = int(sum(self.data['number_distribution']))  # calculate the total number concentration. must be integer number
-        print(nc)
 
         # convert the number distribution to volume distribution in uL/L/bin
         vd2 = pyopia.statistics.vd_from_nd(self.data['number_distribution'], self.dias, self.sample_volume)
