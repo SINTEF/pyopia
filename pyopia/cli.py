@@ -159,11 +159,12 @@ def process(config_filename: str, chunks=1):
                 background_pipeline.run(file)
             pipeline_config['steps']['correctbackground']['average_window'] = 0
 
-        def process_file_list(file_list, imbg):
+        def process_file_list(file_list, imbg, c):
             processing_pipeline = Pipeline(pipeline_config)
             processing_pipeline.data['imbg'] = imbg
             # for filename in track(file_list, description=f'[blue]Processing progress through {nfiles} files:'):
-            for filename in file_list:
+            for i, filename in enumerate(file_list):
+                logging.info(f'Starting image: {i} name: {filename} thread {c}')
                 try:
                     processing_pipeline.run(filename)
                 except Exception as e:
@@ -172,8 +173,8 @@ def process(config_filename: str, chunks=1):
                     logger.error(e)
                     logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
-        for chunk in chunked_files:
-            job = threading.Thread(target=process_file_list, args=(chunk, background_pipeline.data['imbg'], ))
+        for c, chunk in enumerate(chunked_files):
+            job = threading.Thread(target=process_file_list, args=(chunk, background_pipeline.data['imbg'], c, ))
             job.start()
 
 
