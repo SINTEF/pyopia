@@ -126,15 +126,9 @@ def process(config_filename: str, chunks=1):
         pipeline_config = load_toml(config_filename)
 
         setup_logging(pipeline_config)
-        assert chunks > 0, 'you must have at least one chunk'
-
-        if chunks > 1:
-            pipeline_config['steps']['output']['append'] = False
 
         progress.console.print("[blue]OBTAIN FILE LIST")
         files = sorted(glob(pipeline_config['general']['raw_files']))
-        nfiles = len(files)
-        chunked_files = chunk_files(files, chunks)
 
         progress.console.print('[blue]PREPARE FOLDERS')
         if 'output' not in pipeline_config['steps']:
@@ -153,18 +147,13 @@ def process(config_filename: str, chunks=1):
 
         progress.console.print("[blue]INITIALISE PIPELINE")
 
-        if pipeline_config['steps']['correctbackground']['bgshift_function'] == 'pass':
-            background_pipeline = Pipeline(pipeline_config)
-            for file in files[0:pipeline_config['steps']['correctbackground']['average_window']]:
-                background_pipeline.run(file)
-            pipeline_config['steps']['correctbackground']['average_window'] = 0
+        chunked_files, pipeline_config, imbg = prepare_chunking(files, chunks, pipeline_config, Pipeline, logger)
 
         def process_file_list(file_list, imbg, c):
             processing_pipeline = Pipeline(pipeline_config)
             processing_pipeline.data['imbg'] = imbg
-            # for filename in track(file_list, description=f'[blue]Processing progress through {nfiles} files:'):
             for i, filename in enumerate(file_list):
-                logging.info(f'Starting image: {i} name: {filename} thread {c}')
+                logging.info(f'Starting image: {i+1} of {len(file_list)} name: {filename} thread {c}')
                 try:
                     processing_pipeline.run(filename)
                 except Exception as e:
@@ -174,7 +163,7 @@ def process(config_filename: str, chunks=1):
                     logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
         for c, chunk in enumerate(chunked_files):
-            job = threading.Thread(target=process_file_list, args=(chunk, background_pipeline.data['imbg'], c, ))
+            job = threading.Thread(target=process_file_list, args=(chunk, imbg, c, ))
             job.start()
 
 
@@ -218,9 +207,39 @@ def setup_logging(pipeline_config):
     logger.info(f'PyOPIA process started {pd.Timestamp.now()}')
 
 
-def chunk_files(files, chunks):
-    n = int(np.ceil(len(files) / chunks))
-    return [files[i:i + n] for i in range(0, len(files), n)]
+def prepare_chunking(files, chunks, pipeline_config, Pipeline, logger):
+    assert chunks > 0, 'you must have at least one chunk'
+
+    if chunks > 1:
+        pipeline_config['steps']['output']['append'] = False
+        chunk_mode = 'block'
+
+        if 'correctbackground' in pipeline_config['steps']:
+            background_pipeline = Pipeline(pipeline_config)
+            for file in files[0:pipeline_config['steps']['correctbackground']['average_window']]:
+                background_pipeline.run(file)
+            imbg = background_pipeline.data['imbg']
+            chunk_mode = 'resample'
+            pipeline_config['steps']['correctbackground']['average_window'] = 1
+        else:
+            imbg = None
+
+        if pipeline_config['steps']['correctbackground']['bgshift_function'] == 'pass':
+            chunk_mode = 'block'
+
+    logger.info(f'Chunk mode: {chunk_mode}')
+    chunked_files = chunk_files(files, chunks, mode=chunk_mode)
+    return chunked_files, pipeline_config, imbg
+
+
+def chunk_files(files, chunks, mode='block'):
+    match mode:
+        case 'block':
+            n = int(np.ceil(len(files) / chunks))
+            return [files[i:i + n] for i in range(0, len(files), n)]
+        case 'resample':
+            return [files[i:len(files):chunks] for i in range(0, chunks)]
+    raise Exception("mode can either be 'block' or 'resample'")
 
 
 if __name__ == "__main__":
