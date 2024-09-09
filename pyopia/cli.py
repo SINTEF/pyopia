@@ -146,7 +146,7 @@ def process(config_filename: str, chunks=1):
 
         progress.console.print("[blue]INITIALISE PIPELINE")
 
-        pipeline_config, initial_data = prepare_chunking(raw_files.files, chunks, pipeline_config, Pipeline, logger)
+        pipeline_config, initial_data = prepare_initial_background(raw_files.files, chunks, pipeline_config, Pipeline, logger)
 
         def process_file_list(file_list, inital_data, c):
             processing_pipeline = Pipeline(pipeline_config)
@@ -207,7 +207,7 @@ def setup_logging(pipeline_config):
     logger.info(f'PyOPIA process started {pd.Timestamp.now()}')
 
 
-def prepare_chunking(files, chunks, pipeline_config, Pipeline, logger):
+def prepare_initial_background(files, chunks, pipeline_config, Pipeline, logger):
     assert chunks > 0, 'you must have at least one chunk'
 
     initial_data = dict()
