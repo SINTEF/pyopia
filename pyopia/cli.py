@@ -127,7 +127,10 @@ def process(config_filename: str, chunks=1):
         logger = logging.getLogger()
 
         progress.console.print("[blue]OBTAIN FILE LIST")
-        raw_files = FilesToProcess(pipeline_config['general']['raw_files'], chunks=chunks)
+        raw_files = FilesToProcess(pipeline_config['general']['raw_files'])
+        if 'correctbackground' in pipeline_config['steps']:
+            raw_files.get_static_background_files(average_window=pipeline_config['steps']['correctbackground']['average_window'])
+        raw_files.chunk_files(chunks)
 
         progress.console.print('[blue]PREPARE FOLDERS')
         if 'output' not in pipeline_config['steps']:
@@ -146,12 +149,8 @@ def process(config_filename: str, chunks=1):
 
         progress.console.print("[blue]INITIALISE PIPELINE")
 
-        pipeline_config, initial_data = prepare_initial_background(raw_files.files, chunks, pipeline_config, Pipeline, logger)
-
-        def process_file_list(file_list, inital_data, c):
+        def process_file_list(file_list, c):
             processing_pipeline = Pipeline(pipeline_config)
-            if inital_data['imbg'] is not None:
-                processing_pipeline.data['imbg'] = inital_data['imbg']
             for filename in track(file_list, description=f'[blue]Processing progress (thread {c})',
                                   disable=c != 0):
                 try:
@@ -163,7 +162,7 @@ def process(config_filename: str, chunks=1):
                     logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
         for c, chunk in enumerate(raw_files.chunked_files):
-            job = threading.Thread(target=process_file_list, args=(chunk, initial_data, c, ))
+            job = threading.Thread(target=process_file_list, args=(chunk, c, ))
             job.start()
 
 
@@ -207,9 +206,7 @@ def setup_logging(pipeline_config):
     logger.info(f'PyOPIA process started {pd.Timestamp.now()}')
 
 
-def prepare_initial_background(files, chunks, pipeline_config, Pipeline, logger):
-    assert chunks > 0, 'you must have at least one chunk'
-
+def prepare_initial(files, chunks, pipeline_config, Pipeline, logger):
     initial_data = dict()
     initial_data['imbg'] = None
 
@@ -227,12 +224,6 @@ def prepare_initial_background(files, chunks, pipeline_config, Pipeline, logger)
             logger.debug('average_window set to 0 to disable future background creation')
 
             initial_data['imbg'] = background_pipeline.data['imbg']
-        elif chunks > 1:
-            raise Exception('Parallel processing not implemented for moving background.\n\
-                You have three options:\n\
-                    1) Remove the --chunks option from your call to pyopia process\n\
-                    2) Use a static background (bgshift_function = "pass" in your config)\n\
-                    3) Remove the correctbackground step in your config and work only on raw images')
 
     if chunks > 1:
         pipeline_config['steps']['output']['append'] = False
@@ -242,7 +233,7 @@ def prepare_initial_background(files, chunks, pipeline_config, Pipeline, logger)
 
 
 class FilesToProcess:
-    def __init__(self, glob_pattern=None, chunks=1):
+    def __init__(self, glob_pattern=None):
         '''Build file list from glob pattern if specified.
            Create FilesToProcess.chunked_files is chunks specified
            File list from glob will be sorted.
@@ -251,13 +242,11 @@ class FilesToProcess:
         ----------
         glob_pattern : str, optional
             Glob pattern, by default None
-        chunks : int, optional
-            Number of chunks to produce (must be at least 1), by default 1
         '''
         self.files = None
+        self.background_files = []
         if glob_pattern is not None:
             self.files = sorted(glob(glob_pattern))
-            self.chunk_files(chunks)
 
     def from_filelist_file(self, path_to_filelist):
         '''
@@ -286,8 +275,18 @@ class FilesToProcess:
         chunks : int
             number of chunks to produce (must be at least 1)
         '''
+        assert chunks > 0, 'you must have at least one chunk'
         n = int(np.ceil(len(self.files) / chunks))
         self.chunked_files = [self.files[i:i + n] for i in range(0, len(self.files), n)]
+
+        for c in self.chunked_files:
+            # we have to loop backwards over bg_files because we are inserting into the top of the chunk
+            c = [c.insert(0, bg_file) for bg_file in reversed(self.background_files)]
+
+    def get_static_background_files(self, average_window=0):
+        self.background_files = []
+        for f in self.files[0:average_window]:
+            self.background_files.append(f)
 
     def __len__(self):
         return len(self.files)
