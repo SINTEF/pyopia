@@ -127,7 +127,7 @@ def process(config_filename: str, chunks=1):
         logger = logging.getLogger()
 
         progress.console.print("[blue]OBTAIN FILE LIST")
-        files = sorted(glob(pipeline_config['general']['raw_files']))
+        files = FilesToProcess(pipeline_config['general']['raw_files']).files
 
         progress.console.print('[blue]PREPARE FOLDERS')
         if 'output' not in pipeline_config['steps']:
@@ -256,7 +256,7 @@ class FilesToProcess:
         self.files = None
         if glob_pattern is not None:
             self.files = sorted(glob(glob_pattern))
- 
+
     def from_filelist_file(self, path_to_filelist):
         '''
         Initialize explicit list of files to process from a text file.
@@ -264,12 +264,14 @@ class FilesToProcess:
         '''
         with open(path_to_filelist, 'r') as fh:
             self.files = list(fh.readlines())
+
     def __len__(self):
         return len(self.files)
- 
+
     def __iter__(self):
         for filename in self.files:
             yield filename
+
 
 if __name__ == "__main__":
     app()
