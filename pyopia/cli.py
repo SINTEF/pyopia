@@ -212,12 +212,10 @@ def prepare_chunking(files, chunks, pipeline_config, Pipeline, logger):
 
     initial_data = dict()
     initial_data['imbg'] = None
-    chunk_mode = 'resample'
 
     if 'correctbackground' in pipeline_config['steps']:
         background_pipeline = Pipeline(pipeline_config)
         if pipeline_config['steps']['correctbackground']['bgshift_function'] == 'pass':
-            chunk_mode = 'block'
 
             logger.info(f"Pre-calculating background from first \
                 {pipeline_config['steps']['correctbackground']['average_window']} images")
@@ -229,24 +227,24 @@ def prepare_chunking(files, chunks, pipeline_config, Pipeline, logger):
             logger.debug('average_window set to 0 to disable future background creation')
 
             initial_data['imbg'] = background_pipeline.data['imbg']
+        elif chunks > 1:
+            raise Exception('Parallel processing not implemented for moving background.\n\
+                You have three options:\n\
+                    1) Remove the --chunks option from your call to pyopia process\n\
+                    2) Use a static background (bgshift_function = "pass" in your config)\n\
+                    3) Remove the correctbackground step in your config and work only on raw images')
 
     if chunks > 1:
         pipeline_config['steps']['output']['append'] = False
         logger.info('Enforcing output mode: "append = false" to enable threading')
 
-    logger.info(f'Chunk mode: {chunk_mode}')
-    chunked_files = chunk_files(files, chunks, mode=chunk_mode)
+    chunked_files = chunk_files(files, chunks)
     return chunked_files, pipeline_config, initial_data
 
 
-def chunk_files(files, chunks, mode='resample'):
-    match mode:
-        case 'block':
-            n = int(np.ceil(len(files) / chunks))
-            return [files[i:i + n] for i in range(0, len(files), n)]
-        case 'resample':
-            return [files[i:len(files):chunks] for i in range(0, chunks)]
-    raise Exception("mode can either be 'block' or 'resample'")
+def chunk_files(files, chunks):
+    n = int(np.ceil(len(files) / chunks))
+    return [files[i:i + n] for i in range(0, len(files), n)]
 
 
 if __name__ == "__main__":
