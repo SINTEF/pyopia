@@ -206,32 +206,6 @@ def setup_logging(pipeline_config):
     logger.info(f'PyOPIA process started {pd.Timestamp.now()}')
 
 
-def prepare_initial(files, chunks, pipeline_config, Pipeline, logger):
-    initial_data = dict()
-    initial_data['imbg'] = None
-
-    if 'correctbackground' in pipeline_config['steps']:
-        background_pipeline = Pipeline(pipeline_config)
-        if pipeline_config['steps']['correctbackground']['bgshift_function'] == 'pass':
-
-            logger.info(f"Pre-calculating background from first \
-                {pipeline_config['steps']['correctbackground']['average_window']} images")
-            for file in files[0:pipeline_config['steps']['correctbackground']['average_window']]:
-                logger.debug(f"Background loading {file}")
-                background_pipeline.run(file)
-
-            pipeline_config['steps']['correctbackground']['average_window'] = 0
-            logger.debug('average_window set to 0 to disable future background creation')
-
-            initial_data['imbg'] = background_pipeline.data['imbg']
-
-    if chunks > 1:
-        pipeline_config['steps']['output']['append'] = False
-        logger.info('Enforcing output mode: "append = false" to enable threading')
-
-    return pipeline_config, initial_data
-
-
 class FilesToProcess:
     def __init__(self, glob_pattern=None):
         '''Build file list from glob pattern if specified.
@@ -279,9 +253,13 @@ class FilesToProcess:
         n = int(np.ceil(len(self.files) / chunks))
         self.chunked_files = [self.files[i:i + n] for i in range(0, len(self.files), n)]
 
-        for c in self.chunked_files:
-            # we have to loop backwards over bg_files because we are inserting into the top of the chunk
-            c = [c.insert(0, bg_file) for bg_file in reversed(self.background_files)]
+    def insert_bg_files_into_chunks(self, bgshift_function='pass'):
+        if bgshift_function == 'pass':
+            for c in self.chunked_files:
+                # we have to loop backwards over bg_files because we are inserting into the top of the chunk
+                c = [c.insert(0, bg_file) for bg_file in reversed(self.background_files)]
+        else:
+            raise Exception('not implemented')
 
     def get_static_background_files(self, average_window=0):
         self.background_files = []
