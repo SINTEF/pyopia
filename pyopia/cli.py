@@ -220,8 +220,8 @@ def prepare_chunking(files, chunks, pipeline_config, Pipeline, logger):
         if 'correctbackground' in pipeline_config['steps']:
             background_pipeline = Pipeline(pipeline_config)
             if pipeline_config['steps']['correctbackground']['bgshift_function'] == 'pass':
-                logger.info(f'Pre-calculating background from first {
-                    pipeline_config['steps']['correctbackground']['average_window']} images')
+                logger.info(f"Pre-calculating background from first {\
+                    pipeline_config['steps']['correctbackground']['average_window']} images")
                 for file in files[0:pipeline_config['steps']['correctbackground']['average_window']]:
                     background_pipeline.run(file)
 
