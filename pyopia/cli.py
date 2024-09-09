@@ -214,22 +214,25 @@ def prepare_chunking(files, chunks, pipeline_config, Pipeline, logger):
     initial_data['imbg'] = None
     chunk_mode = 'resample'
 
+    if 'correctbackground' in pipeline_config['steps']:
+        background_pipeline = Pipeline(pipeline_config)
+        if pipeline_config['steps']['correctbackground']['bgshift_function'] == 'pass':
+            chunk_mode = 'block'
+
+            logger.info(f"Pre-calculating background from first {\
+                pipeline_config['steps']['correctbackground']['average_window']} images")
+            for file in files[0:pipeline_config['steps']['correctbackground']['average_window']]:
+                logger.debug(f"Background loading {file}")
+                background_pipeline.run(file)
+
+            pipeline_config['steps']['correctbackground']['average_window'] = 0
+            logger.debug('average_window set to 0 to disable future background creation')
+
+            initial_data['imbg'] = background_pipeline.data['imbg']
+
     if chunks > 1:
         pipeline_config['steps']['output']['append'] = False
-
-        if 'correctbackground' in pipeline_config['steps']:
-            background_pipeline = Pipeline(pipeline_config)
-            if pipeline_config['steps']['correctbackground']['bgshift_function'] == 'pass':
-                logger.info(f"Pre-calculating background from first {\
-                    pipeline_config['steps']['correctbackground']['average_window']} images")
-                for file in files[0:pipeline_config['steps']['correctbackground']['average_window']]:
-                    background_pipeline.run(file)
-
-                pipeline_config['steps']['correctbackground']['average_window'] = 0
-                logger.debug('average_window set to 0 to disable future background creation')
-
-                initial_data['imbg'] = background_pipeline.data['imbg']
-                chunk_mode = 'block'
+        logger.info('Enforcing output mode: "append = false" to enable threading')
 
     logger.info(f'Chunk mode: {chunk_mode}')
     chunked_files = chunk_files(files, chunks, mode=chunk_mode)
