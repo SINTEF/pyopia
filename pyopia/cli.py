@@ -127,7 +127,7 @@ def process(config_filename: str, chunks=1):
         logger = logging.getLogger()
 
         progress.console.print("[blue]OBTAIN FILE LIST")
-        files = FilesToProcess(pipeline_config['general']['raw_files']).files
+        raw_files = FilesToProcess(pipeline_config['general']['raw_files'], chunks=chunks)
 
         progress.console.print('[blue]PREPARE FOLDERS')
         if 'output' not in pipeline_config['steps']:
@@ -146,7 +146,7 @@ def process(config_filename: str, chunks=1):
 
         progress.console.print("[blue]INITIALISE PIPELINE")
 
-        chunked_files, pipeline_config, initial_data = prepare_chunking(files, chunks, pipeline_config, Pipeline, logger)
+        pipeline_config, initial_data = prepare_chunking(raw_files.files, chunks, pipeline_config, Pipeline, logger)
 
         def process_file_list(file_list, inital_data, c):
             processing_pipeline = Pipeline(pipeline_config)
@@ -162,7 +162,7 @@ def process(config_filename: str, chunks=1):
                     logger.error(e)
                     logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
-        for c, chunk in enumerate(chunked_files):
+        for c, chunk in enumerate(raw_files.chunked_files):
             job = threading.Thread(target=process_file_list, args=(chunk, initial_data, c, ))
             job.start()
 
@@ -238,24 +238,26 @@ def prepare_chunking(files, chunks, pipeline_config, Pipeline, logger):
         pipeline_config['steps']['output']['append'] = False
         logger.info('Enforcing output mode: "append = false" to enable threading')
 
-    chunked_files = chunk_files(files, chunks)
-    return chunked_files, pipeline_config, initial_data
-
-
-def chunk_files(files, chunks):
-    n = int(np.ceil(len(files) / chunks))
-    return [files[i:i + n] for i in range(0, len(files), n)]
+    return pipeline_config, initial_data
 
 
 class FilesToProcess:
-    def __init__(self, glob_pattern=None):
-        '''
-        Build file list from glob pattern if specified.
-        File list from glob will be sorted.
+    def __init__(self, glob_pattern=None, chunks=1):
+        '''Build file list from glob pattern if specified.
+           Create FilesToProcess.chunked_files is chunks specified
+           File list from glob will be sorted.
+
+        Parameters
+        ----------
+        glob_pattern : str, optional
+            Glob pattern, by default None
+        chunks : int, optional
+            Number of chunks to produce (must be at least 1), by default 1
         '''
         self.files = None
         if glob_pattern is not None:
             self.files = sorted(glob(glob_pattern))
+            self.chunk_files(chunks)
 
     def from_filelist_file(self, path_to_filelist):
         '''
@@ -264,6 +266,28 @@ class FilesToProcess:
         '''
         with open(path_to_filelist, 'r') as fh:
             self.files = list(fh.readlines())
+
+    def to_filelist_file(self, path_to_filelist):
+        '''Write file list to a txt file
+
+        Parameters
+        ----------
+        path_to_filelist : str
+            Path to txt file to write
+        '''
+        with open(path_to_filelist, 'w') as fh:
+            [fh.writelines(L + '\n') for L in self.files]
+
+    def chunk_files(self, chunks):
+        '''Chunk the file list and create FilesToProcess.chunked_files
+
+        Parameters
+        ----------
+        chunks : int
+            number of chunks to produce (must be at least 1)
+        '''
+        n = int(np.ceil(len(self.files) / chunks))
+        self.chunked_files = [self.files[i:i + n] for i in range(0, len(self.files), n)]
 
     def __len__(self):
         return len(self.files)
