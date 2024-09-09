@@ -115,7 +115,6 @@ def process(config_filename: str, chunks=1):
         split the dataset into chucks, and process in parallell, by default 1
 
     '''
-    chunks = int(chunks)
     from pyopia.io import load_toml
     from pyopia.pipeline import Pipeline
 
@@ -128,6 +127,13 @@ def process(config_filename: str, chunks=1):
 
         progress.console.print("[blue]OBTAIN FILE LIST")
         raw_files = FilesToProcess(pipeline_config['general']['raw_files'])
+
+        chunks = int(chunks)
+        assert chunks > 0, 'You must have at least 1 chunk'
+        if chunks > 1:
+            pipeline_config['steps']['output']['append'] = False
+            logger.info('Ensuring output mode "append=False"')
+
         raw_files.chunk_files(chunks)
         if 'correctbackground' in pipeline_config['steps']:
             raw_files.get_fist_background_files(
