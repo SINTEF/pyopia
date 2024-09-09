@@ -125,15 +125,14 @@ def process(config_filename: str, chunks=1):
         setup_logging(pipeline_config)
         logger = logging.getLogger()
 
-        progress.console.print("[blue]OBTAIN FILE LIST")
-        raw_files = FilesToProcess(pipeline_config['general']['raw_files'])
-
         chunks = int(chunks)
         assert chunks > 0, 'You must have at least 1 chunk'
         if chunks > 1:
             pipeline_config['steps']['output']['append'] = False
             logger.info('Ensuring output mode "append=False"')
 
+        progress.console.print("[blue]OBTAIN FILE LIST")
+        raw_files = FilesToProcess(pipeline_config['general']['raw_files'])
         raw_files.chunk_files(chunks)
         if 'correctbackground' in pipeline_config['steps']:
             raw_files.get_fist_background_files(
