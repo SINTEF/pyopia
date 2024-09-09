@@ -119,13 +119,12 @@ def process(config_filename: str, chunks=1):
     from pyopia.io import load_toml
     from pyopia.pipeline import Pipeline
 
-    logger = logging.getLogger()
-
     with Progress(transient=True) as progress:
         progress.console.print("[blue]LOAD CONFIG")
         pipeline_config = load_toml(config_filename)
 
         setup_logging(pipeline_config)
+        logger = logging.getLogger()
 
         progress.console.print("[blue]OBTAIN FILE LIST")
         files = sorted(glob(pipeline_config['general']['raw_files']))
@@ -147,13 +146,14 @@ def process(config_filename: str, chunks=1):
 
         progress.console.print("[blue]INITIALISE PIPELINE")
 
-        chunked_files, pipeline_config, imbg = prepare_chunking(files, chunks, pipeline_config, Pipeline, logger)
+        chunked_files, pipeline_config, initial_data = prepare_chunking(files, chunks, pipeline_config, Pipeline, logger)
 
-        def process_file_list(file_list, imbg, c):
+        def process_file_list(file_list, inital_data, c):
             processing_pipeline = Pipeline(pipeline_config)
-            processing_pipeline.data['imbg'] = imbg
-            for i, filename in enumerate(file_list):
-                logging.info(f'Starting image: {i+1} of {len(file_list)} name: {filename} thread {c}')
+            if inital_data['imbg'] is not None:
+                processing_pipeline.data['imbg'] = inital_data['imbg']
+            for filename in track(file_list, description=f'[blue]Processing progress (thread {c})',
+                                  disable=c != 0):
                 try:
                     processing_pipeline.run(filename)
                 except Exception as e:
@@ -163,7 +163,7 @@ def process(config_filename: str, chunks=1):
                     logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
         for c, chunk in enumerate(chunked_files):
-            job = threading.Thread(target=process_file_list, args=(chunk, imbg, c, ))
+            job = threading.Thread(target=process_file_list, args=(chunk, initial_data, c, ))
             job.start()
 
 
@@ -210,30 +210,33 @@ def setup_logging(pipeline_config):
 def prepare_chunking(files, chunks, pipeline_config, Pipeline, logger):
     assert chunks > 0, 'you must have at least one chunk'
 
+    initial_data = dict()
+    initial_data['imbg'] = None
+    chunk_mode = 'resample'
+
     if chunks > 1:
         pipeline_config['steps']['output']['append'] = False
-        chunk_mode = 'block'
 
         if 'correctbackground' in pipeline_config['steps']:
             background_pipeline = Pipeline(pipeline_config)
-            for file in files[0:pipeline_config['steps']['correctbackground']['average_window']]:
-                background_pipeline.run(file)
-            imbg = background_pipeline.data['imbg']
-            chunk_mode = 'resample'
-            pipeline_config['steps']['correctbackground']['average_window'] = 1
-        else:
-            imbg = None
+            if pipeline_config['steps']['correctbackground']['bgshift_function'] == 'pass':
+                logger.info(f'Pre-calculating background from first {
+                    pipeline_config['steps']['correctbackground']['average_window']} images')
+                for file in files[0:pipeline_config['steps']['correctbackground']['average_window']]:
+                    background_pipeline.run(file)
 
-        if pipeline_config['steps']['correctbackground']['bgshift_function'] == 'pass':
-            pipeline_config['steps']['correctbackground']['average_window'] = 0
-            chunk_mode = 'block'
+                pipeline_config['steps']['correctbackground']['average_window'] = 0
+                logger.debug('average_window set to 0 to disable future background creation')
+
+                initial_data['imbg'] = background_pipeline.data['imbg']
+                chunk_mode = 'block'
 
     logger.info(f'Chunk mode: {chunk_mode}')
     chunked_files = chunk_files(files, chunks, mode=chunk_mode)
-    return chunked_files, pipeline_config, imbg
+    return chunked_files, pipeline_config, initial_data
 
 
-def chunk_files(files, chunks, mode='block'):
+def chunk_files(files, chunks, mode='resample'):
     match mode:
         case 'block':
             n = int(np.ceil(len(files) / chunks))
