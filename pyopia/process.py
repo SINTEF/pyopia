@@ -342,7 +342,7 @@ def measure_particles(imbw, max_particles=5000):
         raise RuntimeError('Too many particles. Refer to documentation on max_particles parameter in measure_particles()')
         # @todo handle situation when too many particles are found
 
-    region_properties = measure.regionprops(iml, cache=False)
+    region_properties = measure.regionprops(iml, cache=True)
 
     return region_properties
 
