@@ -128,9 +128,11 @@ def process(config_filename: str, chunks=1):
 
         progress.console.print("[blue]OBTAIN FILE LIST")
         raw_files = FilesToProcess(pipeline_config['general']['raw_files'])
-        if 'correctbackground' in pipeline_config['steps']:
-            raw_files.get_static_background_files(average_window=pipeline_config['steps']['correctbackground']['average_window'])
         raw_files.chunk_files(chunks)
+        if 'correctbackground' in pipeline_config['steps']:
+            raw_files.get_background_files(pipeline_config['steps']['correctbackground']['bgshift_function'],
+                                           average_window=pipeline_config['steps']['correctbackground']['average_window'])
+            raw_files.insert_bg_files_into_chunks()
 
         progress.console.print('[blue]PREPARE FOLDERS')
         if 'output' not in pipeline_config['steps']:
@@ -260,6 +262,18 @@ class FilesToProcess:
                 c = [c.insert(0, bg_file) for bg_file in reversed(self.background_files)]
         else:
             raise Exception('not implemented')
+
+    def get_background_files(self, bgshift_function, average_window=0):
+        match bgshift_function:
+            case 'pass':
+                self.get_static_background_files(average_window=average_window)
+            case 'fast':
+                self.get_moving_background_files()
+            case 'accurate':
+                self.get_moving_background_files()
+
+    def get_moving_background_files(self, average_window=0):
+        raise Exception('not implemented')
 
     def get_static_background_files(self, average_window=0):
         self.background_files = []
