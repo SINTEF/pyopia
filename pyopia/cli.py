@@ -256,26 +256,14 @@ class FilesToProcess:
         self.chunked_files = [self.files[i:i + n] for i in range(0, len(self.files), n)]
 
     def insert_bg_files_into_chunks(self, bgshift_function='pass'):
-        if bgshift_function == 'pass':
-            for c in self.chunked_files:
-                # we have to loop backwards over bg_files because we are inserting into the top of the chunk
-                c = [c.insert(0, bg_file) for bg_file in reversed(self.background_files)]
-        else:
-            raise Exception('not implemented')
+        average_window = len(self.background_files)
+        for i, c in enumerate(self.chunked_files):
+            if i > 0 and bgshift_function != 'pass':
+                self.background_files.extend(self.chunked_files[i-1][-average_window:])
+            # we have to loop backwards over bg_files because we are inserting into the top of the chunk
+            c = [c.insert(0, bg_file) for bg_file in reversed(self.background_files[-average_window:])]
 
-    def get_background_files(self, bgshift_function, average_window=0):
-        match bgshift_function:
-            case 'pass':
-                self.get_static_background_files(average_window=average_window)
-            case 'fast':
-                self.get_moving_background_files()
-            case 'accurate':
-                self.get_moving_background_files()
-
-    def get_moving_background_files(self, average_window=0):
-        raise Exception('not implemented')
-
-    def get_static_background_files(self, average_window=0):
+    def get_fist_background_files(self, average_window=0):
         self.background_files = []
         for f in self.files[0:average_window]:
             self.background_files.append(f)
