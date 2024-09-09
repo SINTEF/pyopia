@@ -10,6 +10,7 @@ import datetime
 import traceback
 import logging
 from rich.progress import track, Progress
+from rich.logging import RichHandler
 import pandas as pd
 import numpy as np
 import threading
@@ -151,8 +152,7 @@ def process(config_filename: str, chunks=1):
         if os.path.isfile(output_datafile + '-STATS.nc'):
             dt_now = datetime.datetime.now().strftime('D%Y%m%dT%H%M%S')
             newname = output_datafile + '-conflict-' + str(dt_now) + '-STATS.nc'
-            progress.console.print('[red]Renaming conflicting file to: ' +
-                                   newname)
+            logger.warning(f'Renaming conflicting file to: {newname}')
             os.rename(output_datafile + '-STATS.nc', newname)
 
         progress.console.print("[blue]INITIALISE PIPELINE")
@@ -203,14 +203,21 @@ def setup_logging(pipeline_config):
     log_file = pipeline_config['general'].get('log_file', None)
     log_level_name = pipeline_config['general'].get('log_level', 'INFO')
     log_level = getattr(logging, log_level_name)
-    print(log_level_name, log_level, log_file)
 
     # Configure logger
     log_format = '%(asctime)s %(levelname)s [%(module)s.%(funcName)s] %(message)s'
-    logging.basicConfig(level=log_level, format=log_format, filename=log_file,
-                        datefmt='%Y-%m-%d %H:%M:%S')
 
-    logger = logging.getLogger()
+    if log_file is None:
+        logging.basicConfig(level=log_level,
+                            datefmt='%Y-%m-%d %H:%M:%S',
+                            handlers=[RichHandler(show_time=True, show_level=False)])
+    else:
+        logging.basicConfig(level=log_level, format=log_format,
+                            datefmt='%Y-%m-%d %H:%M:%S', handlers=[
+                                logging.FileHandler(log_file, mode='a'),
+                                RichHandler(show_time=False, show_level=False)])
+
+    logger = logging.getLogger('rich')
     logger.info(f'PyOPIA process started {pd.Timestamp.now()}')
 
 
