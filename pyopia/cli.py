@@ -247,5 +247,29 @@ def chunk_files(files, chunks):
     return [files[i:i + n] for i in range(0, len(files), n)]
 
 
+class FilesToProcess:
+    def __init__(self, glob_pattern=None):
+        '''
+        Build file list from glob pattern if specified.
+        File list from glob will be sorted.
+        '''
+        self.files = None
+        if glob_pattern is not None:
+            self.files = sorted(glob(glob_pattern))
+ 
+    def from_filelist_file(self, path_to_filelist):
+        '''
+        Initialize explicit list of files to process from a text file.
+        The text file should contain one path to an image per line, which should be processed in order.
+        '''
+        with open(path_to_filelist, 'r') as fh:
+            self.files = list(fh.readlines())
+    def __len__(self):
+        return len(self.files)
+ 
+    def __iter__(self):
+        for filename in self.files:
+            yield filename
+
 if __name__ == "__main__":
     app()
