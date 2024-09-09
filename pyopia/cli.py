@@ -130,9 +130,10 @@ def process(config_filename: str, chunks=1):
         raw_files = FilesToProcess(pipeline_config['general']['raw_files'])
         raw_files.chunk_files(chunks)
         if 'correctbackground' in pipeline_config['steps']:
-            raw_files.get_background_files(pipeline_config['steps']['correctbackground']['bgshift_function'],
-                                           average_window=pipeline_config['steps']['correctbackground']['average_window'])
-            raw_files.insert_bg_files_into_chunks()
+            raw_files.get_fist_background_files(
+                average_window=pipeline_config['steps']['correctbackground']['average_window'])
+            raw_files.insert_bg_files_into_chunks(
+                bgshift_function=pipeline_config['steps']['correctbackground']['bgshift_function'])
 
         progress.console.print('[blue]PREPARE FOLDERS')
         if 'output' not in pipeline_config['steps']:
