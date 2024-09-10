@@ -4,7 +4,6 @@ PyOPIA top-level code primarily for managing cmd line entry points
 
 import typer
 import toml
-from glob import glob
 import os
 import datetime
 import traceback
@@ -12,7 +11,6 @@ import logging
 from rich.progress import track, Progress
 from rich.logging import RichHandler
 import pandas as pd
-import numpy as np
 import threading
 
 import pyopia.background
