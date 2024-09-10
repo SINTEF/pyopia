@@ -379,8 +379,8 @@ class FilesToProcess:
         '''
         if num_chunks < 1:
             raise RuntimeError('You must have at least one chunk')
-        n = int(np.ceil(len(self.files) / num_chunks))
-        self.chunked_files = [self.files[i:i + n] for i in range(0, len(self.files), n)]
+        chunk_length = int(np.ceil(len(self.files) / num_chunks))
+        self.chunked_files = [self.files[i:i + chunk_length] for i in range(0, len(self.files), chunk_length)]
 
     def insert_bg_files_into_chunks(self, bgshift_function='pass'):
         average_window = len(self.background_files)
