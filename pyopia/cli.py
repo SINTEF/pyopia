@@ -4,13 +4,14 @@ PyOPIA top-level code primarily for managing cmd line entry points
 
 import typer
 import toml
-from glob import glob
 import os
 import datetime
 import traceback
 import logging
 from rich.progress import track, Progress
+from rich.logging import RichHandler
 import pandas as pd
+import threading
 
 import pyopia.background
 import pyopia.instrument.silcam
@@ -105,23 +106,35 @@ def generate_config(instrument: str, raw_files: str, model_path: str, outfolder:
 
 
 @app.command()
-def process(config_filename: str):
+def process(config_filename: str, num_chunks: int = 1):
     '''Run a PyOPIA processing pipeline based on given a config.toml
+
+    Parameters
+    ----------
+    config_filename : str
+        config filename
+    numchunks : int, optional
+        split the dataset into chucks, and process in parallell, by default 1
+
     '''
     from pyopia.io import load_toml
     from pyopia.pipeline import Pipeline
-
-    logger = logging.getLogger()
 
     with Progress(transient=True) as progress:
         progress.console.print("[blue]LOAD CONFIG")
         pipeline_config = load_toml(config_filename)
 
         setup_logging(pipeline_config)
+        logger = logging.getLogger('rich')
+        logger.info(f'PyOPIA process started {pd.Timestamp.now()}')
+
+        check_chunks(num_chunks, pipeline_config)
 
         progress.console.print("[blue]OBTAIN FILE LIST")
-        files = sorted(glob(pipeline_config['general']['raw_files']))
-        nfiles = len(files)
+        raw_files = pyopia.pipeline.FilesToProcess(pipeline_config['general']['raw_files'])
+        average_window = pipeline_config['steps']['correctbackground'].get('average_window', 0)
+        bgshift_function = pipeline_config['steps']['correctbackground'].get('bgshift_function', 'pass')
+        raw_files.prepare_chunking(num_chunks, average_window, bgshift_function)
 
         progress.console.print('[blue]PREPARE FOLDERS')
         if 'output' not in pipeline_config['steps']:
@@ -134,20 +147,32 @@ def process(config_filename: str):
         if os.path.isfile(output_datafile + '-STATS.nc'):
             dt_now = datetime.datetime.now().strftime('D%Y%m%dT%H%M%S')
             newname = output_datafile + '-conflict-' + str(dt_now) + '-STATS.nc'
-            progress.console.print('[red]Renaming conflicting file to: ' +
-                                   newname)
+            logger.warning(f'Renaming conflicting file to: {newname}')
             os.rename(output_datafile + '-STATS.nc', newname)
 
         progress.console.print("[blue]INITIALISE PIPELINE")
-        processing_pipeline = Pipeline(pipeline_config)
 
-    for filename in track(files, description=f'[blue]Processing progress through {nfiles} files:'):
-        try:
-            processing_pipeline.run(filename)
-        except Exception as e:
-            progress.console.print("[red]An error occured in processing, skipping rest of pipeline and moving to next image.")
-            logger.error(e)
-            logger.debug(''.join(traceback.format_tb(e.__traceback__)))
+    def process_file_list(file_list, c):
+        processing_pipeline = Pipeline(pipeline_config)
+        for filename in track(file_list, description=f'[blue]Processing progress (chunk {c})',
+                              disable=c != 0):
+            try:
+                logger.debug(f'Chunk {c} starting to process {filename}')
+                processing_pipeline.run(filename)
+            except Exception as e:
+                logger.warning('[red]An error occured in processing, ' +
+                               'skipping rest of pipeline and moving to next image.' +
+                               f'(chunk {c})')
+                logger.error(e)
+                logger.debug(''.join(traceback.format_tb(e.__traceback__)))
+
+    # With one chunk we keep the non-threaded functionality to ensure backwards compatibility
+    if num_chunks == 1:
+        process_file_list(raw_files, 0)
+    else:
+        for c, chunk in enumerate(raw_files.chunked_files):
+            job = threading.Thread(target=process_file_list, args=(chunk, c, ))
+            job.start()
 
 
 @app.command()
@@ -179,15 +204,25 @@ def setup_logging(pipeline_config):
     log_file = pipeline_config['general'].get('log_file', None)
     log_level_name = pipeline_config['general'].get('log_level', 'INFO')
     log_level = getattr(logging, log_level_name)
-    print(log_level_name, log_level, log_file)
+
+    # Either log to file (silent console) or to console with Rich
+    if log_file is None:
+        handlers = [RichHandler(show_time=True, show_level=False)]
+    else:
+        handlers = [logging.FileHandler(log_file, mode='a')]
 
     # Configure logger
-    log_format = '%(asctime)s %(levelname)s [%(module)s.%(funcName)s] %(message)s'
-    logging.basicConfig(level=log_level, format=log_format, filename=log_file,
-                        datefmt='%Y-%m-%d %H:%M:%S')
+    log_format = '%(asctime)s %(levelname)s %(threadName)s [%(module)s.%(funcName)s] %(message)s'
+    logging.basicConfig(level=log_level, datefmt='%Y-%m-%d %H:%M:%S', format=log_format, handlers=handlers)
 
-    logger = logging.getLogger()
-    logger.info(f'PyOPIA process started {pd.Timestamp.now()}')
+
+def check_chunks(chunks, pipeline_config):
+    if chunks < 1:
+        raise RuntimeError('You must have at least 1 chunk')
+
+    append_enabled = pipeline_config['steps']['output'].get('append', True)
+    if chunks > 1 and append_enabled:
+        raise RuntimeError('Output mode must be set to "append = false" in "output" step when using more than one chunk')
 
 
 if __name__ == "__main__":
