@@ -37,8 +37,9 @@ def load_image(filename):
     array
         raw image float between 0-1, inverted so that particles are dark on a light background
     '''
-    img = (255 - skimage.io.imread(filename).astype(np.float64)) / 255
-    return img
+    img_darkfield = skimage.io.imread(filename).astype(np.float64)
+    img_inverted = (255 - img_darkfield) / 255
+    return img_inverted
 
 
 class UVPLoad():
