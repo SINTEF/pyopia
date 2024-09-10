@@ -127,13 +127,7 @@ def process(config_filename: str, chunks: int = 1):
         setup_logging(pipeline_config)
         logger = logging.getLogger()
 
-        chunks = int(chunks)
-        if chunks < 1:
-            raise RuntimeError('You must have at least 1 chunk')
-
-        append_enabled = pipeline_config['steps']['output'].get('append', True)
-        if chunks > 1 and append_enabled:
-            raise RuntimeError('Output mode must be set to "append = false" in "output" step when using more than one chunk')
+        check_chunks(chunks, pipeline_config)
 
         progress.console.print("[blue]OBTAIN FILE LIST")
         raw_files = pyopia.pipeline.FilesToProcess(pipeline_config['general']['raw_files'])
@@ -162,7 +156,7 @@ def process(config_filename: str, chunks: int = 1):
             for filename in track(file_list, description=f'[blue]Processing progress (chunk {c})',
                                   disable=c != 0):
                 try:
-                    logger.debug(f'Thread {c} starting to process {filename}')
+                    logger.debug(f'Chunk {c} starting to process {filename}')
                     processing_pipeline.run(filename)
                 except Exception as e:
                     progress.console.print('[red]An error occured in processing, ' +
@@ -171,9 +165,13 @@ def process(config_filename: str, chunks: int = 1):
                     logger.error(e)
                     logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
-        for c, chunk in enumerate(raw_files.chunked_files):
-            job = threading.Thread(target=process_file_list, args=(chunk, c, ))
-            job.start()
+        # with one chunk we keep the non-threaded functionality to ensure backwards compatibility
+        if chunks == 1:
+            process_file_list(raw_files.files, 0)
+        else:
+            for c, chunk in enumerate(raw_files.chunked_files):
+                job = threading.Thread(target=process_file_list, args=(chunk, c, ))
+                job.start()
 
 
 @app.command()
@@ -222,6 +220,15 @@ def setup_logging(pipeline_config):
 
     logger = logging.getLogger('rich')
     logger.info(f'PyOPIA process started {pd.Timestamp.now()}')
+
+
+def check_chunks(chunks, pipeline_config):
+    if chunks < 1:
+        raise RuntimeError('You must have at least 1 chunk')
+
+    append_enabled = pipeline_config['steps']['output'].get('append', True)
+    if chunks > 1 and append_enabled:
+        raise RuntimeError('Output mode must be set to "append = false" in "output" step when using more than one chunk')
 
 
 if __name__ == "__main__":
