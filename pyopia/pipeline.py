@@ -385,6 +385,11 @@ class FilesToProcess:
         average_window = len(self.background_files)
         for i, c in enumerate(self.chunked_files):
             if i > 0 and bgshift_function != 'pass':
+                # If the bgshift_function is not pass then we need to find a new set of
+                # background images for the start of next chunk. These will be the last
+                # average_window number of files from the previous chunk.
+                # If bgshift_function is 'pass', then we should use the same background files for all chunks
+                # so there is no need to extend the list of background files here
                 self.background_files.extend(self.chunked_files[i-1][-average_window:])
             # we have to loop backwards over bg_files because we are inserting into the top of the chunk
             c = [c.insert(0, bg_file) for bg_file in reversed(self.background_files[-average_window:])]
