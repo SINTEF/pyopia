@@ -277,16 +277,22 @@ def nd_from_stats(stats, pix_size):
 
 
 def vd_from_stats(stats, pix_size):
-    ''' calculate volume distribution from stats
+    '''Calculate volume distribution from stats
     units of miro-litres per sample volume
 
-    Args:
-        stats (DataFrame)           : particle statistics from silcam process
-        pix_size (float)            : pixel size in microns
+    Parameters
+    ----------
+    stats : DataFrame
+        particle statistics from silcam process
+    pix_size : float
+        pixel size in microns
 
-    Returns:
-        dias                        : mid-points of size bins
-        vd                          : volume distribution in micro-litres/sample-volume
+    Returns
+    -------
+    dias : array
+        mid-points of size bins
+    vd : array
+        volume distribution in micro-litres/sample-volume
     '''
 
     # obtain the number distribution
