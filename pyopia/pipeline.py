@@ -362,10 +362,10 @@ class FilesToProcess:
         with open(path_to_filelist, 'w') as fh:
             [fh.writelines(L + '\n') for L in self.files]
 
-    def prepare_chunking(self, chunks, average_window, bgshift_function):
-        if chunks > len(self.files) // 2:
+    def prepare_chunking(self, num_chunks, average_window, bgshift_function):
+        if num_chunks > len(self.files) // 2:
             raise RuntimeError('Number of chunks exceeds more than half the number of files to process. Use less chunks.')
-        self.chunk_files(chunks)
+        self.chunk_files(num_chunks)
         self.build_initial_background_files(average_window=average_window)
         self.insert_bg_files_into_chunks(bgshift_function=bgshift_function)
 
@@ -384,7 +384,7 @@ class FilesToProcess:
 
     def insert_bg_files_into_chunks(self, bgshift_function='pass'):
         average_window = len(self.background_files)
-        for i, c in enumerate(self.chunked_files):
+        for i, chunk in enumerate(self.chunked_files):
             if i > 0 and bgshift_function != 'pass':
                 # If the bgshift_function is not pass then we need to find a new set of
                 # background images for the start of next chunk. These will be the last
@@ -393,7 +393,7 @@ class FilesToProcess:
                 # so there is no need to extend the list of background files here
                 self.background_files.extend(self.chunked_files[i-1][-average_window:])
             # we have to loop backwards over bg_files because we are inserting into the top of the chunk
-            c = [c.insert(0, bg_file) for bg_file in reversed(self.background_files[-average_window:])]
+            chunk = [chunk.insert(0, bg_file) for bg_file in reversed(self.background_files[-average_window:])]
 
     def build_initial_background_files(self, average_window=0):
         '''
