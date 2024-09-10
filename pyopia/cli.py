@@ -151,27 +151,27 @@ def process(config_filename: str, numchunks: int = 1):
 
         progress.console.print("[blue]INITIALISE PIPELINE")
 
-        def process_file_list(file_list, c):
-            processing_pipeline = Pipeline(pipeline_config)
-            for filename in track(file_list, description=f'[blue]Processing progress (chunk {c})',
-                                  disable=c != 0):
-                try:
-                    logger.debug(f'Chunk {c} starting to process {filename}')
-                    processing_pipeline.run(filename)
-                except Exception as e:
-                    progress.console.print('[red]An error occured in processing, ' +
-                                           'skipping rest of pipeline and moving to next image.' +
-                                           f'(chunk {c})')
-                    logger.error(e)
-                    logger.debug(''.join(traceback.format_tb(e.__traceback__)))
+    def process_file_list(file_list, c):
+        processing_pipeline = Pipeline(pipeline_config)
+        for filename in track(file_list, description=f'[blue]Processing progress (chunk {c})',
+                                disable=c != 0):
+            try:
+                logger.debug(f'Chunk {c} starting to process {filename}')
+                processing_pipeline.run(filename)
+            except Exception as e:
+                progress.console.print('[red]An error occured in processing, ' +
+                                        'skipping rest of pipeline and moving to next image.' +
+                                        f'(chunk {c})')
+                logger.error(e)
+                logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
-        # with one chunk we keep the non-threaded functionality to ensure backwards compatibility
-        if numchunks == 1:
-            process_file_list(raw_files.files, 0)
-        else:
-            for c, chunk in enumerate(raw_files.chunked_files):
-                job = threading.Thread(target=process_file_list, args=(chunk, c, ))
-                job.start()
+    # with one chunk we keep the non-threaded functionality to ensure backwards compatibility
+    if numchunks == 1:
+        process_file_list(raw_files.files, 0)
+    else:
+        for c, chunk in enumerate(raw_files.chunked_files):
+            job = threading.Thread(target=process_file_list, args=(chunk, c, ))
+            job.start()
 
 
 @app.command()
