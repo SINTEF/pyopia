@@ -125,7 +125,8 @@ def process(config_filename: str, chunks: int = 1):
         pipeline_config = load_toml(config_filename)
 
         setup_logging(pipeline_config)
-        logger = logging.getLogger()
+        logger = logging.getLogger('rich')
+        logger.info(f'PyOPIA process started {pd.Timestamp.now()}')
 
         check_chunks(chunks, pipeline_config)
 
@@ -151,27 +152,27 @@ def process(config_filename: str, chunks: int = 1):
 
         progress.console.print("[blue]INITIALISE PIPELINE")
 
-        def process_file_list(file_list, c):
-            processing_pipeline = Pipeline(pipeline_config)
-            for filename in track(file_list, description=f'[blue]Processing progress (chunk {c})',
-                                  disable=c != 0):
-                try:
-                    logger.debug(f'Chunk {c} starting to process {filename}')
-                    processing_pipeline.run(filename)
-                except Exception as e:
-                    progress.console.print('[red]An error occured in processing, ' +
-                                           'skipping rest of pipeline and moving to next image.' +
-                                           f'(chunk {c})')
-                    logger.error(e)
-                    logger.debug(''.join(traceback.format_tb(e.__traceback__)))
+    def process_file_list(file_list, c):
+        processing_pipeline = Pipeline(pipeline_config)
+        for filename in track(file_list, description=f'[blue]Processing progress (chunk {c})',
+                                disable=c != 0):
+            try:
+                logger.debug(f'Chunk {c} starting to process {filename}')
+                processing_pipeline.run(filename)
+            except Exception as e:
+                logger.warning('[red]An error occured in processing, ' +
+                               'skipping rest of pipeline and moving to next image.' +
+                               f'(chunk {c})')
+                logger.error(e)
+                logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
-        # with one chunk we keep the non-threaded functionality to ensure backwards compatibility
-        if chunks == 1:
-            process_file_list(raw_files.files, 0)
-        else:
-            for c, chunk in enumerate(raw_files.chunked_files):
-                job = threading.Thread(target=process_file_list, args=(chunk, c, ))
-                job.start()
+    # with one chunk we keep the non-threaded functionality to ensure backwards compatibility
+    if chunks == 1:
+        process_file_list(raw_files.files, 0)
+    else:
+        for c, chunk in enumerate(raw_files.chunked_files):
+            job = threading.Thread(target=process_file_list, args=(chunk, c, ))
+            job.start()
 
 
 @app.command()
@@ -204,22 +205,15 @@ def setup_logging(pipeline_config):
     log_level_name = pipeline_config['general'].get('log_level', 'INFO')
     log_level = getattr(logging, log_level_name)
 
+    # Either log to file (silent console) or to console with Rich
+    if log_file is None:
+        handlers = [RichHandler(show_time=True, show_level=False)]
+    else:
+        handlers = [logging.FileHandler(log_file, mode='a')]
+
     # Configure logger
     log_format = '%(asctime)s %(levelname)s %(threadName)s [%(module)s.%(funcName)s] %(message)s'
-
-    if log_file is None:
-        logging.basicConfig(level=log_level,
-                            datefmt='%Y-%m-%d %H:%M:%S',
-                            format=log_format,
-                            handlers=[RichHandler(show_time=True, show_level=False)])
-    else:
-        logging.basicConfig(level=log_level, format=log_format,
-                            datefmt='%Y-%m-%d %H:%M:%S', handlers=[
-                                logging.FileHandler(log_file, mode='a'),
-                                RichHandler(show_time=False, show_level=False)])
-
-    logger = logging.getLogger('rich')
-    logger.info(f'PyOPIA process started {pd.Timestamp.now()}')
+    logging.basicConfig(level=log_level, datefmt='%Y-%m-%d %H:%M:%S', format=log_format, handlers=handlers)
 
 
 def check_chunks(chunks, pipeline_config):
