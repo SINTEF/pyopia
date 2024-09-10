@@ -1,30 +1,31 @@
 '''
-Module containing SilCam specific tools to enable compatability with the :mod:`pyopia.pipeline`
+Module containing UVP specific tools to enable compatability with the :mod:`pyopia.pipeline`
 '''
 
 import os
 import numpy as np
 import pandas as pd
-from skimage.exposure import rescale_intensity
+import skimage.io
 
 
 def timestamp_from_filename(filename):
-    '''get a pandas timestamp from a silcam filename
+    '''get a pandas timestamp from a UVP vignette image filename
 
     Args:
-        filename (string): silcam filename (.silc)
+        filename (string): UVP filename (.png)
 
     Returns:
         timestamp: timestamp from pandas.to_datetime()
     '''
 
     # get the timestamp of the image (in this case from the filename)
-    timestamp = pd.to_datetime(os.path.splitext(os.path.basename(filename))[0][1:])
+    timestr = os.path.split(filename)[-1].strip('.png')
+    timestamp = pd.to_datetime(timestr)
     return timestamp
 
 
 def load_image(filename):
-    '''load a .silc file from disc
+    '''load a UVP .png file from disc
 
     Parameters
     ----------
@@ -34,17 +35,18 @@ def load_image(filename):
     Returns
     -------
     array
-        raw image float between 0-1
+        raw image float between 0-1, inverted so that particles are dark on a light background
     '''
-    img = np.load(filename, allow_pickle=False).astype(np.float64) / 255
-    return img
+    img_darkfield = skimage.io.imread(filename).astype(np.float64)
+    img_inverted = (255 - img_darkfield) / 255
+    return img_inverted
 
 
-class SilCamLoad():
-    '''PyOpia pipline-compatible class for loading a single silcam image
-    using :func:`pyopia.instrument.silcam.load_image`
+class UVPLoad():
+    '''PyOpia pipline-compatible class for loading a single UVP image
+    using :func:`pyopia.instrument.uvp.load_image`
     and extracting the timestamp using
-    :func:`pyopia.instrument.silcam.timestamp_from_filename`
+    :func:`pyopia.instrument.uvp.timestamp_from_filename`
 
     Pipeline input data:
     ---------
@@ -74,40 +76,8 @@ class SilCamLoad():
         return data
 
 
-class ImagePrep():
-    '''PyOpia pipline-compatible class for preparing silcam images for further analysis
-
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
-        containing the following keys:
-
-        :attr:`pyopia.pipeline.Data.img`
-
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
-        containing the following new keys:
-
-        :attr:`pyopia.pipeline.Data.im_minimum`
-    '''
-    def __init__(self, image_level='im_corrected'):
-        self.image_level = image_level
-        pass
-
-    def __call__(self, data):
-        image = data[self.image_level]
-
-        # simplify processing by squeezing the image dimensions into a 2D array
-        # min is used for squeezing to represent the highest attenuation of all wavelengths
-        data['im_minimum'] = np.min(image, axis=2)
-
-        data['imref'] = rescale_intensity(image, out_range=(0, 1))
-        return data
-
-
 def generate_config(raw_files: str, model_path: str, outfolder: str, output_prefix: str):
-    '''Generate example silcam config.toml as a dict
+    '''Generate example uvp config.toml as a dict
 
     Parameters
     ----------
@@ -129,7 +99,7 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
     pipeline_config = {
         'general': {
             'raw_files': raw_files,
-            'pixel_size': 28  # pixel size in um
+            'pixel_size': 80  # pixel size in um
         },
         'steps': {
             'classifier': {
@@ -137,20 +107,16 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
                 'model_path': model_path
             },
             'load': {
-                'pipeline_class': 'pyopia.instrument.silcam.SilCamLoad'
-            },
-            'imageprep': {
-                'pipeline_class': 'pyopia.instrument.silcam.ImagePrep',
-                'image_level': 'imraw'
+                'pipeline_class': 'pyopia.instrument.uvp.UVPLoad'
             },
             'segmentation': {
                 'pipeline_class': 'pyopia.process.Segment',
-                'threshold': 0.85,
-                'segment_source': 'im_minimum'
+                'threshold': 0.95,
+                'segment_source': 'imraw'
             },
             'statextract': {
                 'pipeline_class': 'pyopia.process.CalculateStats',
-                'roi_source': 'imref'
+                'roi_source': 'imraw'
             },
             'output': {
                 'pipeline_class': 'pyopia.io.StatsH5',
