@@ -105,7 +105,7 @@ def generate_config(instrument: str, raw_files: str, model_path: str, outfolder:
 
 
 @app.command()
-def process(config_filename: str, chunks=1):
+def process(config_filename: str, chunks: int=1):
     '''Run a PyOPIA processing pipeline based on given a config.toml
 
     Parameters
@@ -127,7 +127,8 @@ def process(config_filename: str, chunks=1):
         logger = logging.getLogger()
 
         chunks = int(chunks)
-        assert chunks > 0, 'You must have at least 1 chunk'
+        if chunks < 1:
+            raise RuntimeError('You must have at least 1 chunk')
         if chunks > 1:
             pipeline_config['steps']['output']['append'] = False
             logger.info('Ensuring output mode "append=False"')
