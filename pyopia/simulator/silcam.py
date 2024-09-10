@@ -98,10 +98,12 @@ class SilcamSimulator():
             self.total_volume_concentration  # scale the distribution according to concentration
 
         DropletVolume = ((4 / 3) * np.pi * ((self.dias * 1e-6) / 2) ** 3)  # the volume of each droplet in m3
-        self.data['number_distribution'] = self.data['volume_distribution_input'] / (DropletVolume * 1e9)  # the number distribution in each bin
+        # the number distribution in each bin
+        self.data['number_distribution'] = self.data['volume_distribution_input'] / (DropletVolume * 1e9)
         self.data['number_distribution'][self.dias < self.MinD] = 0  # remove small particles for speed purposes
 
-        self.data['number_distribution'] = self.data['number_distribution'] * self.sample_volume  # scale the number distribution by the sample volume so resulting units are #/L/bin
+        # scale the number distribution by the sample volume so resulting units are #/L/bin
+        self.data['number_distribution'] = self.data['number_distribution'] * self.sample_volume
         nc = int(sum(self.data['number_distribution']))  # calculate the total number concentration. must be integer number
 
         # convert the number distribution to volume distribution in uL/L/bin
@@ -120,7 +122,10 @@ class SilcamSimulator():
 
         for i in range(self.nims):
             # randomly select a droplet radius from the input distribution
-            rad = np.random.choice(self.dias / 2, size=nc, p=self.data['number_distribution'] / sum(self.data['number_distribution'])) / self.PIX_SIZE  # radius is in pixels
+            # radius is in pixels
+            rad = np.random.choice(self.dias / 2,
+                                   size=nc,
+                                   p=self.data['number_distribution'] / sum(self.data['number_distribution'])) / self.PIX_SIZE
             log_ecd = rad * 2 * self.PIX_SIZE  # log this size as a diameter in um
 
             necd, edges = np.histogram(log_ecd, self.bin_limits)  # count particles into number distribution
@@ -148,7 +153,10 @@ class SilcamSimulator():
         img = np.zeros((self.imx, self.imy, 3), dtype=np.uint8()) + 230  # scale the initial brightness down a bit
         log_ecd = np.zeros(nc)
         # randomly select a droplet radii from the input distribution
-        rad = np.random.choice(self.dias / 2, size=nc, p=self.data['number_distribution'] / sum(self.data['number_distribution'])) / self.PIX_SIZE  # radius is in pixels
+        # radius is in pixels
+        rad = np.random.choice(self.dias / 2,
+                               size=nc,
+                               p=self.data['number_distribution'] / sum(self.data['number_distribution'])) / self.PIX_SIZE
         log_ecd = rad * 2 * self.PIX_SIZE  # log these sizes as a diameter in um
         for rad_ in rad:
             # randomly decide where to put particles within the image
