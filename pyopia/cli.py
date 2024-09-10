@@ -105,7 +105,7 @@ def generate_config(instrument: str, raw_files: str, model_path: str, outfolder:
 
 
 @app.command()
-def process(config_filename: str, chunks: int=1):
+def process(config_filename: str, chunks: int = 1):
     '''Run a PyOPIA processing pipeline based on given a config.toml
 
     Parameters
@@ -129,18 +129,16 @@ def process(config_filename: str, chunks: int=1):
         chunks = int(chunks)
         if chunks < 1:
             raise RuntimeError('You must have at least 1 chunk')
-        if chunks > 1:
-            pipeline_config['steps']['output']['append'] = False
-            logger.info('Ensuring output mode "append=False"')
+
+        append_enabled = pipeline_config['steps']['output'].get('append', True)
+        if chunks > 1 and append_enabled:
+            raise RuntimeError('Output mode must be set to "append = false" in "output" step when using more than one chunk')
 
         progress.console.print("[blue]OBTAIN FILE LIST")
         raw_files = FilesToProcess(pipeline_config['general']['raw_files'])
-        raw_files.chunk_files(chunks)
-        if 'correctbackground' in pipeline_config['steps']:
-            raw_files.get_fist_background_files(
-                average_window=pipeline_config['steps']['correctbackground']['average_window'])
-            raw_files.insert_bg_files_into_chunks(
-                bgshift_function=pipeline_config['steps']['correctbackground']['bgshift_function'])
+        average_window = pipeline_config['steps']['correctbackground'].get('average_window', 0)
+        bgshift_function = pipeline_config['steps']['correctbackground'].get('bgshift_function', 'pass')
+        raw_files.prepare_chunking(chunks, average_window, bgshift_function)
 
         progress.console.print('[blue]PREPARE FOLDERS')
         if 'output' not in pipeline_config['steps']:
@@ -160,13 +158,15 @@ def process(config_filename: str, chunks: int=1):
 
         def process_file_list(file_list, c):
             processing_pipeline = Pipeline(pipeline_config)
-            for filename in track(file_list, description=f'[blue]Processing progress (thread {c})',
+            for filename in track(file_list, description=f'[blue]Processing progress (chunk {c})',
                                   disable=c != 0):
                 try:
+                    logger.debug(f'Thread {c} starting to process {filename}')
                     processing_pipeline.run(filename)
                 except Exception as e:
-                    progress.console.print("[red]An error occured in processing, " +
-                                           "skipping rest of pipeline and moving to next image.")
+                    progress.console.print('[red]An error occured in processing, ' +
+                                           'skipping rest of pipeline and moving to next image.' +
+                                           f'(chunk {c})')
                     logger.error(e)
                     logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
@@ -206,11 +206,12 @@ def setup_logging(pipeline_config):
     log_level = getattr(logging, log_level_name)
 
     # Configure logger
-    log_format = '%(asctime)s %(levelname)s [%(module)s.%(funcName)s] %(message)s'
+    log_format = '%(asctime)s %(levelname)s %(threadName)s [%(module)s.%(funcName)s] %(message)s'
 
     if log_file is None:
         logging.basicConfig(level=log_level,
                             datefmt='%Y-%m-%d %H:%M:%S',
+                            format=log_format,
                             handlers=[RichHandler(show_time=True, show_level=False)])
     else:
         logging.basicConfig(level=log_level, format=log_format,
@@ -235,6 +236,7 @@ class FilesToProcess:
         '''
         self.files = None
         self.background_files = []
+        self.chunked_files = []
         if glob_pattern is not None:
             self.files = sorted(glob(glob_pattern))
 
@@ -257,6 +259,13 @@ class FilesToProcess:
         with open(path_to_filelist, 'w') as fh:
             [fh.writelines(L + '\n') for L in self.files]
 
+    def prepare_chunking(self, chunks, average_window, bgshift_function):
+        if chunks > len(self.files) // 2:
+            raise RuntimeError('Number of chunks exceeds more than half the number of files to process. Use less chunks.')
+        self.chunk_files(chunks)
+        self.build_initial_background_files(average_window=average_window)
+        self.insert_bg_files_into_chunks(bgshift_function=bgshift_function)
+
     def chunk_files(self, chunks):
         '''Chunk the file list and create FilesToProcess.chunked_files
 
@@ -277,7 +286,7 @@ class FilesToProcess:
             # we have to loop backwards over bg_files because we are inserting into the top of the chunk
             c = [c.insert(0, bg_file) for bg_file in reversed(self.background_files[-average_window:])]
 
-    def get_fist_background_files(self, average_window=0):
+    def build_initial_background_files(self, average_window=0):
         self.background_files = []
         for f in self.files[0:average_window]:
             self.background_files.append(f)
