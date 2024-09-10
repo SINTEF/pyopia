@@ -106,14 +106,14 @@ def generate_config(instrument: str, raw_files: str, model_path: str, outfolder:
 
 
 @app.command()
-def process(config_filename: str, chunks: int = 1):
+def process(config_filename: str, num_chunks: int = 1):
     '''Run a PyOPIA processing pipeline based on given a config.toml
 
     Parameters
     ----------
     config_filename : str
         config filename
-    chunks : int, optional
+    numchunks : int, optional
         split the dataset into chucks, and process in parallell, by default 1
 
     '''
@@ -128,13 +128,13 @@ def process(config_filename: str, chunks: int = 1):
         logger = logging.getLogger('rich')
         logger.info(f'PyOPIA process started {pd.Timestamp.now()}')
 
-        check_chunks(chunks, pipeline_config)
+        check_chunks(num_chunks, pipeline_config)
 
         progress.console.print("[blue]OBTAIN FILE LIST")
         raw_files = pyopia.pipeline.FilesToProcess(pipeline_config['general']['raw_files'])
         average_window = pipeline_config['steps']['correctbackground'].get('average_window', 0)
         bgshift_function = pipeline_config['steps']['correctbackground'].get('bgshift_function', 'pass')
-        raw_files.prepare_chunking(chunks, average_window, bgshift_function)
+        raw_files.prepare_chunking(num_chunks, average_window, bgshift_function)
 
         progress.console.print('[blue]PREPARE FOLDERS')
         if 'output' not in pipeline_config['steps']:
@@ -155,7 +155,7 @@ def process(config_filename: str, chunks: int = 1):
     def process_file_list(file_list, c):
         processing_pipeline = Pipeline(pipeline_config)
         for filename in track(file_list, description=f'[blue]Processing progress (chunk {c})',
-                                disable=c != 0):
+                              disable=c != 0):
             try:
                 logger.debug(f'Chunk {c} starting to process {filename}')
                 processing_pipeline.run(filename)
@@ -166,8 +166,8 @@ def process(config_filename: str, chunks: int = 1):
                 logger.error(e)
                 logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
-    # with one chunk we keep the non-threaded functionality to ensure backwards compatibility
-    if chunks == 1:
+    # With one chunk we keep the non-threaded functionality to ensure backwards compatibility
+    if num_chunks == 1:
         process_file_list(raw_files.files, 0)
     else:
         for c, chunk in enumerate(raw_files.chunked_files):
