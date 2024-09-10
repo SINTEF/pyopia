@@ -5,9 +5,13 @@ import numpy as np
 from skimage.draw import disk
 import matplotlib.pyplot as plt
 import skimage.util
+import pandas as pd
 
 import pyopia.statistics
 import pyopia.plotting
+import pyopia.process
+import pyopia.instrument.silcam
+from pyopia.pipeline import Pipeline
 
 
 class SilcamSimulator():
@@ -46,10 +50,11 @@ class SilcamSimulator():
         ```python
         from pyopia.simulator.silcam import SilcamSimulator
 
-        Sim = SilcamSimulator()
-        Sim.check_convergence()
-        Sim.synthesize()
-        Sim.plot()
+        sim = SilcamSimulator()
+        sim.check_convergence()
+        sim.synthesize()
+        sim.process_synthetic_image()
+        sim.plot()
         ```
 
         '''
@@ -175,21 +180,53 @@ class SilcamSimulator():
         img = np.uint8(img)  # convert to uint8
         self.data['synthetic_image_data'] = dict()
         self.data['synthetic_image_data']['image'] = img
-        self.data['synthetic_image_data']['volume_distribution'] = log_vd
+        self.data['synthetic_image_data']['input_volume_distribution'] = log_vd
+
+    def process_synthetic_image(self):
+        pipeline_config = {
+            'general': {
+                'raw_files': '',
+                'pixel_size': 28  # pixel size in um
+            },
+            'steps': {
+                'imageprep': {
+                    'pipeline_class': 'pyopia.instrument.silcam.ImagePrep',
+                    'image_level': 'im_synthetic'
+                },
+                'segmentation': {
+                    'pipeline_class': 'pyopia.process.Segment',
+                    'threshold': 0.85,
+                    'segment_source': 'im_minimum'
+                },
+                'statextract': {
+                    'pipeline_class': 'pyopia.process.CalculateStats',
+                    'roi_source': 'im_synthetic'
+                }
+            }
+        }
+        pipeline = Pipeline(pipeline_config)
+        pipeline.data['im_synthetic'] = self.data['synthetic_image_data']['image']
+        pipeline.data['timestamp'] = pd.Timestamp.now()
+        pipeline.run('')
+        dias, vd = pyopia.statistics.vd_from_stats(pipeline.data['stats'], pipeline_config['general']['pixel_size'])
+        vd /= self.sample_volume
+        self.data['synthetic_image_data']['pyopia_processed_volume_distribution'] = vd
 
     def plot(self):
-        f, a = plt.subplots(2, 2, figsize=(10, 10))
+        f, a = plt.subplots(2, 2, figsize=(15, 10))
 
         plt.sca(a[0, 0])
         pyopia.plotting.show_image(self.data['synthetic_image_data']['image'], self.PIX_SIZE)
-        plt.title(f'synthetic image. Path lengh: {self.PATH_LENGTH}')
+        plt.title(f'Synthetic image. Path lengh: {self.PATH_LENGTH}')
 
         plt.sca(a[0, 1])
         plt.plot(self.dias, self.data['volume_distribution'].T, '0.8', alpha=0.2)
-        plt.plot(-10, 0, '0.8', alpha=0.2, label='simulated')
-        plt.plot(self.dias, np.mean(self.data['volume_distribution'].T, axis=1), 'k', label=f'{self.nims} image average')
-        plt.plot(self.dias, self.data['synthetic_image_data']['volume_distribution'], 'b',
-                 label='best possible from synthetic image\n(without occlusion)')
+        plt.plot(-10, 0, '0.8', alpha=0.2, label='Simulated')
+        plt.plot(self.dias, np.mean(self.data['volume_distribution'].T, axis=1), 'k', label=f'{self.nims} statistical average')
+        plt.plot(self.dias, self.data['synthetic_image_data']['input_volume_distribution'], 'b',
+                 label='Best possible from synthetic image\n(without occlusion)')
+        plt.plot(self.dias, self.data['synthetic_image_data']['pyopia_processed_volume_distribution'], 'g',
+                 label='PyOPIA processed from synthetic image\n')
         plt.plot(self.dias, self.data['volume_distribution_input'], 'r', label='target')
         plt.xscale('log')
         plt.xlabel('Diameter [um]')
@@ -201,7 +238,7 @@ class SilcamSimulator():
         plt.plot(self.data['cumulative_volume_concentration'], '0.8', label='simulated')
         plt.hlines(self.total_volume_concentration, xmin=0, xmax=self.nims, colors='r', label='target')
         plt.xlabel('n-images')
-        plt.ylabel('volume concentration of n-images [uL/L]')
+        plt.ylabel('Volume concentration of n-images [uL/L]')
         plt.xlim(0, self.nims)
         plt.legend()
 
@@ -209,7 +246,7 @@ class SilcamSimulator():
         plt.plot(self.data['cumulative_d50'], '0.8', label='simulated')
         plt.hlines(self.d50, xmin=0, xmax=self.nims, colors='r', label='target')
         plt.xlabel('n-images')
-        plt.ylabel('d50 over n-images [um]')
+        plt.ylabel('D50 over n-images [um]')
         plt.xlim(0, self.nims)
         plt.legend()
 
