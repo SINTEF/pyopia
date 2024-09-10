@@ -154,14 +154,14 @@ def process(config_filename: str, numchunks: int = 1):
     def process_file_list(file_list, c):
         processing_pipeline = Pipeline(pipeline_config)
         for filename in track(file_list, description=f'[blue]Processing progress (chunk {c})',
-                                disable=c != 0):
+                              disable=c != 0):
             try:
                 logger.debug(f'Chunk {c} starting to process {filename}')
                 processing_pipeline.run(filename)
             except Exception as e:
                 progress.console.print('[red]An error occured in processing, ' +
-                                        'skipping rest of pipeline and moving to next image.' +
-                                        f'(chunk {c})')
+                                       'skipping rest of pipeline and moving to next image.' +
+                                       f'(chunk {c})')
                 logger.error(e)
                 logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
