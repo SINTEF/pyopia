@@ -168,7 +168,7 @@ def process(config_filename: str, num_chunks: int = 1):
 
     # With one chunk we keep the non-threaded functionality to ensure backwards compatibility
     if num_chunks == 1:
-        process_file_list(raw_files.files, 0)
+        process_file_list(raw_files, 0)
     else:
         for c, chunk in enumerate(raw_files.chunked_files):
             job = threading.Thread(target=process_file_list, args=(chunk, c, ))

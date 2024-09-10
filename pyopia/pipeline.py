@@ -369,7 +369,7 @@ class FilesToProcess:
         self.build_initial_background_files(average_window=average_window)
         self.insert_bg_files_into_chunks(bgshift_function=bgshift_function)
 
-    def chunk_files(self, chunks):
+    def chunk_files(self, chunks: int):
         '''Chunk the file list and create FilesToProcess.chunked_files
 
         Parameters
@@ -377,7 +377,8 @@ class FilesToProcess:
         chunks : int
             number of chunks to produce (must be at least 1)
         '''
-        assert chunks > 0, 'you must have at least one chunk'
+        if chunks < 1:
+            raise RuntimeError('You must have at least one chunk')
         n = int(np.ceil(len(self.files) / chunks))
         self.chunked_files = [self.files[i:i + n] for i in range(0, len(self.files), n)]
 
@@ -395,6 +396,9 @@ class FilesToProcess:
             c = [c.insert(0, bg_file) for bg_file in reversed(self.background_files[-average_window:])]
 
     def build_initial_background_files(self, average_window=0):
+        '''
+        Create a list of files to use for initializing the background in the first chunk
+        '''
         self.background_files = []
         for f in self.files[0:average_window]:
             self.background_files.append(f)
