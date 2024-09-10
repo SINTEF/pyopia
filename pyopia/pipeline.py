@@ -10,6 +10,8 @@ from operator import methodcaller
 import sys
 from pyopia.io import steps_from_xstats as steps_from_xstats # noqa: E(F401)
 import logging
+from glob import glob
+import numpy as np
 
 logger = logging.getLogger()
 
@@ -322,3 +324,79 @@ def build_steps(toml_steps):
         steps[step_name] = build_repr(toml_steps, step_name)
 
     return steps
+
+
+class FilesToProcess:
+    def __init__(self, glob_pattern=None):
+        '''Build file list from glob pattern if specified.
+           Create FilesToProcess.chunked_files is chunks specified
+           File list from glob will be sorted.
+
+        Parameters
+        ----------
+        glob_pattern : str, optional
+            Glob pattern, by default None
+        '''
+        self.files = None
+        self.background_files = []
+        self.chunked_files = []
+        if glob_pattern is not None:
+            self.files = sorted(glob(glob_pattern))
+
+    def from_filelist_file(self, path_to_filelist):
+        '''
+        Initialize explicit list of files to process from a text file.
+        The text file should contain one path to an image per line, which should be processed in order.
+        '''
+        with open(path_to_filelist, 'r') as fh:
+            self.files = list(fh.readlines())
+
+    def to_filelist_file(self, path_to_filelist):
+        '''Write file list to a txt file
+
+        Parameters
+        ----------
+        path_to_filelist : str
+            Path to txt file to write
+        '''
+        with open(path_to_filelist, 'w') as fh:
+            [fh.writelines(L + '\n') for L in self.files]
+
+    def prepare_chunking(self, chunks, average_window, bgshift_function):
+        if chunks > len(self.files) // 2:
+            raise RuntimeError('Number of chunks exceeds more than half the number of files to process. Use less chunks.')
+        self.chunk_files(chunks)
+        self.build_initial_background_files(average_window=average_window)
+        self.insert_bg_files_into_chunks(bgshift_function=bgshift_function)
+
+    def chunk_files(self, chunks):
+        '''Chunk the file list and create FilesToProcess.chunked_files
+
+        Parameters
+        ----------
+        chunks : int
+            number of chunks to produce (must be at least 1)
+        '''
+        assert chunks > 0, 'you must have at least one chunk'
+        n = int(np.ceil(len(self.files) / chunks))
+        self.chunked_files = [self.files[i:i + n] for i in range(0, len(self.files), n)]
+
+    def insert_bg_files_into_chunks(self, bgshift_function='pass'):
+        average_window = len(self.background_files)
+        for i, c in enumerate(self.chunked_files):
+            if i > 0 and bgshift_function != 'pass':
+                self.background_files.extend(self.chunked_files[i-1][-average_window:])
+            # we have to loop backwards over bg_files because we are inserting into the top of the chunk
+            c = [c.insert(0, bg_file) for bg_file in reversed(self.background_files[-average_window:])]
+
+    def build_initial_background_files(self, average_window=0):
+        self.background_files = []
+        for f in self.files[0:average_window]:
+            self.background_files.append(f)
+
+    def __len__(self):
+        return len(self.files)
+
+    def __iter__(self):
+        for filename in self.files:
+            yield filename
