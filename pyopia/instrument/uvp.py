@@ -35,7 +35,7 @@ def load_image(filename):
     Returns
     -------
     array
-        raw image, inverted so that particles are dark on a light background
+        raw image float between 0-1, inverted so that particles are dark on a light background
     '''
     img = (255 - skimage.io.imread(filename).astype(np.float64)) / 255
     return img
@@ -69,7 +69,7 @@ class UVPLoad():
 
     def __call__(self, data):
         timestamp = timestamp_from_filename(data['filename'])
-        img = load_image(data['filename']).astype(np.float64)
+        img = load_image(data['filename'])
         data['timestamp'] = timestamp
         data['imraw'] = img
         return data

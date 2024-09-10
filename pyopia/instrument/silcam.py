@@ -34,9 +34,9 @@ def load_image(filename):
     Returns
     -------
     array
-        raw image
+        raw image float between 0-1
     '''
-    img = np.load(filename, allow_pickle=False).astype(np.float64)
+    img = np.load(filename, allow_pickle=False).astype(np.float64) / 255
     return img
 
 
@@ -68,7 +68,7 @@ class SilCamLoad():
 
     def __call__(self, data):
         timestamp = timestamp_from_filename(data['filename'])
-        img = load_image(data['filename']).astype(np.float64)/255
+        img = load_image(data['filename'])
         data['timestamp'] = timestamp
         data['imraw'] = img
         return data
