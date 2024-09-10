@@ -7,8 +7,8 @@ from typing import TypedDict
 import datetime
 import pandas as pd
 from operator import methodcaller
-import toml
 import sys
+from pyopia.io import steps_from_xstats as steps_from_xstats # noqa: E(F401)
 import logging
 
 logger = logging.getLogger()
@@ -271,23 +271,6 @@ def steps_to_string(steps):
                       + '\n   Vars: ' + str(vars(steps[key]))
                       + '\n')
     return steps_str
-
-
-def steps_from_xstats(xstats):
-    '''Get the steps attribute from xarray version of the particle stats into a dictionary
-
-    Parameters
-    ----------
-    xstats : xarray.DataSet
-        xarray version of the particle stats dataframe, containing metadata
-
-    Returns
-    -------
-    dict
-        TOML-formatted dictionary of pipeline steps
-    '''
-    steps = toml.loads(xstats.__getattr__('steps'))
-    return steps
 
 
 def build_repr(toml_steps, step_name):
