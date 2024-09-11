@@ -138,7 +138,7 @@ class SilcamSimulator():
             # convert to volume distribution
             self.data['volume_distribution'][i, :] = pyopia.statistics.vd_from_nd(necd,
                                                                                   self.dias,
-                                                                                  sv=self.sample_volume)
+                                                                                  sample_volume=self.sample_volume)
 
             # calculated the cumulate volume distribution over image number
             self.data['cumulative_volume_concentration'][i] = np.sum(np.mean(self.data['volume_distribution'][0:i, :],
@@ -172,7 +172,7 @@ class SilcamSimulator():
             img[rr, cc, :] = 0
 
         necd, edges = np.histogram(log_ecd, self.bin_limits)  # count the input diameters into a number distribution
-        log_vd = pyopia.statistics.vd_from_nd(necd, self.dias, sv=self.sample_volume)  # convert to a volume distribution
+        log_vd = pyopia.statistics.vd_from_nd(necd, self.dias, sample_volume=self.sample_volume)  # convert to a volume distribution
 
         # add some noise to the synthesized image
         img = np.uint8(255 * skimage.util.random_noise(np.float64(img) / 255))
