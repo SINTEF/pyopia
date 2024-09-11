@@ -32,18 +32,24 @@ def write_stats(stats,
     Writes particle stats into the ouput file.
     Appends if file already exists.
 
-    Args:
-        datafilename (str)                      :   Filame prefix for -STATS.h5 file that may or may not include a path
-        stats (DataFrame or xr.Dataset)         :   STATS dataframe
-        export_name_len (int)                   :   Max number of chars allowed for col 'export name'
-        append (bool)                           :   Append all processed data into one nc file.
-                                                    Defaults to True.
-                                                    If False, then one nc file will be generated per raw image,
-                                                    which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
-                                                    This is useful for larger datasets,
-                                                    where appending causes substantial slowdown
-                                                    as the dataset gets larger.
-        image_stats (xr.Dataset)                :   image_stats data
+    Parameters
+    ----------
+    datafilename : str
+        Filame prefix for -STATS.h5 file that may or may not include a path
+    stats : DataFrame or xr.Dataset
+        particle statistics
+    export_name_len : int
+        Max number of chars allowed for col 'export name'
+    append : bool
+        Append all processed data into one nc file.
+        Defaults to True.
+        If False, then one nc file will be generated per raw image,
+        which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
+        This is useful for larger datasets,
+        where appending causes substantial slowdown
+        as the dataset gets larger.
+    image_stats : xr.Dataset
+        summary statistics of each raw image (including those with no particles)
     '''
 
     if len(stats) == 0:  # to avoid issue with wrong time datatypes in xarray
@@ -99,7 +105,7 @@ def make_xstats(stats, toml_steps):
 
     Returns
     -------
-    xarray.DataSet
+    xstats : xarray.Dataset
         Xarray version of stats dataframe, including metadata
     '''
     xstats = stats.to_xarray()
@@ -120,8 +126,8 @@ def load_image_stats(datafilename):
 
     Returns
     -------
-    xarray.DataArray
-        image_stats
+    image_stats : xarray.Dataset
+        summary statistics of each raw image (including those with no particles)
     '''
     with xarray.open_dataset(datafilename, engine=NETCDF_ENGINE, group='image_stats') as image_stats:
         image_stats.load()
@@ -138,7 +144,7 @@ def load_stats(datafilename):
 
     Returns
     -------
-    DataFrame
+    stats : DataFrame
         STATS DataFrame  / xarray dataset
     '''
 
@@ -170,8 +176,10 @@ def combine_stats_netcdf_files(path_to_data, prefix='*'):
 
     Returns
     -------
-    tuple
-        xstats STATS xarray dataset, image_stats dataset
+    xstats : xarray.Dataset
+        Particle statistics and metatdata from processing steps
+    image_stats : xarray.Dataset
+        summary statistics of each raw image (including those with no particles)
     '''
 
     sorted_filelist = sorted(glob(os.path.join(path_to_data, prefix + 'Image-D*-STATS.nc')))
@@ -234,7 +242,7 @@ def steps_from_xstats(xstats):
 
     Returns
     -------
-    dict
+    steps : dict
         TOML-formatted dictionary of pipeline steps
     '''
     steps = toml.loads(xstats.__getattr__('steps'))
@@ -251,7 +259,7 @@ def load_stats_as_dataframe(stats_file):
 
     Returns
     -------
-    DataFrame
+    stats : DataFrame
         stats pandas dataframe
     '''
     # obtain particle statistics from the stats file
@@ -269,8 +277,10 @@ def show_h5_meta(h5file):
     '''
     prints metadata from an exported hdf5 file created from pyopia.process
 
-    Args:
-        h5file              : h5 filename from exported data from pyopia.process
+    Parameters
+    ----------
+    h5file : str
+        h5 filename from exported data from pyopia.process
     '''
 
     with h5py.File(h5file, 'r') as f:
@@ -286,20 +296,28 @@ class StatsToDisc():
 
     Replaces the old StatsH5 class
 
-    Args:
-        output_datafile (str): prefix path for output nc file
-        dataformat (str): either 'nc' or 'h5
-        append (bool): if to allow append to an existing STATS file. Defaults to True
-        export_name_len (int): max number of chars allowed for col 'export name'. Defaults to 40
-        append (bool):          Append all processed data into one nc file.
-                                Defaults to True.
-                                If False, then one nc file will be generated per raw image,
-                                which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
-                                This is useful for larger datasets, where appending causes substantial slowdown
-                                as the dataset gets larger.
+    Parameters
+    ----------
+    output_datafile : str
+        prefix path for output nc file
+    dataformat : str
+        either 'nc' or 'h5
+    append : bool
+        if to allow append to an existing STATS file. Defaults to True
+    export_name_len : int
+        max number of chars allowed for col 'export name'. Defaults to 40
+    append : bool
+        Append all processed data into one nc file.
+        Defaults to True.
+        If False, then one nc file will be generated per raw image,
+        which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
+        This is useful for larger datasets, where appending causes substantial slowdown
+        as the dataset gets larger.
 
-    Returns:
-        data (dict): data from pipeline
+    Returns
+    -------
+    data : dict
+        data from pipeline
 
     Example config for pipeline useage:
 
