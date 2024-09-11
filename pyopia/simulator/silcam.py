@@ -172,7 +172,8 @@ class SilcamSimulator():
             img[rr, cc, :] = 0
 
         necd, edges = np.histogram(log_ecd, self.bin_limits)  # count the input diameters into a number distribution
-        log_vd = pyopia.statistics.vd_from_nd(necd, self.dias, sample_volume=self.sample_volume)  # convert to a volume distribution
+        # convert to a volume distribution
+        log_vd = pyopia.statistics.vd_from_nd(necd, self.dias, sample_volume=self.sample_volume)
 
         # add some noise to the synthesized image
         img = np.uint8(255 * skimage.util.random_noise(np.float64(img) / 255))
