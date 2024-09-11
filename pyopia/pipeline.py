@@ -84,11 +84,15 @@ class Pipeline():
     def run(self, filename):
         '''Method for executing the processing pipeline.
 
-        Args:
-            filename (str): file to be processed
+        Parameters
+        ----------
+        filename : str
+            file to be processed
 
-        Returns:
-            stats (DataFrame): stats DataFrame of particle statistics associated with 'filename'
+        Returns
+        -------
+        stats : DataFrame
+            particle statistics associated with 'filename'
 
         Note: the returned stats from this function are single-image only and not appended
         if you loop through several filenames! It is recommended to use this step in the pipeline
@@ -259,11 +263,15 @@ class Data(TypedDict):
 def steps_to_string(steps):
     '''Deprecated. Convert pipeline steps dictionary to a human-readable string
 
-    Args:
-        steps (dict): pipeline steps dictionary
+    Parameters
+    ----------
+    steps : dict
+        pipeline steps dictionary
 
-    Returns:
-        str: human-readable string of the types and variables
+    Returns
+    -------
+    steps_str : str
+        human-readable string of the types and variables
     '''
 
     steps_str = '\n'

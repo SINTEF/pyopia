@@ -9,12 +9,14 @@ import numpy as np
 
 
 def show_image(image, pixel_size):
-    '''
-    Plots a scaled figure (in mm) of an image
+    '''Plots a scaled figure (in mm) of an image
 
-    Args:
-        image (float) : Image (usually a corrected image, such as im_corrected)
-        pixel_size (float) : the pixel size (um) of the imaging system used
+    Parameters
+    ----------
+    image : float
+        Image (usually a corrected image, such as im_corrected)
+    pixel_size : float
+        the pixel size (um) of the imaging system used
     '''
     r, c = np.shape(image[:, :, 0])
 
@@ -31,10 +33,12 @@ def montage_plot(montage, pixel_size):
     '''
     Plots a SilCam particle montage with a 1mm scale reference
 
-    Args:
-        montage (uint8)    : a SilCam montage created with scpp.make_montage
-        pixel_size (float) : the pixel size of the SilCam used, obtained from settings.PostProcess.pix_size in the
-                             config ini file
+    Parameters
+    ----------
+    montage : uint8
+        a montage created with scpp.make_montage
+    pixel_size : float
+        the pixel size (um) of the imaging system used
     '''
     msize = np.shape(montage)[0]
     ex = pixel_size * np.float64(msize) / 1000.

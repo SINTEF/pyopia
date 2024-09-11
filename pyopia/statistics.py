@@ -15,17 +15,20 @@ logger = logging.getLogger()
 
 
 def d50_from_stats(stats, pixel_size):
+    '''Calculate the d50 from the stats and settings
+
+    Parameters
+    ----------
+    stats : DataFrame
+        particle statistics from silcam process
+    pixel_size : float
+        pixel size in microns per pixel
+
+    Returns
+    -------
+    d50 : float
+        the 50th percentile of the cumulative sum of the volume distributon, in microns
     '''
-    Calculate the d50 from the stats and settings
-
-    Args:
-        stats (DataFrame)           : particle statistics from silcam process
-        pixel_size                  : pixel size in microns per pixel
-
-    Returns:
-        d50 (float)                 : the 50th percentile of the cumulative sum of the volume distributon, in microns
-    '''
-
     # the volume distribution needs calculating first
     dias, vd = vd_from_stats(stats, pixel_size)
 
@@ -34,21 +37,25 @@ def d50_from_stats(stats, pixel_size):
     return d50
 
 
-def d50_from_vd(vd, dias):
+def d50_from_vd(volume_distribution, dias):
     '''
     Calculate d50 from a volume distribution
 
-    Args:
-        vd            : particle volume distribution calculated from vd_from_stats()
-        dias          : mid-points in the size classes corresponding the the volume distribution,
-                               returned from get_size_bins()
+    Parameters
+    ----------
+    volume_distribution : array
+        Particle volume distribution calculated from vd_from_stats()
+    dias : array
+        mid-points in the size classes corresponding the the volume distribution,
+        returned from get_size_bins()
 
-    Returns:
-        d50 (float)                 : the 50th percentile of the cumulative sum of the volume distributon, in microns
+    Returns
+    -------
+    d50 : float
+        The 50th percentile of the cumulative sum of the volume distributon, in microns
     '''
-
     # calculate cumulative sum of the volume distribution
-    csvd = np.cumsum(vd / np.sum(vd))
+    csvd = np.cumsum(volume_distribution / np.sum(volume_distribution))
 
     # find the 50th percentile and interpolate if necessary
     d50 = np.interp(0.5, csvd, dias)
@@ -59,9 +66,12 @@ def get_size_bins():
     '''
     Retrieve log-spaced size bins for PSD analysis by doing the same binning as LISST-100x, but with 53 size bins
 
-    Returns:
-        dias (array)        : mid-points of size bins in microns
-        bin_limits (array)  : limits of size bins in microns
+    Returns
+    -------
+    dias : array
+        Mid-points of size bins in microns
+    bin_limits : array
+        Limits of size bins in microns
     '''
     # pre-allocate
     bin_limits = np.zeros((53), dtype=np.float64)
@@ -89,18 +99,20 @@ def get_size_bins():
 
 
 def crop_stats(stats, crop_stats):
+    '''Filters stats file based on whether the particles are within a rectangle specified by crop_stats.
+
+    Parameters
+    ----------
+    stats : DataFrame
+        Particle stats dataframe for every particle
+    crop_stats : tuple
+        4-tuple of lower-left (row, column) then upper-right (row, column) coord of crop
+
+    Returns
+    -------
+    cropped_stats : DataFrame
+        cropped silcam stats file
     '''
-    Filters stats file based on whether the particles are
-    within a rectangle specified by crop_stats.
-
-    Args:
-        stats (df)    : silcam stats file
-        crop_stats (tuple) : 4-tuple of lower-left (row, column) then upper-right (row, column) coord of crop
-
-    Returns:
-        stats (df)    : cropped silcam stats file
-    '''
-
     r = np.array(((stats['maxr'] - stats['minr']) / 2) + stats['minr'])  # pixel row of middle of bounding box
     c = np.array(((stats['maxc'] - stats['minc']) / 2) + stats['minc'])  # pixel column of middle of bounding box
 
@@ -110,73 +122,85 @@ def crop_stats(stats, crop_stats):
     ll = np.array(crop_stats[:2])  # lower-left
     ur = np.array(crop_stats[2:])  # upper-right
 
-    inidx = np.all(np.logical_and(ll <= pts, pts <= ur), axis=1)
-    stats = stats[inidx]
+    ind = np.all(np.logical_and(ll <= pts, pts <= ur), axis=1)
+    cropped_stats = stats[ind]
+    return cropped_stats
 
-    return stats
 
+def vd_from_nd(number_distribution, dias, sample_volume=1.):
+    '''Calculate volume concentration from particle count
 
-def vd_from_nd(count, psize, sv=1):
+    Parameters
+    ----------
+    number_distribution : array
+        number distribution
+    dias : array
+        particle diameters in microns associated with number_distribution
+    sample_volume : float, optional
+        sample volume size (litres), by default 1
+
+    Returns
+    -------
+    volume_distribution : array
+        Particle volume distribution
     '''
-    Calculate volume concentration from particle count
+    dias = dias * 1e-6  # convert to m
+    particle_volume = 4 / 3 * np.pi * (dias / 2)**3  # volume in m^3
+    total_particle_volume = particle_volume * number_distribution * 1e9  # volume in micro-litres
+    volume_distribution = total_particle_volume / sample_volume  # micro-litres / litre
 
-    sv = sample volume size (litres)
-
-    e.g:
-    sample_vol_size=25*1e-3*(1200*4.4e-6*1600*4.4e-6); %size of sample volume in m^3
-    sv=sample_vol_size*1e3; %size of sample volume in litres
-
-    Args:
-        count (array) : particle number distribution
-        psize (float) : pixel size of the SilCam contained in settings.PostProcess.pix_size from the config ini file
-        sv=1 (float)  : the volume of the sample which should be used for scaling concentrations
-
-    Returns:
-        vd (array)    : the particle volume distribution
-    '''
-
-    psize = psize * 1e-6  # convert to m
-    pvol = 4 / 3 * np.pi * (psize / 2)**3  # volume in m^3
-    tpvol = pvol * count * 1e9  # volume in micro-litres
-    vd = tpvol / sv  # micro-litres / litre
-
-    return vd
+    return volume_distribution
 
 
-def nc_from_nd(count, sv):
+def nc_from_nd(number_distribution, sample_volume):
     '''
     Calculate the number concentration from the count and sample volume
 
-    Args:
-        count (array) : particle number distribution
-        sv=1 (float)  : the volume of the sample which should be used for scaling concentrations
+    Parameters
+    ----------
+    number_distribution : array
+        number distribution
+    sample_volume : float, optional
+        sample volume size (litres), by default 1
 
-    Returns:
-        nc (float)    : the total number concentration in #/L
+    Returns
+    -------
+    number_concentration : float
+        Particle number concentration in #/L
     '''
-    nc = np.sum(count) / sv
-    return nc
+    number_concentration = np.sum(number_distribution) / sample_volume
+    return number_concentration
 
 
-def nc_vc_from_stats(stats, pix_size, path_length):
+def nc_vc_from_stats(stats, pix_size, path_length, imx=2048, imy=2448):
+    '''Calculates important summary statistics from a stats DataFrame
+
+    Parameters
+    ----------
+    stats : DataFrame
+        particle statistics
+    pix_size : float
+        size of pixels in microns
+    path_length : float
+        path length of sample volume in mm
+    imx : int, optional
+        number of x-dimention pixels in the image, by default 2048
+    imy : int, optional
+        number of y-dimention pixels in the image, by default 2448
+
+    Returns
+    -------
+    number_concentration : float
+        Total number concentration in #/L
+    volume_concentration : float
+        Total volume concentration in uL/L
+    sample_volume : float
+        Total volume of water sampled in L
+    junge_slope : float
+        Slope of a fitted juge distribution between 150-300um
     '''
-    Calculates important summary statistics from a stats DataFrame
-
-    Args:
-        stats (DataFrame)           : particle statistics from silcam process
-        pix_size                    : size of pixels in microns (settings.PostProcess.pixel_size)
-        path_length                 : path length of sample volume in mm
-
-    Returns:
-        nc (float)            : the total number concentration in #/L
-        vc (float)            : the total volume concentration in uL/L
-        sample_volume (float) : the total volume of water sampled in L
-        junge (float)         : the slope of a fitted juge distribution between 150-300um
-    '''
-    # @todo take imx & imy as optional inputs in nc_vc_from_stats
-
     # calculate the sample volume per image
-    sample_volume = get_sample_volume(pix_size, path_length, imx=2048, imy=2448)
+    sample_volume = get_sample_volume(pix_size, path_length, imx=imx, imy=imy)
 
     # count the number of images analysed
     nims = count_images_in_stats(stats)
@@ -188,39 +212,46 @@ def nc_vc_from_stats(stats, pix_size, path_length):
     dias, necd = nd_from_stats(stats, pix_size)
 
     # calculate the volume distribution from the number distribution
-    vd = vd_from_nd(necd, dias, sample_volume)
+    volume_distribution = vd_from_nd(necd, dias, sample_volume)
 
     # calculate the volume concentration
-    vc = np.sum(vd)
+    volume_concentration = np.sum(volume_distribution)
 
     # calculate the number concentration
-    nc = nc_from_nd(necd, sample_volume)
+    number_concentration = nc_from_nd(necd, sample_volume)
 
     # convert nd to units of nc per micron per litre
-    nd = nd_rescale(dias, necd, sample_volume)
+    number_distribution = nd_rescale(dias, necd, sample_volume)
 
     # remove data from first bin which will be part-full
-    ind = np.argwhere(nd > 0)
-    nd[ind[0]] = np.nan
+    ind = np.argwhere(number_distribution > 0)
+    number_distribution[ind[0]] = np.nan
 
     # calcualte the junge distirbution slope
-    junge = get_j(dias, nd)
+    junge_slope = get_j(dias, number_distribution)
 
-    return nc, vc, sample_volume, junge
+    return number_concentration, volume_concentration, sample_volume, junge_slope
 
 
 def nd_from_stats_scaled(stats, pix_size, path_length):
-    ''' calcualte a scaled number distribution from stats.
+    '''Calcualte a scaled number distribution from stats.
     units of nd are in number per micron per litre
 
-    Args:
-        stats (DataFrame)           : particle statistics from silcam process
-        pix_size                    : size of pixels in microns
-        path_length                 : path length of sample volume in mm
+    Parameters
+    ----------
+    stats : DataFrame
+        Particle statistics from silcam process
+    pix_size : float
+        size of pixels in microns
+    path_length : float
+        path length of sample volume in mm
 
-    Returns:
-        dias                        : mid-points of size bins
-        nd                          : number distribution in number/micron/litre
+    Returns
+    -------
+    dias : array
+        mid-points of size bins
+    number_distribution : array
+        number distribution in number/micron/litre
     '''
     # calculate the number distirbution (number per bin per sample volume)
     dias, necd = nd_from_stats(stats, pix_size)
@@ -236,26 +267,32 @@ def nd_from_stats_scaled(stats, pix_size, path_length):
 
     # re-scale the units of the number distirbution into number per micron per
     # litre
-    nd = nd_rescale(dias, necd, sample_volume)
+    number_distribution = nd_rescale(dias, necd, sample_volume)
 
     # nan the first bin in measurement because it will always be part full
-    ind = np.argwhere(nd > 0)
-    nd[ind[0]] = np.nan
+    ind = np.argwhere(number_distribution > 0)
+    number_distribution[ind[0]] = np.nan
 
-    return dias, nd
+    return dias, number_distribution
 
 
 def nd_from_stats(stats, pix_size):
-    ''' calcualte  number distirbution from stats
+    '''Calculate  number distirbution from stats
     units are number per bin per sample volume
 
-    Args:
-        stats (DataFrame)           : particle statistics from silcam process
-        pix_size (float)            : pixel size in microns
+    Parameters
+    ----------
+    stats : DataFrame
+        particle statistics from silcam process
+    pix_size : float
+        pixel size in microns
 
-    Returns:
-        dias                        : mid-points of size bins
-        necd                        : number distribution in number/size-bin/sample-volume
+    Returns
+    -------
+    dias : array
+        mid-points of size bins
+    number_distribution : array
+        number distribution in number/size-bin/sample-volume
     '''
 
     # convert the equiv diameter from pixels into microns
@@ -271,9 +308,9 @@ def nd_from_stats(stats, pix_size):
     necd, edges = np.histogram(ecd, bin_limits_um)
 
     # make it float so other operations are easier later
-    necd = np.float64(necd)
+    number_distribution = np.float64(necd)
 
-    return dias, necd
+    return dias, number_distribution
 
 
 def vd_from_stats(stats, pix_size):
@@ -291,7 +328,7 @@ def vd_from_stats(stats, pix_size):
     -------
     dias : array
         mid-points of size bins
-    vd : array
+    volume_distribution : array
         volume distribution in micro-litres/sample-volume
     '''
 
@@ -300,34 +337,42 @@ def vd_from_stats(stats, pix_size):
 
     # convert the number distribution to volume in units of micro-litres per
     # sample volume
-    vd = vd_from_nd(necd, dias)
+    volume_distribution = vd_from_nd(necd, dias)
 
-    return dias, vd
+    return dias, volume_distribution
 
 
 def make_montage(stats_file_or_df, pixel_size, roidir,
                  auto_scaler=500, msize=1024, maxlength=100000, crop_stats=None, brightness=1, eyecandy=True):
+    '''Makes nice looking montage from a directory of extracted particle images
+
+    Parameters
+    ----------
+    stats_file_or_df : DataFrame or str
+        either a str specifying the location of the STATS.nc file that comes from processing, or a stats dataframe
+    pixel_size : float
+        pixel size of system
+    roidir : str
+        location of roifiles
+    auto_scaler : int, optional
+        approximate number of particle that are attempted to be packed into montage, by default 500
+    msize : int, optional
+        size of canvas in pixels, by default 1024
+    maxlength : int, optional
+        maximum length in microns of particles to be included in montage, by default 100000
+    crop_stats : tuple, optional
+        None or 4-tuple of lower-left then upper-right coord of crop, by default None
+    brightness : int, optional
+        brighness of packaged particles used with eyecandy option, by default 1
+    eyecandy : bool, optional
+        boolean which if True will explode the contrast of packed particles
+        (nice for natural particles, but not so good for oil and gas)., by default True
+
+    Returns
+    -------
+    montage_image : array
+        montage image that can be plotted with :func:`pyopia.plotting.montage_plot`
     '''
-    makes nice looking montage from a directory of extracted particle images
-
-    Args:
-        stats_file_or_df           : either a str specifying the location of the STATS.nc file that comes from processing,
-                                      or a stats dataframe
-        pixel_size                  : pixel size of system defined by settings.PostProcess.pix_size
-        roidir                      : location of roifiles usually defined by settings.ExportParticles.outputpath
-        auto_scaler=500             : approximate number of particle that are attempted to be packed into montage
-        msize=1024                  : size of canvas in pixels
-        maxlength=100000            : maximum length in microns of particles to be included in montage
-        crop_stats=None             : None or 4-tuple of lower-left then upper-right coord of crop
-        brightness=1                : brighness of packaged particles used with eyecandy option
-        eyecandy=True               : boolean which if True will explode the contrast of packed particles
-                          (nice for natural particles, but not so good for oil and gas).
-
-    Returns:
-        montageplot (float64        : a nicely-made montage in the form of an image,
-                                      which can be plotted using plotting.montage_plot(montage, settings.PostProcess.pix_size)
-    '''
-
     if isinstance(stats_file_or_df, str):
         stats = load_stats_as_dataframe(stats_file_or_df)
     else:
@@ -407,23 +452,28 @@ def make_montage(stats_file_or_df, pixel_size, roidir,
 
     # now the montage is finished
     # here are some small eye-candy scaling things to tidy up
-    montageplot = np.copy(montage)
-    montageplot[montage > 1] = 1
-    montageplot[montage == 0] = 1
+    montage_image = np.copy(montage)
+    montage_image[montage > 1] = 1
+    montage_image[montage == 0] = 1
     logger.info('montage complete')
 
-    return montageplot
+    return montage_image
 
 
 def gen_roifiles(stats, auto_scaler=500):
-    ''' generates a list of filenames suitable for making montages with
+    '''Generates a list of filenames suitable for making montages with
 
-    Args:
-        stats (DataFrame)           : particle statistics from silcam process
-        auto_scaler=500             : approximate number of particle that are attempted to be pack into montage
+    Parameters
+    ----------
+    stats : DataFrame
+        particle statistics
+    auto_scaler : int
+        approximate number of particle that are attempted to be pack into montage, by default 500
 
-    Returns:
-        roifiles                    : a selection of filenames that can be passed to montage_maker() for making nice montages
+    Parameters
+    ----------
+    roifiles : list
+        a list of string of filenames that can be passed to montage_maker() for making nice montages
     '''
 
     roifiles = stats['export name'][stats['export name'] != 'not_exported'].values
@@ -441,53 +491,65 @@ def gen_roifiles(stats, auto_scaler=500):
 def get_sample_volume(pix_size, path_length, imx=2048, imy=2448):
     ''' calculate the sample volume of one image
 
-    Args:
-        pix_size                    : size of pixels in microns (settings.PostProcess.pixel_size)
-        path_length                 : path length of sample volume in mm
-        imx=2048                    : image x dimention in pixels
-        imy=2448                    : image y dimention in pixels
+    Parameters
+    ----------
+    pix_size : float
+        size of pixels in microns
+    path_length : float
+        path length of sample volume in mm
+    imx : int, optional
+        image x dimention in pixels, by default 2048
+    imy : int, optional
+        image y dimention in pixels, by default 2448
 
-    Returns:
-        sample_volume_litres        : the volume of the sample volume in litres
-
+    Returns
+    -------
+    sample_volume_litres : float
+        Volume of the sample volume in litres
     '''
     sample_volume_litres = imx * pix_size / 1000 * imy * pix_size / 1000 * path_length * 1e-6
 
     return sample_volume_litres
 
 
-def get_j(dias, nd):
-    ''' calculates the junge slope from a correctly-scale number distribution
+def get_j(dias, number_distribution):
+    '''Calculates the junge slope from a correctly-scale number distribution
     (number per micron per litre must be the units of nd)
 
-    Args:
-        dias                        : mid-point of size bins
-        nd                          : number distribution in number per micron per litre
+    Parameters
+    ----------
+    dias : array
+        mid-point of size bins
+    number_distribution : array
+        number distribution in number per micron per litre
 
     Returns:
-        j                           : Junge slope from fitting of psd between 150 and 300um
-
+    junge_slope : float
+        Junge slope from fitting of psd between 150 and 300um
     '''
     # conduct this calculation only on the part of the size distribution where
     # LISST-100 and SilCam data overlap
-    ind = np.isfinite(dias) & np.isfinite(nd) & (dias < 300) & (dias > 150)
+    ind = np.isfinite(dias) & np.isfinite(number_distribution) & (dias < 300) & (dias > 150)
 
     # use polyfit to obtain the slope of the ditriubtion in log-space (which is
     # assumed near-linear in most parts of the ocean)
-    p = np.polyfit(np.log(dias[ind]), np.log(nd[ind]), 1)
-    j = p[0]
-    return j
+    p = np.polyfit(np.log(dias[ind]), np.log(number_distribution[ind]), 1)
+    junge_slope = p[0]
+    return junge_slope
 
 
 def count_images_in_stats(stats):
-    ''' count the number of raw images used to generate stats
+    '''count the number of raw images used to generate stats
 
-    Args:
-        stats                       : pandas DataFrame of particle statistics
+    Parameters
+    ----------
+    stats : DataFrame
+        particle statistics
 
-    Returns:
-        n_images                    : number of raw images
-
+    Returns
+    -------
+    n_images : int
+        number of images in the stats data
     '''
     u = pd.to_datetime(stats['timestamp']).unique()
     n_images = len(u)
@@ -496,32 +558,58 @@ def count_images_in_stats(stats):
 
 
 def extract_nth_largest(stats, n=0):
-    ''' return statistics of the nth largest particle
+    '''Return statistics of the nth largest particle
+
+    Parameters
+    ----------
+    stats : DataFrame
+        particle statistics
+    n : int, optional
+        nth largest particle to use, by default 0
+
+    Returns
+    -------
+    stats_extract
+        statistics of the nth largest particle
     '''
     stats_sorted = stats.sort_values(by=['equivalent_diameter'], ascending=False, inplace=False)
-    stats_sorted = stats_sorted.iloc[n]
-    return stats_sorted
+    stats_extract = stats_sorted.iloc[n]
+    return stats_extract
 
 
 def extract_nth_longest(stats, n=0):
-    ''' return statistics of the nth longest particle
+    '''Return statistics of the nth longest particle
+
+    Parameters
+    ----------
+    stats : DataFrame
+        particle statistics
+    n : int, optional
+        nth largest particle to use, by default 0
+
+    Returns
+    -------
+    stats_extract
+        statistics of the nth largest particle
     '''
     stats_sorted = stats.sort_values(by=['major_axis_length'], ascending=False, inplace=False)
-    stats_sorted = stats_sorted.iloc[n]
-    return stats_sorted
+    stats_extract = stats_sorted.iloc[n]
+    return stats_extract
 
 
 def explode_contrast(im):
-    ''' eye-candy function for exploding the contrast of a particle iamge (roi)
+    '''Eye-candy function for exploding the contrast of a particle iamge (roi)
 
-    Args:
-        im   (float64)       : image (normally a particle ROI)
+    Parameters
+    ----------
+    im : array
+        image (normally a particle ROI)
 
-    Returns:
-        im_mod (float64)     : image following exploded contrast
-
+    Returns
+    -------
+    im_mod : array
+        image following exploded contrast
     '''
-
     # re-scale the instensities in the image to chop off some ends
     p1, p2 = np.percentile(im, (0, 80))
     im_mod = rescale_intensity(im, in_range=(p1, p2))
@@ -531,20 +619,23 @@ def explode_contrast(im):
 
     # set maximum value to one
     im_mod /= np.max(im_mod)
-
     return im_mod
 
 
-def bright_norm(im, brightness=1):
-    ''' eye-candy function for normalising the image brightness
+def bright_norm(im, brightness=1.):
+    '''Eye-candy function for normalising the image brightness
 
-    Args:
-        im   (uint8)    : image
-        brightness=255  : median of histogram will be shifted to align with this value
+    Parameters
+    ----------
+    im : array
+        image (normally a particle ROI)
+    brightness : float, optional
+        median of histogram will be shifted to align with this value. Should be a float between 0-1, by default 1
 
-    Return:
-        im   (uint8)    : image with modified brightness
-
+    Returns
+    -------
+    im : array
+        image with modified brightness
     '''
     peak = np.median(im.flatten())
     bm = brightness - peak
@@ -555,41 +646,49 @@ def bright_norm(im, brightness=1):
     return im
 
 
-def nd_rescale(dias, nd, sample_volume):
-    ''' rescale a number distribution from
-            number per bin per sample volume
-        to
-            number per micron per litre
+def nd_rescale(dias, number_distribution, sample_volume):
+    '''Rescale a number distribution from number per bin per sample volume to number per micron per litre.
 
-    Args:
-        dias                : mid-points of size bins
-        nd                  : unscaled number distribution
-        sample_volume       : sample volume of each image
+    Parameters
+    ----------
+    dias : array
+        mid-points of size bins
+    number_distribution : array
+        unscaled number distribution
+    sample_volume : float
+        sample volume of each image
 
-    Returns:
-        nd                  : scaled number distribution (number per micron per litre)
+    Returns
+    -------
+    number_distribution_scaled : array
+        scaled number distribution (number per micron per litre)
     '''
-    nd = np.float64(nd) / sample_volume  # nc per size bin per litre
+
+    number_distribution_scaled = np.float64(number_distribution) / sample_volume  # nc per size bin per litre
 
     # convert nd to units of nc per micron per litre
     dd = np.gradient(dias)
-    nd /= dd
-    nd[nd < 0] = np.nan  # and nan impossible values!
-
-    return nd
+    number_distribution_scaled /= dd
+    number_distribution_scaled[number_distribution_scaled < 0] = np.nan  # and nan impossible values!
+    return number_distribution_scaled
 
 
 def add_depth_to_stats(stats, time, depth):
-    ''' if you have a depth time-series, use this function to find the depth of
-    each line in stats
+    '''If you have a depth time-series, use this function to find the depth of each line in stats
 
-    Args:
-        stats               : pandas DataFrame of particle statistics
-        time                : time stamps associated with depth argument
-        depth               : depths associated with the time argument
+    Parameters
+    ----------
+    stats : DataFrame
+        particle statistics
+    time : array
+        time stamps associated with depth argument
+    depth : array
+        depths associated with the time argument
 
-    Return:
-        stats               : pandas DataFrame of particle statistics, now with a depth column
+    Returns
+    -------
+    stats : DataFrame
+        particle statistics now with a 'Depth' column for each particle
     '''
     # get times
     sctime = pd.to_datetime(stats['timestamp'])
@@ -599,19 +698,25 @@ def add_depth_to_stats(stats, time, depth):
 
 
 def roi_from_export_name(exportname, path):
-    ''' returns an image from the export name string in the -STATS.h5 file
+    '''Returns an image from the export name string in the -STATS.h5 file
 
-    get the exportname like this: exportname = stats['export name'].values[0]
+    Get the exportname like this:
+    ```python
+    exportname = stats['export name'].values[0]
+    ```
 
-    Args:
-        exportname              : string containing the name of the exported particle e.g. stats['export name'].values[0]
-        path                    : path to exported h5 files
+    Parameters
+    ----------
+    exportname : str
+        string containing the name of the exported particle e.g. stats['export name'].values[0]
+    path : str
+        path to exported h5 files
 
-    Returns:
-        im                      : particle ROI image
-
+    Returns
+    -------
+    im : array
+        particle ROI image
     '''
-
     # the particle number is defined after the time info
     pn = exportname.split('-')[1]
     # the name is the first bit
@@ -632,24 +737,28 @@ def roi_from_export_name(exportname, path):
 
 
 def extract_latest_stats(stats, window_size):
-    ''' extracts the stats data from within the last number of seconds specified
-    by window_size.
+    '''Extracts the stats data from within the last number of seconds specified by window_size.
 
-    Args:
-        stats                   : pandas DataFrame of particle statistics
-        window_size             : number of seconds to extract from the end of the stats data
+    Parameters
+    ----------
+    stats : DataFrame
+        particle statistics
+    window_size : float
+        number of seconds to extract from the end of the stats data
 
-    Returns:
-        stats dataframe (from the last window_size seconds)
+    Returns
+    -------
+    stats_selected : DataFrame
+        particle statistics after specified time window (given by `window_size`)
     '''
     end = np.max(pd.to_datetime(stats['timestamp']))
     start = end - pd.to_timedelta('00:00:' + str(window_size))
-    stats = stats[pd.to_datetime(stats['timestamp']) > start]
-    return stats
+    stats_selected = stats[pd.to_datetime(stats['timestamp']) > start]
+    return stats_selected
 
 
 def make_timeseries_vd(stats, pixel_size, path_length, time_reference):
-    '''makes a dataframe of time-series volume distribution and d50
+    '''Makes a dataframe of time-series volume distribution and d50
     similar to Sequoia LISST-100 output,
     and exportable to things like Excel or csv.
 
@@ -661,15 +770,21 @@ def make_timeseries_vd(stats, pixel_size, path_length, time_reference):
     It is better to use image_stats['datetime'].values instead, which can be obtained from
     :func:`pyopia.io.load_image_stats`
 
-    Args:
-        stats (pandas dataframe)       : loaded from a *-STATS.nc file
-                                         (convert from xarray like this: `stats = xstats.to_dataframe()`)
-        pixel_size (float)             : pixel size in microns per pixel
-        path_length (float)            : path length of the sample volume in mm
-        time_reference (array)         : time-series associated with the stats dataset stats['timestamp'].unique()
+    Parameters
+    ----------
+    stats : DataFrame
+        loaded from a *-STATS.nc file (convert from xarray like this: `stats = xstats.to_dataframe()`)
+    pixel_size : float
+        pixel size in microns per pixel
+    path_length : float
+        path length of the sample volume in mm
+    time_reference : array
+        time-series associated with the stats dataset stats['timestamp'].unique()
 
-    Returns:
-        dataframe: of time series volume concentrations are in uL/L columns with number headings are diameter min-points
+    Returns
+    -------
+    time_series : DataFrame
+        time series volume concentrations are in uL/L columns with number headings are diameter mid-points
 
     Example
     -------
@@ -692,9 +807,7 @@ def make_timeseries_vd(stats, pixel_size, path_length, time_reference):
 
         # time-series of total volume concentration
         vc = np.sum(vdarray, axis=1)
-
     '''
-
     sample_volume = get_sample_volume(pixel_size, path_length=path_length)
 
     vdts = np.zeros((len(time_reference), len(get_size_bins()[0])), dtype=np.float64)
@@ -732,8 +845,10 @@ def make_timeseries_vd(stats, pixel_size, path_length, time_reference):
 def statscsv_to_statshdf(stats_file):
     '''Convert old STATS.csv file to a STATS.h5 file
 
-    Args:
-        stats_file              : filename of stats file
+    Parameters
+    ----------
+    stats_file : str
+        filename of stats file
     '''
     stats = pd.read_csv(stats_file, index_col=False)
     assert stats_file[-10:] == '-STATS.csv', f"Stats file {stats_file} should end in '-STATS.csv'."
@@ -743,17 +858,26 @@ def statscsv_to_statshdf(stats_file):
 def trim_stats(stats_file, start_time, end_time, write_new=False, stats=[]):
     '''Chops a STATS.h5 file given a start and end time
 
-    Args:
-        stats_file              : filename of stats file
-        start_time                  : start time of interesting window
-        end_time                    : end time of interesting window
-        write_new=False             : boolean if True will write a new stats csv file to disc
-        stats=[]                    : pass stats DataFrame into here if you don't want to load the data from the stats_file given.
-                                      In this case the stats_file string is only used for creating the new output datafilename.
+    Parameters
+    ----------
+    stats_file : str
+        filename of stats file
+    start_time : timestr
+        start time of interesting window
+    end_time : timestr
+        end time of interesting window
+    write_new : bool, optional
+        if True will write a new stats csv file to disc, by default False
+    stats : DataFrame, optional
+        pass stats DataFrame into here if you don't want to load the data from the stats_file given.
+        In this case the stats_file string is only used for creating the new output datafilename., by default []
 
-    Returns:
-        trimmed_stats       : pandas DataFram of particle statistics
-        outname             : name of new stats csv file written to disc
+    Returns
+    -------
+    trimmed_stats : DataFrame
+        particle statistics
+    outname : str
+        name of new stats csv file written to disc
     '''
     if len(stats) == 0:
         stats = pd.read_hdf(stats_file, 'ParticleStats/stats')
@@ -788,14 +912,16 @@ def add_best_guesses_to_stats(stats):
     Calculates the most likely tensorflow classification and adds best guesses
     to stats dataframe.
 
-    Args:
-        stats (DataFrame)           : particle statistics from silcam process
+    Parameters
+    ----------
+    stats : DataFrame)
+        particle statistics from silcam process
 
-    Returns:
-        stats (DataFrame)           : particle statistics from silcam process
-                                      with new columns for best guess and best guess value
+    Returns
+    -------
+    stats : DataFrame
+        particle statistics from silcam process with new columns for best guess and best guess value
     '''
-
     cols = stats.columns
 
     p = np.zeros_like(cols) != 0
@@ -808,7 +934,6 @@ def add_best_guesses_to_stats(stats):
 
     stats['best guess'] = cols[pinds.min() + np.argmax(parray, axis=1)]
     stats['best guess value'] = np.max(parray, axis=1)
-
     return stats
 
 
@@ -816,10 +941,11 @@ def show_h5_meta(h5file):
     '''
     prints metadata from an exported hdf5 file created from silcam process
 
-    Args:
-        h5file              : h5 filename from exported data from silcam process
+    Parameters
+    ----------
+    h5file : str
+        h5 filename from exported data from silcam process
     '''
-
     with h5py.File(h5file, 'r') as f:
         keys = list(f['Meta'].attrs.keys())
 
@@ -828,37 +954,44 @@ def show_h5_meta(h5file):
             logger.info('    ' + f['Meta'].attrs[k])
 
 
-def vd_to_nd(vd, dias):
+def vd_to_nd(volume_distribution, dias):
     '''convert volume distribution to number distribution
 
-    Args:
-        vd (array)           : particle volume distribution calculated from vd_from_stats()
-        dias (array)         : mid-points in the size classes corresponding the the volume distribution,
-                               returned from get_size_bins()
+    Parameters
+    ----------
+    volume_distribution : array
+        particle volume distribution calculated from vd_from_stats()
+    dias : array
+        mid-points in the size classes corresponding the the volume distribution, returned from get_size_bins()
 
-    Returns:
-        nd (array)           : number distribution as number per micron per bin (scaling is the same unit as the input vd)
+    Returns
+    -------
+    number_distribution : array
+        number distribution as number per micron per bin (scaling is the same unit as the input vd)
     '''
     DropletVolume = ((4 / 3) * np.pi * ((dias * 1e-6) / 2) ** 3)  # the volume of each droplet in m3
-    nd = vd / (DropletVolume * 1e9)  # the number distribution in each bin
-    return nd
+    number_distribution = volume_distribution / (DropletVolume * 1e9)  # the number distribution in each bin
+    return number_distribution
 
 
-def vd_to_nc(vd, dias):
+def vd_to_nc(volume_distribution, dias):
     '''calculate number concentration from volume distribution
 
     Args:
-        vd (array)           : particle volume distribution calculated from vd_from_stats()
-        dias (array)         : mid-points in the size classes corresponding the the volume distribution,
-                               returned from get_size_bins()
+    volume_distribution : array
+        particle volume distribution calculated from vd_from_stats()
+    dias : array
+        mid-points in the size classes corresponding the the volume distribution, returned from get_size_bins()
 
-    Returns:
-        nn (float)           : number concentration (scaling is the same unit as the input vd).
-                               If vd is a 2d array [time, vd_bins], nc will be the concentration for row
+    Returns
+    -------
+    number_concentration : float
+        number concentration (scaling is the same unit as the input vd).
+        If vd is a 2d array [time, vd_bins], nc will be the concentration for row
     '''
-    nd = vd_to_nd(dias, vd)
-    if np.ndim(nd) > 1:
-        nc = np.sum(nd, axis=1)
+    number_distribution = vd_to_nd(dias, volume_distribution)
+    if np.ndim(number_distribution) > 1:
+        number_concentration = np.sum(number_distribution, axis=1)
     else:
-        nc = np.sum(nd)
-    return nc
+        number_concentration = np.sum(number_distribution)
+    return number_concentration
