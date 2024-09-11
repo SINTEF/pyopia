@@ -8,13 +8,19 @@ def ini_background(bgfiles, load_function):
     '''
     Create and initial background stack and average image
 
-    Args:
-        bgfiles (list)                   : list of strings of filenames to be used in background creation
-        load_function (function object)  : this function should take a filename and return an image,
-                                           for example: :func:`pyopia.instrument.silcam.load_image`
-    Returns:
-        bgstack (list)              : list of all images in the background stack
-        imbg (array)                : background image
+    Parameters:
+    -----------
+    bgfiles : list
+        List of strings of filenames to be used in background creation
+    load_function : object
+        This function should take a filename and return an image, for example: :func:`pyopia.instrument.silcam.load_image`
+
+    Returns
+    -------
+    bgstack : list
+        list of all images in the background stack
+    imbg : array
+        background image
     '''
     bgstack = []
     for f in bgfiles:
@@ -33,14 +39,21 @@ def shift_bgstack_accurate(bgstack, imbg, imnew):
     The new background is calculated slowly by computing the mean of all images
     in the background stack.
 
-    Args:
-        bgstack (list)      : list of all images in the background stack
-        imbg (uint8)        : background image
-        imnew (unit8)       : new image to be added to stack
+    Parameters:
+    -----------
+    bgstack : list
+        list of all images in the background stack
+    imbg : array
+        background image
+    imnew : array
+        new image to be added to stack
 
-    Returns:
-        bgstack (updated list of all background images)
-        imbg (updated actual background image)
+    Returns
+    -------
+    bgstack : list
+        updated list of all background images
+    imbg : array
+        updated actual background image
     '''
     bgstack.pop(0)  # pop the oldest image from the stack,
     bgstack.append(imnew)  # append the new image to the stack
@@ -56,14 +69,21 @@ def shift_bgstack_fast(bgstack, imbg, imnew):
     adding the new image (both scaled by the stacklength).
     This is close to a running mean, but not quite.
 
-    Args:
-        bgstack (list)      : list of all images in the background stack
-        imbg (uint8)        : background image
-        imnew (unit8)       : new image to be added to stack
+    Parameters:
+    -----------
+    bgstac : list
+        list of all images in the background stack
+    imbg : uint8
+        background image
+    imnew : unit8
+        new image to be added to stack
 
-    Returns:
-        bgstack (updated list of all background images)
-        imbg (updated actual background image)
+    Returns
+    -------
+    bgstack : list
+        updated list of all background images
+    imbg : array
+        updated actual background image
     '''
     stacklength = len(bgstack)
     imold = bgstack.pop(0)  # pop the oldest image from the stack,
@@ -82,14 +102,21 @@ def correct_im_accurate(imbg, imraw):
     There is a small chance of clipping of imc in both crushed blacks and blown
     highlights if the background or raw images are very poorly obtained
 
-    Args:
-      imbg (float64)  : background averaged image
-      imraw (float64) : raw image
-      imbg (float64)  : background averaged image
-      imraw (float64) : raw image
+    Parameters:
+    -----------
+    imbg : float64
+        background averaged image
+    imraw : float64
+        raw image
+    imbg : float64
+        background averaged image
+    imraw : float64
+        raw image
 
-    Returns:
-      im_corrected (float64)   : corrected image, same type as input
+    Returns
+    -------
+    im_corrected : float64
+        corrected image, same type as input
     '''
 
     im_corrected = imraw - imbg
@@ -108,12 +135,17 @@ def correct_im_fast(imbg, imraw):
     There is high potential for clipping of imc in both crushed blacks an blown
     highlights, especially if the background or raw images are not properly obtained
 
-    Args:
-      imraw (float64) : raw image
-      imbg (float64)  : background averaged image
+    Parameters:
+    -----------
+    imraw : array
+        raw image
+    imbg : array
+        background averaged image
 
-    Returns:
-      im_corrected (float64)   : corrected image
+    Returns
+    -------
+    im_corrected : array
+        corrected image
     '''
     im_corrected = imraw - imbg
 
@@ -130,18 +162,27 @@ def shift_and_correct(bgstack, imbg, imraw, stacklength, real_time_stats=False):
 
     This is a wrapper for shift_bgstack and correct_im
 
-    Args:
-        bgstack (list)                  : list of all images in the background stack
-        imbg (float64)                  : background image
-        imraw (float64)                 : raw image
-        stacklength (int)               : unsed int here - just there to maintain the same behaviour as
-                                          shift_bgstack_fast()
-        real_time_stats=False (Bool)    : if True use fast functions, if False use accurate functions
+    Parameters:
+    -----------
+    bgstack : list
+        list of all images in the background stack
+    imbg : float64
+        background image
+    imraw : float64
+        raw image
+    stacklength : int
+        unused int here - just there to maintain the same behaviour as shift_bgstack_fast()
+    real_time_stats : Bool, optional
+        True use fast functions, if False use accurate functions., by default False
 
-    Returns:
-        bgstack (list)                  : list of all images in the background stack
-        imbg (float64)                  : background averaged image
-        im_corrected (float64)          : corrected image
+    Returns
+    -------
+    bgstack : list
+        list of all images in the background stack
+    imbg : float64
+        background averaged image
+    im_corrected : float64
+        corrected image
     '''
 
     if real_time_stats:
