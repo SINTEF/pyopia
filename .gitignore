@@ -274,3 +274,4 @@ notebooks/model/*
 *.keras
 *.png
 *-summary.txt
+dev/*
