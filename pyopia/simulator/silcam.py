@@ -204,12 +204,11 @@ class SilcamSimulator():
 
     def process_synthetic_image(self):
         '''Put the synthetic image `data['synthetic_image_data']['image']` through a basic pyopia processing pipeline
-        
+
         Attributes
         ----------
         data['synthetic_image_data']['pyopia_processed_volume_distribution'] : array
             pyopia processed volume distribution associated with `dias`size classes
-        
         '''
         pipeline_config = {
             'general': {
