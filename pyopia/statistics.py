@@ -37,13 +37,13 @@ def d50_from_stats(stats, pixel_size):
     return d50
 
 
-def d50_from_vd(vd, dias):
+def d50_from_vd(volume_distribution, dias):
     '''
     Calculate d50 from a volume distribution
 
     Parameters
     ----------
-    vd : array
+    volume_distribution : array
         Particle volume distribution calculated from vd_from_stats()
     dias : array
         mid-points in the size classes corresponding the the volume distribution,
@@ -55,7 +55,7 @@ def d50_from_vd(vd, dias):
         The 50th percentile of the cumulative sum of the volume distributon, in microns
     '''
     # calculate cumulative sum of the volume distribution
-    csvd = np.cumsum(vd / np.sum(vd))
+    csvd = np.cumsum(volume_distribution / np.sum(volume_distribution))
 
     # find the 50th percentile and interpolate if necessary
     d50 = np.interp(0.5, csvd, dias)
@@ -190,13 +190,13 @@ def nc_vc_from_stats(stats, pix_size, path_length, imx=2048, imy=2448):
 
     Returns
     -------
-    nc : float
+    number_concentration : float
         Total number concentration in #/L
-    vc : float
+    volume_concentration : float
         Total volume concentration in uL/L
     sample_volume : float
         Total volume of water sampled in L
-    junge : float
+    junge_slope : float
         Slope of a fitted juge distribution between 150-300um
     '''
     # calculate the sample volume per image
@@ -212,25 +212,25 @@ def nc_vc_from_stats(stats, pix_size, path_length, imx=2048, imy=2448):
     dias, necd = nd_from_stats(stats, pix_size)
 
     # calculate the volume distribution from the number distribution
-    vd = vd_from_nd(necd, dias, sample_volume)
+    volume_distribution = vd_from_nd(necd, dias, sample_volume)
 
     # calculate the volume concentration
-    vc = np.sum(vd)
+    volume_concentration = np.sum(volume_distribution)
 
     # calculate the number concentration
-    nc = nc_from_nd(necd, sample_volume)
+    number_concentration = nc_from_nd(necd, sample_volume)
 
     # convert nd to units of nc per micron per litre
-    nd = nd_rescale(dias, necd, sample_volume)
+    number_distribution = nd_rescale(dias, necd, sample_volume)
 
     # remove data from first bin which will be part-full
-    ind = np.argwhere(nd > 0)
-    nd[ind[0]] = np.nan
+    ind = np.argwhere(number_distribution > 0)
+    number_distribution[ind[0]] = np.nan
 
     # calcualte the junge distirbution slope
-    junge = get_j(dias, nd)
+    junge_slope = get_j(dias, number_distribution)
 
-    return nc, vc, sample_volume, junge
+    return number_concentration, volume_concentration, sample_volume, junge_slope
 
 
 def nd_from_stats_scaled(stats, pix_size, path_length):
@@ -277,7 +277,7 @@ def nd_from_stats_scaled(stats, pix_size, path_length):
 
 
 def nd_from_stats(stats, pix_size):
-    '''Calcualte  number distirbution from stats
+    '''Calculate  number distirbution from stats
     units are number per bin per sample volume
 
     Parameters

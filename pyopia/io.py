@@ -302,8 +302,6 @@ class StatsToDisc():
         prefix path for output nc file
     dataformat : str
         either 'nc' or 'h5
-    append : bool
-        if to allow append to an existing STATS file. Defaults to True
     export_name_len : int
         max number of chars allowed for col 'export name'. Defaults to 40
     append : bool

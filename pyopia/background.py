@@ -108,10 +108,6 @@ def correct_im_accurate(imbg, imraw):
         background averaged image
     imraw : float64
         raw image
-    imbg : float64
-        background averaged image
-    imraw : float64
-        raw image
 
     Returns
     -------
