@@ -29,11 +29,13 @@ class Classify():
     A classifier class for PyOPIA workflow.
     This is intended as a parent class that can be used as a template for flexible classification methods
 
-    Args:
-        model_path=model_path (str)        : path to particle-classifier e.g.
-                                '/testdata/model_name/particle_classifier.h5'
+    Parameters
+    ----------
+    model_path : str
+        path to particle-classifier e.g. '/testdata/model_name/particle_classifier.keras'
 
-    Example:
+    Example
+    -------
 
     .. code-block:: python
 
@@ -41,7 +43,9 @@ class Classify():
 
         prediction = cl.proc_predict(roi) # roi is an image roi to be classified
 
-    Note that :meth:`Classify.load_model()`
+    Note
+    ----
+    :meth:`Classify.load_model()`
     is run when the :class:`Classify` class is initialised.
     If this is used in combination with multiprocessing then the model must be loaded
     on the process where it will be used and not passed between processers
@@ -49,20 +53,23 @@ class Classify():
 
     The config setup looks like this:
 
-    .. code-block:: python
+    .. code-block:: toml
 
         [steps.classifier]
         pipeline_class = 'pyopia.classify.Classify'
         model_path = 'keras_model.h5' # path to trained nn model
 
-    If `[steps.classifier]`is not defined, the classification will be skipped and no probabilities reported.
+    If '[steps.classifier]' is not defined, the classification will be skipped and no probabilities reported.
+
+    See Also
+    --------
 
     If you want to use an example trained model for SilCam data
-    (no guarantee of accuracy for other applications), you can get it using `exampledata`
-    within the notebooks folder (https://github.com/SINTEF/pyopia/blob/main/notebooks/exampledata.py):
+    (no guarantee of accuracy for other applications), you can get it using :mod:`pyopia.exampledata`:
 
     .. code-block:: python
 
+        import pyopia.exampledata
         model_path = exampledata.get_example_model()
 
     '''
@@ -80,8 +87,12 @@ class Classify():
         '''
         Load a trained Keras model into the Classify class.
 
-        self.model (tf model object) : loaded Keras model
-        self.class_names (list) : names for the model output classes
+        Parameters
+        ----------
+        model : tf model object
+            loaded Keras model
+        class_names: list
+            names for the model output classes
         '''
         model_path = self.model_path
 
@@ -112,11 +123,15 @@ class Classify():
         '''
         Preprocess ROI ready for prediction. example here based on the pysilcam network setup
 
-        Args:
-            img_input (float)        : a particle ROI before preprocessing with range 0-1
+        Parameters
+        ----------
+        img_input : float
+            A particle ROI before preprocessing with range 0-1
 
-        Returns:
-            img_preprocessed (float) : a particle ROI with range 0.-255., corrected and preprocessed, ready for prediction
+        Returns
+        -------
+        img_preprocessed : float
+            A particle ROI with range 0.-255., corrected and preprocessed, ready for prediction
         '''
 
         whitebalanced = np.copy(img_input).astype(np.float64)
@@ -153,12 +168,16 @@ class Classify():
         '''
         Use tensorflow model to classify particles. example here based on the pysilcam network setup.
 
-        Args:
-            img_preprocessed (float) : a particle ROI arry, corrected and preprocessed using :meth:`Classify.preprocessing`,
-                                       ready for prediction using :meth:`Classify.predict`
+        Parameters
+        ----------
+        img_preprocessed: float
+            A particle ROI arry, corrected and preprocessed using :meth:`Classify.preprocessing`,
+            ready for prediction using :meth:`Classify.predict`
 
-        Returns:
-            prediction (array)       : the probability of the roi belonging to each class
+        Returns
+        -------
+        prediction : array
+            The probability of the roi belonging to each class
         '''
 
         prediction = self.model(img_preprocessed, training=False)
@@ -170,11 +189,15 @@ class Classify():
         Run pre-processing (:meth:`Classify.preprocessing`) and prediction (:meth:`Classify.predict`)
         using tensorflow model to classify particles. example here based on the pysilcam network setup.
 
-        Args:
-            img_input (float)  : a particle ROI with range 0-1 before preprocessing
+        Parameters
+        ----------
+        img_input : float
+            Aparticle ROI with range 0-1 before preprocessing
 
-        Returns:
-            prediction (array) : the probability of the roi belonging to each class
+        Returns
+        -------
+        prediction : array
+            The probability of the roi belonging to each class
         '''
         img_preprocessed = self.preprocessing(img_input)
         prediction = self.predict(img_preprocessed)

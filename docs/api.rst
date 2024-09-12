@@ -78,6 +78,11 @@ Classify
 .. automodule:: pyopia.classify
     :members:
 
+ExampleData
+--------------
+.. automodule:: pyopia.exampledata
+    :members:
+
 Instruments
 ==================
 SilCam
