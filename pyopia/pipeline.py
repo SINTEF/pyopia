@@ -43,9 +43,10 @@ class Pipeline():
     This is intended for use in looping through several files during processing, so run can be
     called multiple times with different filenames.
 
-    See Also
+    Examples
     --------
-    Examples of setting up and running a pipeline,
+
+    Examples of setting up and running a pipeline
     can be found for SilCam `here <https://github.com/SINTEF/pyopia/blob/main/notebooks/pipeline-holo.ipynb>`_,
     and holographic analysis `here <https://github.com/SINTEF/pyopia/blob/main/notebooks/pipeline-holo.ipynb>`_.
 
