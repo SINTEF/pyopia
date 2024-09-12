@@ -16,15 +16,7 @@ from pyopia.pipeline import Pipeline
 
 
 class SilcamSimulator():
-    def __init__(self, total_volume_concentration=1000,
-                 d50=1000,
-                 MinD=10,
-                 PIX_SIZE=28,
-                 PATH_LENGTH=40,
-                 imx=2048,
-                 imy=2448,
-                 nims=50):
-        '''SilCam simulator
+    '''SilCam simulator
 
         Parameters
         ----------
@@ -45,20 +37,28 @@ class SilcamSimulator():
         nims : int, optional
             number of images to simulate, by default 50
 
-        Example:
-        --------
+        Example
+        -------
 
-        ```python
-        from pyopia.simulator.silcam import SilcamSimulator
+        .. code-block:: python
 
-        sim = SilcamSimulator()
-        sim.check_convergence()
-        sim.synthesize()
-        sim.process_synthetic_image()
-        sim.plot()
-        ```
+            from pyopia.simulator.silcam import SilcamSimulator
 
-        '''
+            sim = SilcamSimulator()
+            sim.check_convergence()
+            sim.synthesize()
+            sim.process_synthetic_image()
+            sim.plot()
+
+    '''
+    def __init__(self, total_volume_concentration=1000,
+                 d50=1000,
+                 MinD=10,
+                 PIX_SIZE=28,
+                 PATH_LENGTH=40,
+                 imx=2048,
+                 imy=2448,
+                 nims=50):
         self.total_volume_concentration = total_volume_concentration
         self.d50 = d50
         self.MinD = MinD
@@ -98,7 +98,7 @@ class SilcamSimulator():
         '''Check statistical convergence of randomly selected size distributions
         over the `nims`number of images
 
-        Attributes added by method
+        Parameters
         ----------
         data['volume_distribution'] : array
             volume distribution of shape (nims, dias)
@@ -178,7 +178,7 @@ class SilcamSimulator():
             Image file extension to look for within the folder specified by `database_path`
             (must be a type that is loadable by skimage.io.imread() e.g. png of tiff), by default 'tiff'
 
-        Attributes added by method
+        Parameters
         ----------
         data['synthetic_image_data']['image'] : array
             synthetic image
@@ -235,7 +235,7 @@ class SilcamSimulator():
     def process_synthetic_image(self):
         '''Put the synthetic image `data['synthetic_image_data']['image']` through a basic pyopia processing pipeline
 
-        Attributes added by method
+        Parameters
         ----------
         data['synthetic_image_data']['pyopia_processed_volume_distribution'] : array
             pyopia processed volume distribution associated with `dias`size classes
