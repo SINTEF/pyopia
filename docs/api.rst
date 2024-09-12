@@ -19,6 +19,7 @@ API documentation
 * `Plotting`_
 * `IO`_
 * `Classify`_
+* `ExampleData`_
 
 **Instrument-Specific**
 

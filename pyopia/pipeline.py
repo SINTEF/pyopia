@@ -19,6 +19,8 @@ logger = logging.getLogger()
 class Pipeline():
     '''The processing pipeline class
 
+    Note
+    ----
     The classes called in the Pipeline steps can be modified, and the names of the steps changed.
     New steps can be added or deleted as required.
 
@@ -41,6 +43,8 @@ class Pipeline():
     This is intended for use in looping through several files during processing, so run can be
     called multiple times with different filenames.
 
+    See Also
+    --------
     Examples of setting up and running a pipeline,
     can be found for SilCam `here <https://github.com/SINTEF/pyopia/blob/main/notebooks/pipeline-holo.ipynb>`_,
     and holographic analysis `here <https://github.com/SINTEF/pyopia/blob/main/notebooks/pipeline-holo.ipynb>`_.
