@@ -481,15 +481,10 @@ def statextract(imbw, timestamp, imc,
 class Segment():
     '''PyOpia pipline-compatible class for calling segment
 
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.im_corrected`
 
-        containing the following keys:
-
-        :attr:`pyopia.pipeline.Data.im_corrected`
-
-    Parameters:
+    Parameters
     ----------
     minimum_area : (int, optional)
         minimum number of pixels for particle detection. Defaults to 12.
@@ -501,9 +496,9 @@ class Segment():
         The key in Pipeline.data of the image to be segmented.
         Defaults to 'im_corrected'
 
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
+    Returns
+    -------
+    data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
         :attr:`pyopia.pipeline.Data.imbw`
@@ -529,19 +524,12 @@ class Segment():
 class CalculateStats():
     '''PyOpia pipline-compatible class for calling statextract
 
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.imbw`
+        - :attr:`pyopia.pipeline.Data.timestamp`
+        - :attr:`pyopia.pipeline.Data.cl`
 
-        containing the following keys:
-
-        :attr:`pyopia.pipeline.Data.imbw`
-
-        :attr:`pyopia.pipeline.Data.timestamp`
-
-        :attr:`pyopia.pipeline.Data.cl`
-
-    Parameters:
+    Parameters
     ----------
     max_coverage : (int, optional)
         percentage of the image that is allowed to be filled by particles. Defaults to 30.
@@ -560,9 +548,9 @@ class CalculateStats():
         Key of an image in Pipeline.data that is used for outputting ROIs and passing to the classifier.
         Defaults to 'im_corrected'
 
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
+    Returns
+    -------
+    data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
         :attr:`pyopia.pipeline.Data.stats`
@@ -606,23 +594,17 @@ class CalculateStats():
 class CalculateImageStats():
     '''PyOpia pipline-compatible class for collecting whole-image statistics
 
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.stats`
+        - :attr:`pyopia.pipeline.Data.timestamp`
 
-        containing the following keys:
-
-        :attr:`pyopia.pipeline.Data.stats`
-
-        :attr:`pyopia.pipeline.Data.timestamp`
-
-    Parameters:
+    Parameters
     ----------
     None
 
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
+    Returns
+    -------
+    data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
         :attr:`pyopia.pipeline.Data.image_stats`

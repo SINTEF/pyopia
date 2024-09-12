@@ -8,7 +8,7 @@ def ini_background(bgfiles, load_function):
     '''
     Create and initial background stack and average image
 
-    Parameters:
+    Parameters
     -----------
     bgfiles : list
         List of strings of filenames to be used in background creation
@@ -39,7 +39,7 @@ def shift_bgstack_accurate(bgstack, imbg, imnew):
     The new background is calculated slowly by computing the mean of all images
     in the background stack.
 
-    Parameters:
+    Parameters
     -----------
     bgstack : list
         list of all images in the background stack
@@ -69,9 +69,9 @@ def shift_bgstack_fast(bgstack, imbg, imnew):
     adding the new image (both scaled by the stacklength).
     This is close to a running mean, but not quite.
 
-    Parameters:
+    Parameters
     -----------
-    bgstac : list
+    bgstack : list
         list of all images in the background stack
     imbg : uint8
         background image
@@ -102,7 +102,7 @@ def correct_im_accurate(imbg, imraw):
     There is a small chance of clipping of imc in both crushed blacks and blown
     highlights if the background or raw images are very poorly obtained
 
-    Parameters:
+    Parameters
     -----------
     imbg : float64
         background averaged image
@@ -131,7 +131,7 @@ def correct_im_fast(imbg, imraw):
     There is high potential for clipping of imc in both crushed blacks an blown
     highlights, especially if the background or raw images are not properly obtained
 
-    Parameters:
+    Parameters
     -----------
     imraw : array
         raw image
@@ -158,7 +158,7 @@ def shift_and_correct(bgstack, imbg, imraw, stacklength, real_time_stats=False):
 
     This is a wrapper for shift_bgstack and correct_im
 
-    Parameters:
+    Parameters
     -----------
     bgstack : list
         list of all images in the background stack
@@ -200,16 +200,11 @@ class CorrectBackgroundAccurate():
     to this class, and the skip_next_steps flag is set in the pipeline Data. No background correction
     is performed during these steps.
 
-    Pipeline input data:
-    --------------------
-    :class:`pyopia.pipeline.Data`
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.imraw`
 
-        containing the following keys:
-
-        :attr:`pyopia.pipeline.Data.imraw`
-
-    Parameters:
-    -----------
+    Parameters
+    ----------
     bgshift_function : (string, optional)
         Function used to shift the background. Defaults to passing (i.e. static background)
         Available options are 'accurate', 'fast', or 'pass' to apply a statick background correction:
@@ -225,9 +220,9 @@ class CorrectBackgroundAccurate():
         The key in Pipeline.data of the image to be background corrected.
         Defaults to 'imraw'
 
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
+    Returns
+    -------
+    data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
         :attr:`pyopia.pipeline.Data.im_corrected`
@@ -237,11 +232,11 @@ class CorrectBackgroundAccurate():
 
         :attr:`pyopia.pipeline.Data.imbg`
 
-    Example pipeline uses:
-    ----------------------
+    Examples
+    --------
     Apply moving average using :func:`pyopia.background.shift_bgstack_accurate` :
 
-    .. code-block:: python
+    .. code-block:: toml
 
         [steps.correctbackground]
         pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
@@ -250,7 +245,7 @@ class CorrectBackgroundAccurate():
 
     Apply static background correction:
 
-    .. code-block:: python
+    .. code-block:: toml
 
         [steps.correctbackground]
         pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
@@ -311,21 +306,16 @@ class CorrectBackgroundNone():
     This simply makes `data['im_corrected'] = data['imraw'] in the pipeline.
     This simply makes `data['im_corrected'] = data['imraw'] in the pipeline.
 
-    Pipeline input data:
-    --------------------
-    :class:`pyopia.pipeline.Data`
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.imraw`
 
-        containing the following keys:
-
-        :attr:`pyopia.pipeline.Data.imraw`
-
-    Parameters:
+    Parameters
     -----------
-    none
+    None
 
-    Returns:
+    Returns
     --------
-    :class:`pyopia.pipeline.Data`
+    data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
         :attr:`pyopia.pipeline.Data.im_corrected`
@@ -335,7 +325,7 @@ class CorrectBackgroundNone():
     ----------------------
     Don't apply any background correction after image load step :
 
-    .. code-block:: python
+    .. code-block:: toml
 
         [steps.nobackground]
         pipeline_class = 'pyopia.background.CorrectBackgroundNone'

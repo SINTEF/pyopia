@@ -7,21 +7,17 @@ import numpy as np
 class RectangularImageMask():
     '''PyOpia pipline-compatible class for masking out part of the raw image.
 
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
-        containing the following keys:
+        Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.imraw`
 
-        :attr:`pyopia.pipeline.Data.imraw`
-
-    Parameters:
-    -----------
+    Parameters
+    ----------
     mask_bbox : (list, optional)
         Pixel corner coordinates of rectangle to mask (image outside the rectangle is set to 0)
 
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
+    Returns
+    -------
+    data : :class:`pyopia.pipeline.Data`
         containing the new key:
 
         :attr:`pyopia.pipeline.Data.im_masked`
@@ -31,7 +27,7 @@ class RectangularImageMask():
     ----------------------
     Put this in your pipeline right after load step to mask out border outside specified pixel coordinates:
 
-    .. code-block:: python
+    .. code-block:: toml
 
         [steps.mask]
         pipeline_class = 'pyopia.instrument.common.RectangularImageMask'

@@ -10,3 +10,4 @@ readthedocs-sphinx-search
 myst-nb
 jupyter_book
 ipykernel>=6.19.4
+tensorflow==2.16.2
