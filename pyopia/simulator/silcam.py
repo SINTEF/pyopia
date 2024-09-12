@@ -97,7 +97,7 @@ class SilcamSimulator():
         '''Check statistical convergence of randomly selected size distributions
         over the `nims`number of images
 
-        Attributes
+        Attributes added by method
         ----------
         data['volume_distribution'] : array
             volume distribution of shape (nims, dias)
@@ -164,7 +164,7 @@ class SilcamSimulator():
     def synthesize(self):
         '''Synthesize an image and measure droplets
 
-        Attributes
+        Attributes added by method
         ----------
         data['synthetic_image_data']['image'] : array
             synthetic image
@@ -205,7 +205,7 @@ class SilcamSimulator():
     def process_synthetic_image(self):
         '''Put the synthetic image `data['synthetic_image_data']['image']` through a basic pyopia processing pipeline
 
-        Attributes
+        Attributes added by method
         ----------
         data['synthetic_image_data']['pyopia_processed_volume_distribution'] : array
             pyopia processed volume distribution associated with `dias`size classes
