@@ -146,8 +146,8 @@ class Reconstruct():
     inverse_output_option :  int
         switch to control optional scaling of output intensity (0=square/default,1=linear)
 
-    Returns:
-    --------
+    Returns
+    -------
     data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
@@ -622,8 +622,8 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
     output_prefix : str
         output_prefix
 
-    Returns:
-    --------
+    Returns
+    -------
     dict
         pipeline_config toml dict
     '''

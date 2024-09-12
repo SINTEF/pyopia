@@ -11,10 +11,12 @@ import skimage.io
 def timestamp_from_filename(filename):
     '''get a pandas timestamp from a UVP vignette image filename
 
-    Args:
+    Parameters
+    ----------
         filename (string): UVP filename (.png)
 
-    Returns:
+    Returns
+    -------
         timestamp: timestamp from pandas.to_datetime()
     '''
 
@@ -51,8 +53,8 @@ class UVPLoad():
     Required keys in :class:`pyopia.pipeline.Data`:
         - :attr:`pyopia.pipeline.Data.filename`
 
-    Returns:
-    --------
+    Returns
+    -------
     data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
@@ -86,8 +88,8 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
     output_prefix : str
         output_prefix
 
-    Returns:
-    --------
+    Returns
+    -------
     dict
         pipeline_config toml dict
     '''

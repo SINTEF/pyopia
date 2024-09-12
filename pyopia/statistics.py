@@ -523,7 +523,8 @@ def get_j(dias, number_distribution):
     number_distribution : array
         number distribution in number per micron per litre
 
-    Returns:
+    Returns
+    -------
     junge_slope : float
         Junge slope from fitting of psd between 150 and 300um
     '''
@@ -977,7 +978,8 @@ def vd_to_nd(volume_distribution, dias):
 def vd_to_nc(volume_distribution, dias):
     '''calculate number concentration from volume distribution
 
-    Args:
+    Parameters
+    ----------
     volume_distribution : array
         particle volume distribution calculated from vd_from_stats()
     dias : array

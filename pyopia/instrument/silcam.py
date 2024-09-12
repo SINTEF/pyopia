@@ -11,10 +11,12 @@ from skimage.exposure import rescale_intensity
 def timestamp_from_filename(filename):
     '''get a pandas timestamp from a silcam filename
 
-    Args:
+    Parameters
+    ----------
         filename (string): silcam filename (.silc)
 
-    Returns:
+    Returns
+    -------
         timestamp: timestamp from pandas.to_datetime()
     '''
 
@@ -76,8 +78,8 @@ class ImagePrep():
     Required keys in :class:`pyopia.pipeline.Data`:
         - :attr:`pyopia.pipeline.Data.img`
 
-    Returns:
-    --------
+    Returns
+    -------
     data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
@@ -112,8 +114,8 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
     output_prefix : str
         output_prefix
 
-    Returns:
-    --------
+    Returns
+    -------
     dict
         pipeline_config toml dict
     '''

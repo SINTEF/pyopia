@@ -10,14 +10,14 @@ class RectangularImageMask():
         Required keys in :class:`pyopia.pipeline.Data`:
         - :attr:`pyopia.pipeline.Data.imraw`
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     mask_bbox : (list, optional)
         Pixel corner coordinates of rectangle to mask (image outside the rectangle is set to 0)
 
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
+    Returns
+    -------
+    data : :class:`pyopia.pipeline.Data`
         containing the new key:
 
         :attr:`pyopia.pipeline.Data.im_masked`
