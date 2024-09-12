@@ -94,6 +94,18 @@ class SilcamSimulator():
         return (a / n) * (x / n) ** (a - 1) * np.exp(-(x / n) ** a)
 
     def check_convergence(self):
+        '''Check statistical convergence of randomly selected size distributions
+        over the `nims`number of images
+
+        Attributes added by method
+        ----------
+        data['volume_distribution'] : array
+            volume distribution of shape (nims, dias)
+        data['cumulative_volume_concentration'] : float
+            cumulative mean volume concentration of length `nims`
+        data['cumulative_d50'] : float
+            cumulative average d50 of length `nims`
+        '''
         self.data['weibull_x'] = np.linspace(np.min(self.dias), np.max(self.dias), 10000)
         self.data['weibull_y'] = self.weibull_distribution(self.data['weibull_x'])
 
@@ -150,7 +162,14 @@ class SilcamSimulator():
                                                                            self.dias)
 
     def synthesize(self):
-        '''synthesize an image and measure droplets
+        '''Synthesize an image and measure droplets
+
+        Attributes added by method
+        ----------
+        data['synthetic_image_data']['image'] : array
+            synthetic image
+        data['synthetic_image_data']['input_volume_distribution'] : array
+            Volume distribution used to create the synthetic image
         '''
         nc = int(sum(self.data['number_distribution']))  # number concentration
 
@@ -184,6 +203,13 @@ class SilcamSimulator():
         self.data['synthetic_image_data']['input_volume_distribution'] = log_vd
 
     def process_synthetic_image(self):
+        '''Put the synthetic image `data['synthetic_image_data']['image']` through a basic pyopia processing pipeline
+
+        Attributes added by method
+        ----------
+        data['synthetic_image_data']['pyopia_processed_volume_distribution'] : array
+            pyopia processed volume distribution associated with `dias`size classes
+        '''
         pipeline_config = {
             'general': {
                 'raw_files': '',

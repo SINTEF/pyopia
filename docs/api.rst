@@ -90,3 +90,10 @@ Common
 -------------
 .. automodule:: pyopia.instrument.common
     :members:
+
+Simulator
+==================
+SilCam
+--------------
+.. automodule:: pyopia.simulator.silcam
+    :members:
