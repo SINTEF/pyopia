@@ -6,6 +6,7 @@ import skimage.draw
 import matplotlib.pyplot as plt
 import skimage.util
 import pandas as pd
+import os
 
 import pyopia.statistics
 import pyopia.plotting
@@ -199,7 +200,7 @@ class SilcamSimulator():
 
         if database_path != '':
             from pyopia.pipeline import FilesToProcess
-            file_list = FilesToProcess(database_path + '/*.' + database_image_ext).files
+            file_list = FilesToProcess(os.path.join(database_path, '*.' + database_image_ext)).files
 
         self.example_images = []
         for radius in radii:
