@@ -321,7 +321,7 @@ class StatsToDisc():
     -------
     Example config for pipeline useage:
 
-    .. code-block:: python
+    .. code-block:: toml
 
         [steps.output]
         pipeline_class = 'pyopia.io.StatsToDisc'

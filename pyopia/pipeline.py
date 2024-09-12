@@ -95,7 +95,7 @@ class Pipeline():
         if you loop through several filenames! It is recommended to use this step in the pipeline
         for properly appending data into NetCDF format when processing several files.
 
-        .. code-block:: python
+        .. code-block:: toml
 
             [steps.output]
             pipeline_class = 'pyopia.io.StatsDisc'

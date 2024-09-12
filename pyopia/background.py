@@ -236,7 +236,7 @@ class CorrectBackgroundAccurate():
     --------
     Apply moving average using :func:`pyopia.background.shift_bgstack_accurate` :
 
-    .. code-block:: python
+    .. code-block:: toml
 
         [steps.correctbackground]
         pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
@@ -245,7 +245,7 @@ class CorrectBackgroundAccurate():
 
     Apply static background correction:
 
-    .. code-block:: python
+    .. code-block:: toml
 
         [steps.correctbackground]
         pipeline_class = 'pyopia.background.CorrectBackgroundAccurate'
@@ -325,7 +325,7 @@ class CorrectBackgroundNone():
     ----------------------
     Don't apply any background correction after image load step :
 
-    .. code-block:: python
+    .. code-block:: toml
 
         [steps.nobackground]
         pipeline_class = 'pyopia.background.CorrectBackgroundNone'

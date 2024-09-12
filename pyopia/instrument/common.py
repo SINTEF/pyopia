@@ -27,7 +27,7 @@ class RectangularImageMask():
     ----------------------
     Put this in your pipeline right after load step to mask out border outside specified pixel coordinates:
 
-    .. code-block:: python
+    .. code-block:: toml
 
         [steps.mask]
         pipeline_class = 'pyopia.instrument.common.RectangularImageMask'
