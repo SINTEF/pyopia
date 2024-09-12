@@ -48,16 +48,12 @@ class UVPLoad():
     and extracting the timestamp using
     :func:`pyopia.instrument.uvp.timestamp_from_filename`
 
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
-        containing the following keys:
-
-        :attr:`pyopia.pipeline.Data.filename`
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.filename`
 
     Returns:
     --------
-    :class:`pyopia.pipeline.Data`
+    data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
         :attr:`pyopia.pipeline.Data.timestamp`

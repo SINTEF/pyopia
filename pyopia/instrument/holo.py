@@ -134,6 +134,9 @@ class Load():
 class Reconstruct():
     '''PyOpia pipline-compatible class for reconstructing a single holo image
 
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.im_corrected`
+
     Parameters
     ----------
     stack_clean : float
@@ -143,16 +146,9 @@ class Reconstruct():
     inverse_output_option :  int
         switch to control optional scaling of output intensity (0=square/default,1=linear)
 
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
-        containing the following keys:
-
-        :attr:`pyopia.pipeline.Data.im_corrected`
-
     Returns:
     --------
-    :class:`pyopia.pipeline.Data`
+    data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
         :attr:`pyopia.pipeline.Data.im_stack`
@@ -440,13 +436,8 @@ def find_focus_sobel(im_stack, bbox, increase_depth_of_field):
 class Focus():
     '''PyOpia pipline-compatible class for creating a focussed image from an image stack
 
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
-
-        containing the following keys:
-
-        :attr:`pyopia.pipeline.Data.im_stack`
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.im_stack`
 
     Parameters
     ----------

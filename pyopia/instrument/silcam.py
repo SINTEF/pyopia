@@ -46,16 +46,12 @@ class SilCamLoad():
     and extracting the timestamp using
     :func:`pyopia.instrument.silcam.timestamp_from_filename`
 
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
-        containing the following keys:
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.filename`
 
-        :attr:`pyopia.pipeline.Data.filename`
-
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
+    Returns
+    -------
+    data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
         :attr:`pyopia.pipeline.Data.timestamp`
@@ -77,16 +73,12 @@ class SilCamLoad():
 class ImagePrep():
     '''PyOpia pipline-compatible class for preparing silcam images for further analysis
 
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
-        containing the following keys:
-
-        :attr:`pyopia.pipeline.Data.img`
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.img`
 
     Returns:
     --------
-    :class:`pyopia.pipeline.Data`
+    data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
         :attr:`pyopia.pipeline.Data.im_minimum`

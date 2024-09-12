@@ -7,12 +7,8 @@ import numpy as np
 class RectangularImageMask():
     '''PyOpia pipline-compatible class for masking out part of the raw image.
 
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
-        containing the following keys:
-
-        :attr:`pyopia.pipeline.Data.imraw`
+        Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.imraw`
 
     Parameters:
     -----------

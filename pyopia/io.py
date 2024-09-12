@@ -314,9 +314,11 @@ class StatsToDisc():
 
     Returns
     -------
-    data : dict
-        data from pipeline
+    data : :class:`pyopia.pipeline.Data`
+        data from the pipeline
 
+    Example
+    -------
     Example config for pipeline useage:
 
     .. code-block:: python
