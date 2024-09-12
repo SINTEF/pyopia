@@ -19,6 +19,7 @@ API documentation
 * `Plotting`_
 * `IO`_
 * `Classify`_
+* `ExampleData`_
 
 **Instrument-Specific**
 
@@ -76,6 +77,11 @@ IO
 Classify
 --------------
 .. automodule:: pyopia.classify
+    :members:
+
+ExampleData
+--------------
+.. automodule:: pyopia.exampledata
     :members:
 
 Instruments
