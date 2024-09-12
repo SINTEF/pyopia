@@ -24,7 +24,11 @@ API documentation
 
 * `SilCam`_
 * `Holo`_
+* `UVP`_
 
+**Simulators**
+
+* `SilCam-Simulator`_
 
 **Indices and tables**
 
@@ -86,14 +90,19 @@ Holo
 .. automodule:: pyopia.instrument.holo
     :members:
 
+UVP
+--------------
+.. automodule:: pyopia.instrument.uvp
+    :members:
+
 Common
 -------------
 .. automodule:: pyopia.instrument.common
     :members:
 
-Simulator
+Simulators
 ==================
-SilCam
+Silcam-Simulator
 --------------
 .. automodule:: pyopia.simulator.silcam
     :members:
