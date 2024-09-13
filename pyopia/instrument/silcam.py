@@ -62,7 +62,11 @@ def load_rgb8(filename):
 
 
 def load_image(filename):
-    '''load an RGB .silc file from disc
+    '''.. deprecated:: 2.4.6
+        :func:`pyopia.instrument.silcam.load_image` will be removed in version 3.0.0, it is replaced by
+        :func:`pyopia.instrument.silcam.load_rgb8` because this is more explicit to that image type.
+
+    Load an RGB .silc file from disc
 
     Parameters
     ----------
@@ -73,10 +77,6 @@ def load_image(filename):
     -------
     array
         raw image float between 0-1
-
-    .. deprecated:: 2.4.6
-          :func:`pyopia.instrument.silcam.load_image` will be removed in version 3.0.0, it is replaced by
-          :func:`pyopia.instrument.silcam.load_rgb8` because this is more explicit to that image type.
     '''
 
     return load_rgb8(filename)
