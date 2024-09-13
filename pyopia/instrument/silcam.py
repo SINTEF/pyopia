@@ -40,8 +40,6 @@ def load_mono8(filename):
         raw image float between 0-1
     '''
     im_mono = np.load(filename, allow_pickle=False).astype(np.float64) / 255
-    #img = np.zeros((np.shape(im_mono)[0], np.shape(im_mono)[1], 3), dtype=np.float64)
-    #for channel in range(3):
     img = im_mono[:, :, 0]
     return img
 
@@ -75,13 +73,14 @@ def load_image(filename):
     -------
     array
         raw image float between 0-1
-        
+
     .. deprecated:: 2.4.6
           :func:`pyopia.instrument.silcam.load_image` will be removed in version 3.0.0, it is replaced by
           :func:`pyopia.instrument.silcam.load_rgb8` because this is more explicit to that image type.
     '''
-    
+
     return load_rgb8(filename)
+
 
 class SilCamLoad():
     '''PyOpia pipline-compatible class for loading a single silcam image
@@ -124,7 +123,7 @@ class SilCamLoad():
         data['timestamp'] = timestamp_from_filename(data['filename'])
         data['imraw'] = self.load_image(data['filename'])
         return data
-    
+
     def load_image(self, filename):
         if self.image_format == 'infer':
             file_extension = os.path.splitext(os.path.basename(filename))[-1]
