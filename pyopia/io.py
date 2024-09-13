@@ -225,10 +225,10 @@ def merge_and_save_mfdataset(path_to_data, prefix='*'):
     output_name = os.path.join(path_to_data, prefix_out)
 
     logging.info(f'writing {output_name}')
-    write_stats(xstats,
-                output_name,
-                settings,
-                image_stats=image_stats)
+    encoding = {k: {'dtype': 'str'} for k in ['export name', 'holo_filename'] if k in xstats.data_vars}
+    xstats.to_netcdf(output_name + '-STATS.nc', encoding=encoding, engine=NETCDF_ENGINE, format='NETCDF4')
+    if image_stats is not None:
+        image_stats.to_netcdf(output_name + '-STATS.nc', group='image_stats', mode='a', engine=NETCDF_ENGINE)
     logging.info(f'writing {output_name} done.')
 
 
