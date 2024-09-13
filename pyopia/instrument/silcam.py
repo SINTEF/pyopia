@@ -44,7 +44,10 @@ def load_mono8(filename):
     im_mono = np.load(filename, allow_pickle=False).astype(np.float64) / 255
     image_shape = np.shape(im_mono)
     if len(image_shape) > 2:
-        img = im_mono[:, :, 0]
+        if image_shape[2] == 1:
+            img = im_mono[:, :, 0]
+        else:
+            raise RuntimeError('Invalid image dimension')
     return img
 
 
