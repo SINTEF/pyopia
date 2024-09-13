@@ -84,7 +84,6 @@ def load_image(filename):
 
 class SilCamLoad():
     '''PyOpia pipline-compatible class for loading a single silcam image
-    using :func:`pyopia.instrument.silcam.load_image`
     and extracting the timestamp using
     :func:`pyopia.instrument.silcam.timestamp_from_filename`
 
@@ -94,12 +93,14 @@ class SilCamLoad():
     Parameters
     ----------
     image_format : str, optional
-        .silc file format. Can be either 'infer', 'rgb8' or 'mono8'.
+        Image file format. Can be either 'infer', 'rgb8' or 'mono8', by default 'infer'.
+
+    Note
+    ----
         'infer' uses the file extension to determine the image format using the following convention:
          - '.silc' for RGB8
          - '.msilc' for MONO8
          - '.bmp' for using skimage.io.imread
-        , by default 'infer'
 
     Returns
     -------
