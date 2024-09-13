@@ -29,6 +29,8 @@ def timestamp_from_filename(filename):
 def load_mono8(filename):
     '''load a mono8 .msilc file from disc
 
+    Assumes 8-bit mono image in range 0-255
+
     Parameters
     ----------
     filename : string
@@ -40,12 +42,16 @@ def load_mono8(filename):
         raw image float between 0-1
     '''
     im_mono = np.load(filename, allow_pickle=False).astype(np.float64) / 255
-    img = im_mono[:, :, 0]
+    image_shape = np.shape(im_mono)
+    if len(image_shape) > 2:
+        img = im_mono[:, :, 0]
     return img
 
 
 def load_rgb8(filename):
     '''load an RGB .silc file from disc
+
+    Assumes 8-bit RGB image in range 0-255
 
     Parameters
     ----------
