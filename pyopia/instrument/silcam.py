@@ -52,7 +52,7 @@ def load_mono8(filename):
 
 
 def load_bayer_rgb8(filename):
-    '''load an RG8 .bsilc file from disc
+    '''load an RG8 .bsilc file from disc and convert it to RGB image
     
     Assumes 8-bit Bayer-RG (Red-Green) image in range 0-255
 
@@ -201,13 +201,14 @@ class SilCamLoad():
     Parameters
     ----------
     image_format : str, optional
-        Image file format. Can be either 'infer', 'rgb8' or 'mono8', by default 'infer'.
+        Image file format. Can be either 'infer', 'rgb8', 'bayer_rg8' or 'mono8', by default 'infer'.
 
     Note
     ----
         'infer' uses the file extension to determine the image format using the following convention:
          - '.silc' for RGB8
          - '.msilc' for MONO8
+         - '.bsilc' for BAYER_RG8
          - '.bmp' for using skimage.io.imread
 
     Returns
