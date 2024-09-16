@@ -67,7 +67,7 @@ def load_brg8(filename):
         raw image float between 0-1
     '''
     img_bayer = np.load(filename, allow_pickle=False)[:,:,0].astype(np.int16)
-    M, N = img_bayer.shape[:2]
+    M, N = img_bayer.shape[:2]   # Number of pixels in image height and width
     # img is a reconstructed RGB image
     img = np.zeros((M, N, 3), dtype=np.uint8)
     img[0:M:2, 0:N:2,0] = img_bayer[0:M:2, 0:N:2]  # Red pixels
@@ -133,9 +133,6 @@ def load_brg8(filename):
     
     img = img.astype(np.float64) / 255
     return img
-
-
-
 
 
 def load_rgb8(filename):
