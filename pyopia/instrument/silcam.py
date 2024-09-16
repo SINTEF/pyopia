@@ -51,7 +51,7 @@ def load_mono8(filename):
     return img
 
 
-def load_brg8(filename):
+def load_bayer_rgb8(filename):
     '''load an RG8 .bsilc file from disc
     
     Assumes 8-bit Bayer-RG (Red-Green) image in range 0-255
@@ -209,7 +209,7 @@ class SilCamLoad():
         self.image_format = image_format
         self.extension_load = {'.silc': load_rgb8,
                                '.msilc': load_mono8,                               
-                               '.bsilc': load_brg8,
+                               '.bsilc': load_bayer_rgb8,
                                '.bmp': skimage.io.imread}
         self.format_load = {'RGB8': load_rgb8,
                             'MONO8': load_mono8}
