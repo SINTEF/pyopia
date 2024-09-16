@@ -66,8 +66,13 @@ def load_bayer_rgb8(filename):
     array
         raw image float between 0-1
     '''
-    img_bayer = np.load(filename, allow_pickle=False)[:,:,0].astype(np.int16)
+    img_bayer = np.load(filename, allow_pickle=False).astype(np.int16)
+    if img_bayer.ndim == 3:
+        img_bayer = img_bayer[:,:,0]
+    
     M, N = img_bayer.shape[:2]   # Number of pixels in image height and width
+    img_bayer_min, img_bayer_max = np.min(img_bayer), np.max(img_bayer)
+
     # img is a reconstructed RGB image
     img = np.zeros((M, N, 3), dtype=np.uint8)
     img[0:M:2, 0:N:2,0] = img_bayer[0:M:2, 0:N:2]  # Red pixels
@@ -130,6 +135,10 @@ def load_bayer_rgb8(filename):
     # ***B pixel
     img[1:M-2:2, 1:N-2:2, 0] = (img_bayer[0:M-3:2, 0:N-3:2] + img_bayer[2:M-1:2, 0:N-3:2] + img_bayer[2:M-1:2, 2:N-1:2] + img_bayer[0:M-3:2, 2:N-1:2] + 2) // 4  # Interpolated R
     img[1:M-2:2, 1:N-2:2, 1] = (img_bayer[0:M-3:2, 1:N-2:2] + img_bayer[2:M-1:2, 1:N-2:2] + img_bayer[1:M-2:2, 0:N-3:2] + img_bayer[1:M-2:2, 2:N-1:2] + 2) // 4  # Interpolated G
+    img_min, img_max = np.min(img), np.max(img)
+    
+    if img_min < 0 or img_max > 255 or (img_max - img_bayer_max) != 0 or (img_min - img_bayer_min) != 0:
+        raise ValueError("The converted RGB image is not suitable for further analysis. Check the pixel intensity ranges of the input image.")
     
     img = img.astype(np.float64) / 255
     return img
