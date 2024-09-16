@@ -51,6 +51,93 @@ def load_mono8(filename):
     return img
 
 
+def load_brg8(filename):
+    '''load an RG8 .bsilc file from disc
+    
+    Assumes 8-bit Bayer-RG (Red-Green) image in range 0-255
+
+    Parameters
+    ----------
+    filename : string
+        filename to load
+
+    Returns
+    -------
+    array
+        raw image float between 0-1
+    '''
+    img_bayer = np.load(filename, allow_pickle=False)[:,:,0].astype(np.int16)
+    M, N = img_bayer.shape[:2]
+    # img is a reconstructed RGB image
+    img = np.zeros((M, N, 3), dtype=np.uint8)
+    img[0:M:2, 0:N:2,0] = img_bayer[0:M:2, 0:N:2]  # Red pixels
+    img[0:M:2, 1:N:2,1] = img_bayer[0:M:2, 1:N:2]  # Green pixels on the first row
+    img[1:M:2, 0:N:2,1] = img_bayer[1:M:2, 0:N:2]  # Green pixels on the second row
+    img[1:M:2, 1:N:2,2] = img_bayer[1:M:2, 1:N:2]  # Blue pixels
+
+    # Boundary pixels interpolation in the first and last rows
+    # ***Red pixels
+    img[0, 2:N-1:2, 1] = (img_bayer[1, 2:N-1:2] + img_bayer[0, 1:N-2:2] + img_bayer[0, 3:N:2] + 1) // 3  # Interpolated G
+    img[0, 2:N-1:2, 2] = (img_bayer[1, 1:N-2:2] + img_bayer[1, 3:N:2] + 1) // 2  # Interpolated B
+    # ***Green pixels (odd columns)
+    img[0, 1:N-2:2, 0] = (img_bayer[0, 0:N-3:2] + img_bayer[0, 2:N-1:2] + 1) // 2  # Interpolated R
+    img[0, 1:N-2:2, 2] = img_bayer[1, 1:N-2:2]  # Interpolated B
+    # ***Blue pixels
+    img[M-1, 1:N-2:2, 1] = (img_bayer[M-2, 1:N-2:2] + img_bayer[M-1, 0:N-3:2] + img_bayer[M-1, 2:N-1:2] + 1) // 3  # Interpolated G
+    img[M-1, 1:N-2:2, 0] = (img_bayer[M-2, 0:N-3:2] + img_bayer[M-2, 2:N-1:2] + 1) // 2  # Interpolated R
+    # ***Green pixels (even columns)
+    img[M-1,2:N-1:2, 2] = (img_bayer[M-1, 1:N-2:2] + img_bayer[M-1, 3:N:2] + 1) // 2  # Interpolated B
+    img[M-1,2:N-1:2, 0] = img_bayer[M-2, 2:N-1:2]  # Interpolated R
+    
+    # Boundary pixels interpolation in the first and last cols
+    # ***Red pixels
+    img[2:M-1:2, 0, 1] = (img_bayer[3:M:2, 0] + img_bayer[1:M-2:2, 0] + img_bayer[2:M-1:2, 1] + 1) // 3  # Interpolated G
+    img[2:M-1:2, 0, 2] = (img_bayer[3:M:2, 1] + img_bayer[1:M-2:2, 1] + 1) // 2  # Interpolated B
+    # ***Green pixels (odd columns)
+    img[1:M-2:2, 0, 0] = (img_bayer[0:M-3:2, 0] + img_bayer[2:M-1:2, 0] + 1) // 2  # Interpolated R
+    img[1:M-2:2, 0, 2] = img_bayer[1:M-2:2, 1]  # Interpolated B
+    # ***Blue pixels
+    img[1:M-2:2, N-1, 1] = (img_bayer[0:M-3:2, N-1] + img_bayer[2:M-1:2, N-1] + img_bayer[1:M-2:2, N-2] + 1) // 3  # Interpolated G
+    img[1:M-2:2, N-1, 0] = (img_bayer[0:M-3:2, N-2] + img_bayer[2:M-1:2, N-2] + 1) // 2  # Interpolated R
+    # ***Green pixels (even columns)
+    img[2:M-1:2, N-1, 0] = img_bayer[2:M-1:2, N-2]  # Interpolated R
+    img[2:M-1:2, N-1, 2] = (img_bayer[1:M-2:2, N-1]+img_bayer[3:M:2, N-1] + 1)//2  # Interpolated B
+
+    # Corner pixels interpolation
+    # *** top-left
+    img[0,0,1] =  (img_bayer[1, 0] + img_bayer[0, 1] + 1) // 2  # Interpolated G
+    img[0,0,2] =  img_bayer[1, 1]  # Interpolated B
+    # *** top-right
+    img[0,N-1,0] =  img_bayer[0, N-2]  # Interpolated R
+    img[0,N-1,2] =  img_bayer[1, N-1]  # Interpolated B
+    # *** bottom-left
+    img[M-1,0,0] =  img_bayer[M-2, 0]  # Interpolated R
+    img[M-1,0,2] =  img_bayer[M-1, 1]  # Interpolated B
+    # *** bottom-right
+    img[M-1,N-1,1] =  (img_bayer[M-2, N-1] + img_bayer[M-1, N-2] + 1) // 2  # Interpolated G
+    img[M-1,N-1,0] =  img_bayer[M-2, N-2]  # Interpolated R
+    
+    # Internal pixels interpolation
+    # ***G pixel on odd row, even column
+    img[1:M-2:2, 2:N-1:2, 0] = (img_bayer[0:M-3:2, 2:N-1:2] + img_bayer[2:M-1:2, 2:N-1:2] + 1) // 2  # Interpolated R
+    img[1:M-2:2, 2:N-1:2, 2] = (img_bayer[1:M-2:2, 1:N-2:2] + img_bayer[1:M-2:2, 3:N:2] + 1) // 2  # Interpolated B
+    # ***G pixel on even row, odd column
+    img[2:M-1:2, 1:N-2:2, 0] = (img_bayer[2:M-1:2, 0:N-3:2] + img_bayer[2:M-1:2, 2:N-1:2] + 1) // 2  # Interpolated R
+    img[2:M-1:2, 1:N-2:2, 2] = (img_bayer[1:M-2:2, 1:N-2:2] + img_bayer[3:M:2, 1:N-2:2] + 1) // 2  # Interpolated B
+    # ***R pixel
+    img[2:M-1:2, 2:N-1:2, 1] = (img_bayer[1:M-2:2, 2:N-1:2] + img_bayer[3:M:2, 2:N-1:2] + img_bayer[2:M-1:2, 1:N-2:2] + img_bayer[2:M-1:2, 3:N:2] + 2) // 4  # Interpolated G
+    img[2:M-1:2, 2:N-1:2, 2] = (img_bayer[1:M-2:2, 1:N-2:2] + img_bayer[3:M:2, 1:N-2:2] + img_bayer[3:M:2, 3:N:2] + img_bayer[1:M-2:2, 3:N:2] + 2) // 4  # Interpolated B
+    # ***B pixel
+    img[1:M-2:2, 1:N-2:2, 0] = (img_bayer[0:M-3:2, 0:N-3:2] + img_bayer[2:M-1:2, 0:N-3:2] + img_bayer[2:M-1:2, 2:N-1:2] + img_bayer[0:M-3:2, 2:N-1:2] + 2) // 4  # Interpolated R
+    img[1:M-2:2, 1:N-2:2, 1] = (img_bayer[0:M-3:2, 1:N-2:2] + img_bayer[2:M-1:2, 1:N-2:2] + img_bayer[1:M-2:2, 0:N-3:2] + img_bayer[1:M-2:2, 2:N-1:2] + 2) // 4  # Interpolated G
+    
+    img = img.astype(np.float64) / 255
+    return img
+
+
+
+
+
 def load_rgb8(filename):
     '''load an RGB .silc file from disc
 
@@ -124,7 +211,8 @@ class SilCamLoad():
     def __init__(self, image_format='infer'):
         self.image_format = image_format
         self.extension_load = {'.silc': load_rgb8,
-                               '.msilc': load_mono8,
+                               '.msilc': load_mono8,                               
+                               '.bsilc': load_brg8,
                                '.bmp': skimage.io.imread}
         self.format_load = {'RGB8': load_rgb8,
                             'MONO8': load_mono8}
