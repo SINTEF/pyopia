@@ -405,4 +405,5 @@ class StatsH5():
     StatsToDisc : class
         returns StatsToDisc class
     '''
-    return StatsToDisc()
+    def __call__(self, *args: os.Any, **kwds: os.Any) -> os.Any:
+        return StatsToDisc()
