@@ -67,8 +67,14 @@ def load_bayer_rgb8(filename):
         raw image float between 0-1
     '''
     img_bayer = np.load(filename, allow_pickle=False).astype(np.int16)
-    if img_bayer.ndim == 3:
-        img_bayer = img_bayer[:,:,0]
+    
+    # Check the image dimension
+    image_shape = np.shape(img_bayer)
+    if len(image_shape) > 2:
+        if image_shape[2] == 1:
+            img_bayer = img_bayer[:,:,0]
+        else:
+            raise RuntimeError('Invalid image dimension')
     
     M, N = img_bayer.shape[:2]   # Number of pixels in image height and width
     img_bayer_min, img_bayer_max = np.min(img_bayer), np.max(img_bayer)
