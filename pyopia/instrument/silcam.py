@@ -212,7 +212,7 @@ class SilCamLoad():
                                '.bsilc': load_bayer_rgb8,
                                '.bmp': skimage.io.imread}
         self.format_load = {'RGB8': load_rgb8,
-                            'MONO8': load_mono8}
+                            'MONO8': load_mono8,'BAYER_RG8': load_bayer_rgb8}
 
     def __call__(self, data):
         data['timestamp'] = timestamp_from_filename(data['filename'])
