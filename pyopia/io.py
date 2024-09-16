@@ -377,10 +377,32 @@ class StatsToDisc():
         return data
 
 
-StatsH5 = StatsToDisc
-
-
 def load_toml(toml_file):
+    '''Load a TOML settings file from file
+
+    Parameters
+    ----------
+    toml_file : str
+        TOML filename
+
+    Returns
+    -------
+    settings : dict
+        TOML settings
+    '''
     with open(toml_file, 'r') as f:
         settings = toml.load(f)
     return settings
+
+
+class StatsH5():
+    '''.. deprecated:: 2.4.8
+        :class:`pyopia.io.StatsH5` will be removed in version 3.0.0, it is replaced by
+        :class:`pyopia.io.StatsToDisc`.
+
+    Returns
+    -------
+    StatsToDisc : class
+        returns StatsToDisc class
+    '''
+    return StatsToDisc()
