@@ -395,7 +395,7 @@ def load_toml(toml_file):
     return settings
 
 
-class StatsH5():
+def StatsH5():
     '''.. deprecated:: 2.4.8
         :class:`pyopia.io.StatsH5` will be removed in version 3.0.0, it is replaced by
         :class:`pyopia.io.StatsToDisc`.
@@ -405,5 +405,4 @@ class StatsH5():
     StatsToDisc : class
         returns StatsToDisc class
     '''
-    def __call__(self, *args: os.Any, **kwds: os.Any) -> os.Any:
-        return StatsToDisc()
+    return StatsToDisc()
