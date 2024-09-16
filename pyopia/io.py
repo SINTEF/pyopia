@@ -85,12 +85,37 @@ def write_stats(stats,
         elif not append:
             datafilename += ('-Image-D' +
                              str(xstats['timestamp'][0].values).replace('-', '').replace(':', '').replace('.', '-'))
-        encoding = {k: {'dtype': 'str'} for k in ['export name', 'holo_filename'] if k in xstats.data_vars}
+        encoding = setup_xstats_encoding(xstats)
         xstats.to_netcdf(datafilename + '-STATS.nc', encoding=encoding, engine=NETCDF_ENGINE, format='NETCDF4')
 
-        # If we have image statistics, add this to a group
+        # If we have image statistics (summary data for each raw image), add the image_stats a group
         if image_stats is not None:
             image_stats.to_xarray().to_netcdf(datafilename + '-STATS.nc', group='image_stats', mode='a', engine=NETCDF_ENGINE)
+
+
+def setup_xstats_encoding(xstats, string_vars=['export name', 'holo_filename']):
+    '''Setup encoding for writing to NetCDF, where string variables are explicitly defined as string types
+
+    Notes
+    -----
+    Setting up encoding like this for xstats is needed because default behaviour is to set everything as float if there is no
+    value, so in a situation where the first image contains no particles we must ensure that string variables are set as string
+    types.
+
+    Parameters
+    ----------
+    xstats : xarray.Dataset
+        Xarray version of stats dataframe, including metadata
+    string_vars : list, optional
+        list of string columns in xstats, by default ['export name', 'holo_filename']
+
+    Returns
+    -------
+    encoding : dict
+        'encoding' input argument to be given to xstats.to_netcdf()
+    '''
+    encoding = {k: {'dtype': 'str'} for k in string_vars if k in xstats.data_vars}
+    return encoding
 
 
 def make_xstats(stats, toml_steps):
@@ -225,8 +250,10 @@ def merge_and_save_mfdataset(path_to_data, prefix='*'):
     output_name = os.path.join(path_to_data, prefix_out)
 
     logging.info(f'writing {output_name}')
-    encoding = {k: {'dtype': 'str'} for k in ['export name', 'holo_filename'] if k in xstats.data_vars}
+    # save the particle statistics (xstats) to NetCDF
+    encoding = setup_xstats_encoding(xstats)
     xstats.to_netcdf(output_name + '-STATS.nc', encoding=encoding, engine=NETCDF_ENGINE, format='NETCDF4')
+    # if summary data for each raw image are available (image_stats), save this into the image_stats group
     if image_stats is not None:
         image_stats.to_netcdf(output_name + '-STATS.nc', group='image_stats', mode='a', engine=NETCDF_ENGINE)
     logging.info(f'writing {output_name} done.')
