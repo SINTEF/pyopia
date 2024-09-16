@@ -219,7 +219,7 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
                 'roi_source': 'imref'
             },
             'output': {
-                'pipeline_class': 'pyopia.io.StatsH5',
+                'pipeline_class': 'pyopia.io.StatsToDisc',
                 'output_datafile': os.path.join(outfolder, output_prefix)
             }
         }

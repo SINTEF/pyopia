@@ -321,8 +321,6 @@ def show_h5_meta(h5file):
 class StatsToDisc():
     '''PyOpia pipline-compatible class for calling write_stats() that created NetCDF files.
 
-    Replaces the old StatsH5 class
-
     Parameters
     ----------
     output_datafile : str

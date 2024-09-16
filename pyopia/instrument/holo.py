@@ -680,7 +680,7 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
                 'pipeline_class': 'pyopia.instrument.holo.MergeStats',
             },
             'output': {
-                'pipeline_class': 'pyopia.io.StatsH5',
+                'pipeline_class': 'pyopia.io.StatsToDisc',
                 'output_datafile': os.path.join(outfolder, output_prefix)
             }
         }
