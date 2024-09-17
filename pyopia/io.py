@@ -229,7 +229,7 @@ def combine_stats_netcdf_files(path_to_data, prefix='*'):
 
 def merge_and_save_mfdataset(path_to_data, prefix='*'):
     '''Combine a multi-file directory of STATS.nc files into a single '-STATS.nc' file
-    that can then be loaded with {func}`pyopia.io.load_stats`
+    that can then be loaded with :func:`pyopia.io.load_stats`
 
     Parameters
     ----------
