@@ -3,7 +3,8 @@ Module containing SilCam specific tools to enable compatability with the :mod:`p
 
 See:
 Davies, E. J., Brandvik, P. J., Leirvik, F., & Nepstad, R. (2017). The use of wide-band transmittance imaging to size and
-classify suspended particulate matter in seawater. Marine Pollution Bulletin, 115(1–2). https://doi.org/10.1016/j.marpolbul.2016.11.063
+classify suspended particulate matter in seawater. Marine Pollution Bulletin,
+115(1–2). https://doi.org/10.1016/j.marpolbul.2016.11.063
 '''
 
 import os
