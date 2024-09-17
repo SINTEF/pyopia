@@ -1,5 +1,10 @@
 '''
 Module containing SilCam specific tools to enable compatability with the :mod:`pyopia.pipeline`
+
+See:
+Davies, E. J., Brandvik, P. J., Leirvik, F., & Nepstad, R. (2017). The use of wide-band transmittance imaging to size and
+classify suspended particulate matter in seawater. Marine Pollution Bulletin,
+115(1–2). https://doi.org/10.1016/j.marpolbul.2016.11.063
 '''
 
 import os
@@ -14,11 +19,12 @@ def timestamp_from_filename(filename):
 
     Parameters
     ----------
-        filename (string): silcam filename (.silc)
+    filename (string): silcam filename (.silc)
 
     Returns
     -------
-        timestamp: timestamp from pandas.to_datetime()
+    timestamp: timestamp
+        timestamp from pandas.to_datetime()
     '''
 
     # get the timestamp of the image (in this case from the filename)
@@ -332,7 +338,7 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
                 'roi_source': 'imref'
             },
             'output': {
-                'pipeline_class': 'pyopia.io.StatsH5',
+                'pipeline_class': 'pyopia.io.StatsToDisc',
                 'output_datafile': os.path.join(outfolder, output_prefix)
             }
         }
