@@ -19,12 +19,17 @@ API documentation
 * `Plotting`_
 * `IO`_
 * `Classify`_
+* `ExampleData`_
 
 **Instrument-Specific**
 
 * `SilCam`_
 * `Holo`_
+* `UVP`_
 
+**Simulators**
+
+* `SilCam-Simulator`_
 
 **Indices and tables**
 
@@ -74,6 +79,11 @@ Classify
 .. automodule:: pyopia.classify
     :members:
 
+ExampleData
+--------------
+.. automodule:: pyopia.exampledata
+    :members:
+
 Instruments
 ==================
 SilCam
@@ -86,7 +96,19 @@ Holo
 .. automodule:: pyopia.instrument.holo
     :members:
 
+UVP
+--------------
+.. automodule:: pyopia.instrument.uvp
+    :members:
+
 Common
 -------------
 .. automodule:: pyopia.instrument.common
+    :members:
+
+Simulators
+==================
+Silcam-Simulator
+--------------
+.. automodule:: pyopia.simulator.silcam
     :members:

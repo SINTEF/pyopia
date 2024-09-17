@@ -6,15 +6,18 @@ import os
 import numpy as np
 import pandas as pd
 from skimage.exposure import rescale_intensity
+import skimage.io
 
 
 def timestamp_from_filename(filename):
     '''get a pandas timestamp from a silcam filename
 
-    Args:
+    Parameters
+    ----------
         filename (string): silcam filename (.silc)
 
-    Returns:
+    Returns
+    -------
         timestamp: timestamp from pandas.to_datetime()
     '''
 
@@ -23,8 +26,10 @@ def timestamp_from_filename(filename):
     return timestamp
 
 
-def load_image(filename):
-    '''load a .silc file from disc
+def load_mono8(filename):
+    '''load a mono8 .msilc file from disc
+
+    Assumes 8-bit mono image in range 0-255
 
     Parameters
     ----------
@@ -34,28 +39,81 @@ def load_image(filename):
     Returns
     -------
     array
-        raw image
+        raw image float between 0-1
     '''
-    img = np.load(filename, allow_pickle=False).astype(np.uint8)
+    im_mono = np.load(filename, allow_pickle=False).astype(np.float64) / 255
+    image_shape = np.shape(im_mono)
+    if len(image_shape) > 2:
+        if image_shape[2] == 1:
+            img = im_mono[:, :, 0]
+        else:
+            raise RuntimeError('Invalid image dimension')
     return img
+
+
+def load_rgb8(filename):
+    '''load an RGB .silc file from disc
+
+    Assumes 8-bit RGB image in range 0-255
+
+    Parameters
+    ----------
+    filename : string
+        filename to load
+
+    Returns
+    -------
+    array
+        raw image float between 0-1
+    '''
+    img = np.load(filename, allow_pickle=False).astype(np.float64) / 255
+    return img
+
+
+def load_image(filename):
+    '''.. deprecated:: 2.4.6
+        :func:`pyopia.instrument.silcam.load_image` will be removed in version 3.0.0, it is replaced by
+        :func:`pyopia.instrument.silcam.load_rgb8` because this is more explicit to that image type.
+
+    Load an RGB .silc file from disc
+
+    Parameters
+    ----------
+    filename : string
+        filename to load
+
+    Returns
+    -------
+    array
+        raw image float between 0-1
+    '''
+
+    return load_rgb8(filename)
 
 
 class SilCamLoad():
     '''PyOpia pipline-compatible class for loading a single silcam image
-    using :func:`pyopia.instrument.silcam.load_image`
     and extracting the timestamp using
     :func:`pyopia.instrument.silcam.timestamp_from_filename`
 
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
-        containing the following keys:
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.filename`
 
-        :attr:`pyopia.pipeline.Data.filename`
+    Parameters
+    ----------
+    image_format : str, optional
+        Image file format. Can be either 'infer', 'rgb8' or 'mono8', by default 'infer'.
 
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
+    Note
+    ----
+        'infer' uses the file extension to determine the image format using the following convention:
+         - '.silc' for RGB8
+         - '.msilc' for MONO8
+         - '.bmp' for using skimage.io.imread
+
+    Returns
+    -------
+    data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
         :attr:`pyopia.pipeline.Data.timestamp`
@@ -63,30 +121,38 @@ class SilCamLoad():
         :attr:`pyopia.pipeline.Data.img`
     '''
 
-    def __init__(self):
-        pass
+    def __init__(self, image_format='infer'):
+        self.image_format = image_format
+        self.extension_load = {'.silc': load_rgb8,
+                               '.msilc': load_mono8,
+                               '.bmp': skimage.io.imread}
+        self.format_load = {'RGB8': load_rgb8,
+                            'MONO8': load_mono8}
 
     def __call__(self, data):
-        timestamp = timestamp_from_filename(data['filename'])
-        img = load_image(data['filename']).astype(np.float64)/255
-        data['timestamp'] = timestamp
-        data['imraw'] = img
+        data['timestamp'] = timestamp_from_filename(data['filename'])
+        data['imraw'] = self.load_image(data['filename'])
         return data
+
+    def load_image(self, filename):
+        if self.image_format == 'infer':
+            file_extension = os.path.splitext(os.path.basename(filename))[-1]
+            load_function = self.extension_load[file_extension]
+        else:
+            load_function = self.format_load[self.image_format]
+        img = load_function(filename)
+        return img
 
 
 class ImagePrep():
     '''PyOpia pipline-compatible class for preparing silcam images for further analysis
 
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
-        containing the following keys:
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.img`
 
-        :attr:`pyopia.pipeline.Data.img`
-
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
+    Returns
+    -------
+    data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
         :attr:`pyopia.pipeline.Data.im_minimum`
@@ -120,8 +186,8 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
     output_prefix : str
         output_prefix
 
-    Returns:
-    --------
+    Returns
+    -------
     dict
         pipeline_config toml dict
     '''

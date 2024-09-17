@@ -11,7 +11,6 @@ import pandas as pd
 from scipy import ndimage as ndi
 import skimage.exposure
 import h5py
-from skimage.io import imsave
 from datetime import datetime
 import pyopia.statistics
 
@@ -20,17 +19,21 @@ logger = logging.getLogger()
 
 
 def image2blackwhite_accurate(input_image, greythresh):
-    ''' converts corrected image (im_corrected) to a binary image
-    using greythresh as the threshold value (some auto-scaling of greythresh is done inside)
+    '''Converts corrected image (im_corrected) to a binary image
+    using greythresh as the threshold value (some auto-scaling of greythresh is done)
 
-    Args:
-        input_image (float)         : image. Usually a background-corrected image
-        greythresh                  : threshold multiplier (greythresh is multiplied by 50th percentile of the image
+    Parameters
+    ----------
+    input_image : array
+        image. Usually a background-corrected image
+    greythresh : float
+        threshold multiplier (greythresh is multiplied by 50th percentile of the image
                                       histogram)
 
-    Returns:
-        imbw                        : segmented image (binary image)
-
+    Returns
+    -------
+    imbw : array
+        segmented image (binary image)
     '''
 
     # obtain a semi-autimated treshold which can handle
@@ -61,16 +64,21 @@ def image2blackwhite_accurate(input_image, greythresh):
 
 
 def image2blackwhite_fast(input_image, greythresh):
-    ''' converts an image (input_image) to a binary image
-    using greythresh as the threshold value (fixed scaling of greythresh is done inside)
+    '''Converts an image (input_image) to a binary image
+    using greythresh as the threshold value (fixed scaling of greythresh is done)
 
-    Args:
-        input_image (float)         : image. Usually a background-corrected image
-        greythresh                  : threshold multiplier (greythresh is multiplied by 50th percentile of the image
+    Parameters
+    ----------
+    input_image : array
+        image. Usually a background-corrected image
+    greythresh : float
+        threshold multiplier (greythresh is multiplied by 50th percentile of the image
                                       histogram)
 
-    Returns:
-        imbw                        : segmented image (binary image)
+    Returns
+    -------
+    imbw : array
+        segmented image (binary image)
     '''
     # obtain a semi-autimated treshold which can handle
     # some flicker in the illumination by tracking the 50th percentile of the
@@ -82,16 +90,20 @@ def image2blackwhite_fast(input_image, greythresh):
 
 
 def clean_bw(imbw, minimum_area):
-    ''' cleans up particles which are too small and particles touching the
+    '''Cleans up particles which are too small and particles touching the
     border
 
-    Args:
-        imbw                        : segmented image
-        minimum_area                : minimum number of accepted pixels for a particle
+    Parameters
+    ----------
+    imbw : array
+        Segmented image
+    minimum_area : float
+        Minimum number of accepted pixels for a particle
 
-    Returns:
-        imbw (DataFrame)           : cleaned up segmented image
-
+    Returns
+    -------
+    imbw_clean : array
+        cleaned up segmented image
     '''
 
     # remove objects that are below the detection limit defined in the config
@@ -109,17 +121,22 @@ def clean_bw(imbw, minimum_area):
 
 
 def concentration_check(imbw, max_coverage=30):
-    ''' Check saturation level of the sample volume by comparing area of
+    '''Check saturation level of the sample volume by comparing area of
     particles with settings.Process.max_coverage
 
-    Args:
-        imbw                        : segmented image
-        max_coverage                : percentage of iamge allowed to be black
+    Parameters
+    ----------
+    imbw : array
+        segmented image
+    max_coverage : int, optional
+        percentage of iamge allowed to be black, by default 30
 
-    Returns:
-        sat_check                   : boolean on if the saturation is acceptable. True if the image is acceptable
-        saturation                  : percentage of maximum acceptable saturation defined in
-                                      settings.Process.max_coverage
+    Returns
+    -------
+    sat_check : bool
+        On if the saturation is acceptable. True if the image is acceptable
+    saturation : float
+        Percentage of maximum acceptable saturation defined by max_coverage
     '''
 
     # calcualte the area covered by particles in the binary image
@@ -143,17 +160,21 @@ def concentration_check(imbw, max_coverage=30):
     return sat_check, saturation
 
 
-def get_spine_length(imbw):
-    ''' extracts the spine length of particles from a binary particle image
+def get_spine_length(imbw_roi):
+    '''Extracts the spine length of particles from a binary particle image
     (imbw is a binary roi)
 
-    Args:
-        imbw                : segmented particle ROI (assumes only one particle)
+    Parameters
+    ----------
+    imbw_roi : array
+        a binary roi of a single particle
 
-    Returns:
-        spine_length        : spine length of particle (in pixels)
+    Returns
+    -------
+    spine_length : float
+        spine length of particle (in pixels)
     '''
-    skel = morphology.skeletonize(imbw)
+    skel = morphology.skeletonize(imbw_roi)
     for i in range(2):
         skel = morphology.binary_dilation(skel)
     skel = morphology.skeletonize(skel)
@@ -163,36 +184,24 @@ def get_spine_length(imbw):
 
 
 def extract_roi(input_image, bbox):
-    ''' given an image (im) and bounding box (bbox), this will return the roi
+    '''Given a full image and bounding box, this will return the roi image from within the bounding box
 
-    Args:
-        input_image         : any image, such as background-corrected image
-        bbox                : bounding box from regionprops [r1, c1, r2, c2]
+    Parameters
+    ----------
+    input_image : array
+        Full image. Can be any image, such as background-corrected image
+    bbox : array
+        bounding box from regionprops [r1, c1, r2, c2]
 
-    Returns:
-        roi                 : image cropped to region of interest
+    Returns
+    -------
+    roi : array
+        Image cropped to region of interest
     '''
     # refer to skimage regionprops documentation on how bbox is structured
     roi = input_image[bbox[0]:bbox[2], bbox[1]:bbox[3]]
 
     return roi
-
-
-def write_segmented_images(imbw, input_image, settings, timestamp):
-    '''writes binary images as bmp files to the same place as hdf5 files if loglevel is in DEBUG mode
-    Useful for checking threshold and segmentation
-
-    Args:
-        imbw                        : segmented image
-        settings                    : PySilCam settings
-        timestamp                   : timestamp of image collection
-    '''
-    if (settings.General.loglevel == 'DEBUG') and settings.ExportParticles.export_images:
-        fname = os.path.join(settings.ExportParticles.outputpath, timestamp.strftime('D%Y%m%dT%H%M%S.%f-SEG.bmp'))
-        imbw_ = np.uint8(255 * imbw)
-        imsave(fname, imbw_)
-        fname = os.path.join(settings.ExportParticles.outputpath, timestamp.strftime('D%Y%m%dT%H%M%S.%f-IMC.bmp'))
-        imsave(fname, input_image)
 
 
 def put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i):
@@ -202,14 +211,17 @@ def put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i):
     Parameters
     ----------
     export_outputpath : str
+        path to folder in which to put ROIs
     HDF5File : h5 file object
+        file object for h5 file
     roi : uint8
+        particle ROI image
     i : int
         particle number
 
     Returns
     -------
-    str
+    filename : str
         filename
     '''
     filename = filename + '-PN' + str(i)
@@ -221,21 +233,31 @@ def put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i):
 def extract_particles(imc, timestamp, Classification, region_properties,
                       export_outputpath=None, min_length=0, propnames=['major_axis_length', 'minor_axis_length',
                                                                        'equivalent_diameter']):
-    '''extracts the particles to build stats and export particle rois to HDF5 files
+    '''Extracts the particles to build stats and export particle rois to HDF5 files
 
-    Args:
-        imc                         : background-corrected image
-        timestamp                   : timestamp of image collection
-        Classification              : initialised classification class from pyiopia.classify
-        region_properties           : region properties object returned from regionprops (measure.regionprops(iml,
-                                                                                                           cache=False))
-        export_outputpath           : path for writing h5 output files. Defaults to None, which switches off file writing
-        min_length                  : specifies minimum particle length in pixels to include
-        propnames                   : specifies list of skimage regionprops to export to the output file - must contain
-                                                                                    default values that can be appended to
+    Parameters
+    ----------
+    imc : array
+        background-corrected image
+    timestamp : timestamp
+        timestamp of image collection
+    Classification : keras model
+        initialised classification class from pyiopia.classify
+    region_properties : object
+        region properties object returned from regionprops (skimage.measure.regionprops)
+    export_outputpath : str, optional
+        path for writing h5 output files. Defaults to None, which switches off file writing, by default None
+    min_length : int, optional
+        specifies minimum particle length in pixels to include, by default 0
+    propnames : list, optional
+        Specifies list of skimage regionprops to export to the output file.
+        Must contain default values that can be appended to,
+        by default ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']
 
-    Returns:
-        stats                       : (list of particle statistics for every particle, according to Partstats class)
+    Returns
+    -------
+    stats : DataFrame
+        List of particle statistics for every particle, according to Partstats class
     '''
     filenames = ['not_exported'] * len(region_properties)
 
@@ -325,13 +347,22 @@ def extract_particles(imc, timestamp, Classification, region_properties,
 def measure_particles(imbw, max_particles=5000):
     '''Measures properties of particles
 
-    Args:
-      imbw (full-frame binary image)
-      max_particles
+    Parameters
+    ----------
+    imbw : array
+        full-frame binary image
+    max_particles : int, optional
+        maximum number of particles accepted, by default 5000
 
-    Returns:
-      region_properties
+    Returns
+    -------
+    region_properties : object
+        Region properties object returned from regionprops (skimage.measure.regionprops)
 
+    Raises
+    ------
+    RuntimeError
+        Raises an error if the number of particles exceeds max_particles
     '''
     # label the segmented image
     iml = morphology.label(imbw > 0)
@@ -342,7 +373,7 @@ def measure_particles(imbw, max_particles=5000):
         raise RuntimeError('Too many particles. Refer to documentation on max_particles parameter in measure_particles()')
         # @todo handle situation when too many particles are found
 
-    region_properties = measure.regionprops(iml, cache=False)
+    region_properties = measure.regionprops(iml, cache=True)
 
     return region_properties
 
@@ -392,27 +423,37 @@ def statextract(imbw, timestamp, imc,
                 propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter']):
     '''Extracts statistics of particles in a binary images (imbw)
 
-    Args:
-        imbw                        : segmented binary image
-        img                         : background-corrected image
-        timestamp                   : timestamp of image collection
-        Classification              : initialised classification class from pyiopia.classify
-        max_coverage                : maximum percentge of image that is acceptable as covered by particles.
-                                      Image skipped if exceeded.
-        max_particles               : maximum number of particles accepted in the image
-                                      Image skipped if exceeded.
-        region_properties           : region properties object returned from regionprops (measure.regionprops(iml,
-                                                                                                           cache=False))
-        export_outputpath           : path for writing h5 output files. Defaults to None, which switches off file writing
-        min_length                  : specifies minimum particle length in pixels to include
-        propnames                   : specifies list of skimage regionprops to export to the output file - must contain
-                                                                                    default values that can be appended to
+    Parameters
+    ----------
+    imbw : array
+        Segmented binary image
+    timestamp : timestamp
+        Timestamp of image collection
+    imc : array
+        Image to analyse (e.g. background-corrected image)
+    Classification : keras model, optional
+        Initialised classification class from pyiopia.classify, by default None
+    max_coverage : int, optional
+        Maximum percentge of image that is acceptable as covered by particles.
+        Image skipped if exceeded, by default 30
+    max_particles : int, optional
+        Maximum number of particles accepted in the image. Image skipped if exceeded., by default 5000
+    export_outputpath : str, optional
+        Path for writing h5 output files. Defaults to None, which switches off file writing, by default None
+    min_length : int, optional
+        Specifies minimum particle length in pixels to include, by default 0
+    propnames : list, optional
+        Specifies list of skimage regionprops to export to the output file.
+        Must contain default values that can be appended to,
+        by default ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']
 
-    Returns:
-        stats                       : pandas DataFrame of particle statistics for every particle
-        saturation                  : percentage saturation of image
+    Returns
+    -------
+    stats : DataFrame
+        Pandas DataFrame of particle statistics for every particle
+    saturation : float
+        Percentage saturation of image
     '''
-
     # check the converage of the image of particles is acceptable
     sat_check, saturation = concentration_check(imbw, max_coverage=max_coverage)
     if (sat_check is False):
@@ -440,15 +481,10 @@ def statextract(imbw, timestamp, imc,
 class Segment():
     '''PyOpia pipline-compatible class for calling segment
 
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.im_corrected`
 
-        containing the following keys:
-
-        :attr:`pyopia.pipeline.Data.im_corrected`
-
-    Parameters:
+    Parameters
     ----------
     minimum_area : (int, optional)
         minimum number of pixels for particle detection. Defaults to 12.
@@ -460,9 +496,9 @@ class Segment():
         The key in Pipeline.data of the image to be segmented.
         Defaults to 'im_corrected'
 
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
+    Returns
+    -------
+    data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
         :attr:`pyopia.pipeline.Data.imbw`
@@ -488,19 +524,12 @@ class Segment():
 class CalculateStats():
     '''PyOpia pipline-compatible class for calling statextract
 
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.imbw`
+        - :attr:`pyopia.pipeline.Data.timestamp`
+        - :attr:`pyopia.pipeline.Data.cl`
 
-        containing the following keys:
-
-        :attr:`pyopia.pipeline.Data.imbw`
-
-        :attr:`pyopia.pipeline.Data.timestamp`
-
-        :attr:`pyopia.pipeline.Data.cl`
-
-    Parameters:
+    Parameters
     ----------
     max_coverage : (int, optional)
         percentage of the image that is allowed to be filled by particles. Defaults to 30.
@@ -519,9 +548,9 @@ class CalculateStats():
         Key of an image in Pipeline.data that is used for outputting ROIs and passing to the classifier.
         Defaults to 'im_corrected'
 
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
+    Returns
+    -------
+    data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
         :attr:`pyopia.pipeline.Data.stats`
@@ -565,23 +594,17 @@ class CalculateStats():
 class CalculateImageStats():
     '''PyOpia pipline-compatible class for collecting whole-image statistics
 
-    Pipeline input data:
-    ---------
-    :class:`pyopia.pipeline.Data`
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.stats`
+        - :attr:`pyopia.pipeline.Data.timestamp`
 
-        containing the following keys:
-
-        :attr:`pyopia.pipeline.Data.stats`
-
-        :attr:`pyopia.pipeline.Data.timestamp`
-
-    Parameters:
+    Parameters
     ----------
     None
 
-    Returns:
-    --------
-    :class:`pyopia.pipeline.Data`
+    Returns
+    -------
+    data : :class:`pyopia.pipeline.Data`
         containing the following new keys:
 
         :attr:`pyopia.pipeline.Data.image_stats`
