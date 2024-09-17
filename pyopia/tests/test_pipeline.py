@@ -93,7 +93,7 @@ def test_holo_pipeline():
                     'pipeline_class': 'pyopia.instrument.holo.MergeStats',
                 },
                 'output': {
-                    'pipeline_class': 'pyopia.io.StatsH5',
+                    'pipeline_class': 'pyopia.io.StatsToDisc',
                     'output_datafile': datafile_prefix
                 }
             }
@@ -164,7 +164,7 @@ def test_silcam_pipeline():
                     'roi_source': 'im_minimum'
                 },
                 'output': {
-                    'pipeline_class': 'pyopia.io.StatsH5',
+                    'pipeline_class': 'pyopia.io.StatsToDisc',
                     'output_datafile': datafile_prefix
                 }
             }

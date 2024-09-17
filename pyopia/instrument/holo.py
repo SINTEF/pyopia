@@ -1,5 +1,15 @@
 '''
-Module containing hologram specific tools to enable compatability with the :mod:`pyopia.pipeline`
+This is a module containing basic processing for reconstruction of in-line holographic images with :mod:`pyopia.pipeline`.
+
+See (and references therein):
+Davies EJ, Buscombe D, Graham GW & Nimmo-Smith WAM (2015)
+'Evaluating Unsupervised Methods to Size and Classify Suspended Particles
+Using Digital In-Line Holography'
+Journal of Atmospheric and Oceanic Technology 32, (6) 1241-1256,
+https://doi.org/10.1175/JTECH-D-14-00157.1
+https://journals.ametsoc.org/view/journals/atot/32/6/jtech-d-14-00157_1.xml
+
+2022-11-01 Alex Nimmo-Smith alex.nimmo.smith@plymouth.ac.uk
 '''
 
 import os
@@ -16,20 +26,6 @@ from glob import glob
 
 import logging
 logger = logging.getLogger()
-
-'''
-This is a module containing basic processing for reconstruction of in-line holographic images.
-
-See (and references therein):
-Davies EJ, Buscombe D, Graham GW & Nimmo-Smith WAM (2015)
-'Evaluating Unsupervised Methods to Size and Classify Suspended Particles
-Using Digital In-Line Holography'
-Journal of Atmospheric and Oceanic Technology 32, (6) 1241-1256,
-https://doi.org/10.1175/JTECH-D-14-00157.1
-https://journals.ametsoc.org/view/journals/atot/32/6/jtech-d-14-00157_1.xml
-
-2022-11-01 Alex Nimmo-Smith alex.nimmo.smith@plymouth.ac.uk
-'''
 
 
 class Initial():
@@ -472,7 +468,7 @@ class Focus():
 
     Returns
     -------
-    :class:`pyopia.pipeline.Data`
+    data : :class:`pyopia.pipeline.Data`
 
         containing the following keys:
 
@@ -547,11 +543,12 @@ class MergeStats():
 
     Parameters
     ----------
+    None
 
     Returns
     -------
-    updated stats
-
+    data : :class:`pyopia.pipeline.Data`
+        Updated pipeline data, where data['stats'] includes the new columns: 'holo_filename', 'z', and 'ifocus'
     '''
 
     def __init__(self):
@@ -573,6 +570,10 @@ class MergeStats():
             ifocus.append(stack_ifocus[np.argmin(total_diff)])
 
         stats['ifocus'] = np.array(ifocus, dtype=np.int64)
+        z = (np.arange(data['settings']['steps']['initial']['minZ'],
+                       (data['settings']['steps']['initial']['maxZ'] + data['settings']['steps']['initial']['stepZ']),
+                       data['settings']['steps']['initial']['stepZ']))
+        stats['z'] = z[stats['ifocus']-1]
         stats['holo_filename'] = data['filename']
         data['stats'] = stats
         return data
@@ -680,7 +681,7 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
                 'pipeline_class': 'pyopia.instrument.holo.MergeStats',
             },
             'output': {
-                'pipeline_class': 'pyopia.io.StatsH5',
+                'pipeline_class': 'pyopia.io.StatsToDisc',
                 'output_datafile': os.path.join(outfolder, output_prefix)
             }
         }
