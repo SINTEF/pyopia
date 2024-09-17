@@ -472,7 +472,7 @@ class Focus():
 
     Returns
     -------
-    :class:`pyopia.pipeline.Data`
+    data : :class:`pyopia.pipeline.Data`
 
         containing the following keys:
 
@@ -547,11 +547,12 @@ class MergeStats():
 
     Parameters
     ----------
+    None
 
     Returns
     -------
-    updated stats
-
+    data : :class:`pyopia.pipeline.Data`
+        Updated pipeline data, where data['stats'] includes the new columns: 'holo_filename', 'z', and 'ifocus'
     '''
 
     def __init__(self):
