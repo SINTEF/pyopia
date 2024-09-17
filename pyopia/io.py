@@ -398,9 +398,39 @@ def StatsH5():
         :class:`pyopia.io.StatsH5` will be removed in version 3.0.0, it is replaced by
         :class:`pyopia.io.StatsToDisc`.
 
+    PyOpia pipline-compatible class for calling write_stats() that creates h5 files.
+
+    Parameters
+    ----------
+    output_datafile : str
+        prefix path for output nc file
+    dataformat : str
+        either 'nc' or 'h5
+    export_name_len : int
+        max number of chars allowed for col 'export name'. Defaults to 40
+    append : bool
+        Append all processed data into one nc file.
+        Defaults to True.
+        If False, then one nc file will be generated per raw image,
+        which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
+        This is useful for larger datasets, where appending causes substantial slowdown
+        as the dataset gets larger.
+
     Returns
     -------
-    StatsToDisc : class
-        returns StatsToDisc class
+    data : :class:`pyopia.pipeline.Data`
+        data from the pipeline
+
+    Example
+    -------
+    Example config for pipeline useage:
+
+    .. code-block:: toml
+
+        [steps.output]
+        pipeline_class = 'pyopia.io.StatsH5'
+        output_datafile = './test' # prefix path for output nc file
+        append = true
     '''
+    logger.warning('StatsH5 will be removed in version 3.0.0, it is replaced by pyopia.io.StatsToDisc')
     return StatsToDisc()
