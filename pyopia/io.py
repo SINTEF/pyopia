@@ -215,8 +215,7 @@ def combine_stats_netcdf_files(path_to_data, prefix='*'):
 
     # Check if we have image statistics, if so, load it.
     try:
-        with xarray.open_mfdataset(sorted_filelist, combine='nested', concat_dim='timestamp', group='image_stats',
-                                   preprocess=lambda ds: ds.isel(timestamp=-1)) as ds:
+        with xarray.open_mfdataset(sorted_filelist, group='image_stats') as ds:
             image_stats = ds.load()
     except OSError:
         logger.info('Could get image_stats from netcdf files for merging, returning None for this.')
