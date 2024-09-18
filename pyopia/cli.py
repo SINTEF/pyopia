@@ -132,8 +132,9 @@ def process(config_filename: str, num_chunks: int = 1):
 
         progress.console.print("[blue]OBTAIN FILE LIST")
         raw_files = pyopia.pipeline.FilesToProcess(pipeline_config['general']['raw_files'])
-        average_window = pipeline_config['steps']['correctbackground'].get('average_window', 0)
-        bgshift_function = pipeline_config['steps']['correctbackground'].get('bgshift_function', 'pass')
+        conf_corrbg = pipeline_config['steps'].get('correctbackground', dict())
+        average_window = conf_corrbg.get('average_window', 0)
+        bgshift_function = conf_corrbg.get('bgshift_function', 'pass')
         raw_files.prepare_chunking(num_chunks, average_window, bgshift_function)
 
         progress.console.print('[blue]PREPARE FOLDERS')
