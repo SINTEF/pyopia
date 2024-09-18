@@ -215,7 +215,7 @@ def combine_stats_netcdf_files(path_to_data, prefix='*'):
 
     # Check if we have image statistics, if so, load it.
     try:
-        with xarray.open_mfdataset(sorted_filelist, combine='nested', concat_dim='index',
+        with xarray.open_mfdataset(sorted_filelist, combine='nested', concat_dim='timestamp',
                                    group='image_stats',
                                    preprocess=lambda ds: ds.isel(timestamp=-1)) as ds:
             image_stats = ds.load()
