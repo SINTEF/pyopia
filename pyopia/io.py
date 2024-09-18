@@ -213,16 +213,13 @@ def combine_stats_netcdf_files(path_to_data, prefix='*'):
                                coords='minimal', compat='override') as ds:
         xstats = ds.load()
 
-    # Check if we have image statistics in the last file, if so, load it.
-    # The last file should contain the entire time series of processed images.
+    # Check if we have image statistics, if so, load it.
     try:
-        ds = xarray.open_dataset(sorted_filelist[-1], group='image_stats')
+        with xarray.open_mfdataset(sorted_filelist, group='image_stats') as ds:
+            image_stats = ds.load()
     except OSError:
+        logger.info('Could get image_stats from netcdf files for merging, returning None for this.')
         image_stats = None
-    else:
-        image_stats = ds.load()
-    finally:
-        ds.close()
 
     return xstats, image_stats
 
