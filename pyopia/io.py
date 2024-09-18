@@ -390,7 +390,7 @@ def load_toml(toml_file):
     return settings
 
 
-def StatsH5():
+def StatsH5(**kwargs):
     '''.. deprecated:: 2.4.8
         :class:`pyopia.io.StatsH5` will be removed in version 3.0.0, it is replaced by
         :class:`pyopia.io.StatsToDisc`.
@@ -430,4 +430,4 @@ def StatsH5():
         append = true
     '''
     logger.warning('StatsH5 will be removed in version 3.0.0, it is replaced by pyopia.io.StatsToDisc')
-    return StatsToDisc()
+    return StatsToDisc(**kwargs)
