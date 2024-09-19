@@ -214,7 +214,8 @@ class SilCamLoad():
     :func:`pyopia.instrument.silcam.timestamp_from_filename`
 
     Required keys in :class:`pyopia.pipeline.Data`:
-        - :attr:`pyopia.pipeline.Data.filename`
+        - :attr:`pyopia.pipeline.Data.filename` conforming to the format 'DYYYYmmddTHHMMSS.ffffff.silc'
+        e.g. 'D20240919T074500.183294.silc'
 
     Parameters
     ----------
