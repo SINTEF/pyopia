@@ -160,30 +160,37 @@ def load_image_stats(datafilename):
 
 
 def load_stats(datafilename):
-    '''Load STATS file as a DataFrame
+    '''Load -STATS.nc file as xarray Dataset
 
     Parameters
     ----------
     datafilename : str
         filename of -STATS.h5 or STATS.nc
 
+    .. warning:: Support for loading of old -STATS.h5 formats will be removed in version 3.0.0.
+        They will need to be converted to .nc prior to loading.
+        Data loaded from -STATS.h5 are returned as an xarray Dataset without metadata.
+
     Returns
     -------
-    stats : DataFrame
-        STATS DataFrame  / xarray dataset
+    xstats : xarray.Dataset
+        Particle statistics
     '''
 
     if datafilename.endswith('.nc'):
-        with xarray.open_dataset(datafilename) as stats:
-            stats.load()
+        with xarray.open_dataset(datafilename) as xstats:
+            xstats.load()
     elif datafilename.endswith('.h5'):
+        logger.warning('In future, load_stats will only take .nc files')
         stats = pd.read_hdf(datafilename, 'ParticleStats/stats')
+        xstats = stats.to_xarray()
     else:
         logger.warning('WARNING. File extension not specified.' +
                        'Assuming prefix of -STATS.h5 for backwards compatability.' +
-                       'In future, this function will only take .nc files')
+                       'In future, load_stats will only take .nc files')
         stats = pd.read_hdf(datafilename + '-STATS.h5', 'ParticleStats/stats')
-    return stats
+        xstats = stats.to_xarray()
+    return xstats
 
 
 def combine_stats_netcdf_files(path_to_data, prefix='*'):
