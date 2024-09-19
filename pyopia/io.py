@@ -162,14 +162,14 @@ def load_image_stats(datafilename):
 def load_stats(datafilename):
     '''Load -STATS.nc file as xarray Dataset
 
+    .. warning:: Support for loading of old -STATS.h5 formats will be removed in version 3.0.0.
+        They will need to be converted to .nc prior to loading.
+        Data loaded from -STATS.h5 are returned as an xarray Dataset without metadata.
+
     Parameters
     ----------
     datafilename : str
         filename of -STATS.h5 or STATS.nc
-
-    .. warning:: Support for loading of old -STATS.h5 formats will be removed in version 3.0.0.
-        They will need to be converted to .nc prior to loading.
-        Data loaded from -STATS.h5 are returned as an xarray Dataset without metadata.
 
     Returns
     -------
