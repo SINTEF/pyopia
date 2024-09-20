@@ -763,12 +763,14 @@ def make_timeseries_vd(stats, pixel_size, path_length, time_reference):
     similar to Sequoia LISST-100 output,
     and exportable to things like Excel or csv.
 
-    Note: If zero particles are detected within the stats daraframe,
+    Note
+    ----
+    If zero particles are detected within the stats daraframe,
     then the volume concentration should be reported as zero for that
     time. For this function to have awareness of these times, it requires
     time_reference variable. If you use `stats['timestamp'].unique()` for this,
     then you are assuming you have at least one particle per image.
-    It is better to use image_stats['datetime'].values instead, which can be obtained from
+    It is better to use `image_stats['timestamp'].values` instead, which can be obtained from
     :func:`pyopia.io.load_image_stats`
 
     Parameters
@@ -790,9 +792,12 @@ def make_timeseries_vd(stats, pixel_size, path_length, time_reference):
     Example
     -------
     .. code-block:: python
+        path_length = 40  # for a 40mm long path length
+
         time_series_vd = pyopia.statistics.make_timeseries_vd(stats,
                                 settings['general']['pixel_size'],
-                                path_length=40)
+                                path_length,
+                                image_stats['timestamp'].values)
 
         # particle diameters
         dias = np.array(time_series_vd.columns[0:52], dtype=float)
@@ -807,7 +812,7 @@ def make_timeseries_vd(stats, pixel_size, path_length, time_reference):
         time = pd.to_datetime(time_series_vd['Time'].values)
 
         # time-series of total volume concentration
-        vc = np.sum(vdarray, axis=1)
+        volume_concentration = np.sum(vdarray, axis=1)
     '''
     sample_volume = get_sample_volume(pixel_size, path_length=path_length)
 

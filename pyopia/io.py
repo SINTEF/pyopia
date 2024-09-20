@@ -160,7 +160,11 @@ def load_image_stats(datafilename):
 
 
 def load_stats(datafilename):
-    '''Load STATS file as a DataFrame
+    '''Load -STATS.nc file as xarray Dataset
+
+    .. warning:: Support for loading of old -STATS.h5 formats will be removed in version 3.0.0.
+        They will need to be converted to .nc prior to loading.
+        Data loaded from -STATS.h5 are returned as an xarray Dataset without metadata.
 
     Parameters
     ----------
@@ -169,21 +173,24 @@ def load_stats(datafilename):
 
     Returns
     -------
-    stats : DataFrame
-        STATS DataFrame  / xarray dataset
+    xstats : xarray.Dataset
+        Particle statistics
     '''
 
     if datafilename.endswith('.nc'):
-        with xarray.open_dataset(datafilename) as stats:
-            stats.load()
+        with xarray.open_dataset(datafilename) as xstats:
+            xstats.load()
     elif datafilename.endswith('.h5'):
+        logger.warning('In future, load_stats will only take .nc files')
         stats = pd.read_hdf(datafilename, 'ParticleStats/stats')
+        xstats = stats.to_xarray()
     else:
         logger.warning('WARNING. File extension not specified.' +
                        'Assuming prefix of -STATS.h5 for backwards compatability.' +
-                       'In future, this function will only take .nc files')
+                       'In future, load_stats will only take .nc files')
         stats = pd.read_hdf(datafilename + '-STATS.h5', 'ParticleStats/stats')
-    return stats
+        xstats = stats.to_xarray()
+    return xstats
 
 
 def combine_stats_netcdf_files(path_to_data, prefix='*'):
@@ -196,7 +203,7 @@ def combine_stats_netcdf_files(path_to_data, prefix='*'):
         Folder name containing nc files with pattern '*Image-D*-STATS.nc'
 
     prefix : str
-        Prefix to multi-file dataset (for replacing the wildcard in '*Image-D*-STATS.nc').
+        Prefix to multi-file dataset (for replacing <prefix> in the file name pattern '<prefix>Image-D*-STATS.nc').
         Defaults to '*'
 
     Returns
@@ -213,23 +220,20 @@ def combine_stats_netcdf_files(path_to_data, prefix='*'):
                                coords='minimal', compat='override') as ds:
         xstats = ds.load()
 
-    # Check if we have image statistics in the last file, if so, load it.
-    # The last file should contain the entire time series of processed images.
+    # Check if we have image statistics, if so, load it.
     try:
-        ds = xarray.open_dataset(sorted_filelist[-1], group='image_stats')
+        with xarray.open_mfdataset(sorted_filelist, group='image_stats') as ds:
+            image_stats = ds.load()
     except OSError:
+        logger.info('Could get image_stats from netcdf files for merging, returning None for this.')
         image_stats = None
-    else:
-        image_stats = ds.load()
-    finally:
-        ds.close()
 
     return xstats, image_stats
 
 
 def merge_and_save_mfdataset(path_to_data, prefix='*'):
     '''Combine a multi-file directory of STATS.nc files into a single '-STATS.nc' file
-    that can then be loaded with {func}`pyopia.io.load_stats`
+    that can then be loaded with :func:`pyopia.io.load_stats`
 
     Parameters
     ----------
@@ -321,8 +325,6 @@ def show_h5_meta(h5file):
 class StatsToDisc():
     '''PyOpia pipline-compatible class for calling write_stats() that created NetCDF files.
 
-    Replaces the old StatsH5 class
-
     Parameters
     ----------
     output_datafile : str
@@ -377,10 +379,62 @@ class StatsToDisc():
         return data
 
 
-StatsH5 = StatsToDisc
-
-
 def load_toml(toml_file):
+    '''Load a TOML settings file from file
+
+    Parameters
+    ----------
+    toml_file : str
+        TOML filename
+
+    Returns
+    -------
+    settings : dict
+        TOML settings
+    '''
     with open(toml_file, 'r') as f:
         settings = toml.load(f)
     return settings
+
+
+def StatsH5(**kwargs):
+    '''.. deprecated:: 2.4.8
+        :class:`pyopia.io.StatsH5` will be removed in version 3.0.0, it is replaced by
+        :class:`pyopia.io.StatsToDisc`.
+
+    PyOpia pipline-compatible class for calling write_stats() that creates h5 files.
+
+    Parameters
+    ----------
+    output_datafile : str
+        prefix path for output nc file
+    dataformat : str
+        either 'nc' or 'h5
+    export_name_len : int
+        max number of chars allowed for col 'export name'. Defaults to 40
+    append : bool
+        Append all processed data into one nc file.
+        Defaults to True.
+        If False, then one nc file will be generated per raw image,
+        which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
+        This is useful for larger datasets, where appending causes substantial slowdown
+        as the dataset gets larger.
+
+    Returns
+    -------
+    data : :class:`pyopia.pipeline.Data`
+        data from the pipeline
+
+    Example
+    -------
+    Example config for pipeline useage:
+
+    .. code-block:: toml
+
+        [steps.output]
+        pipeline_class = 'pyopia.io.StatsH5'
+        output_datafile = './test' # prefix path for output nc file
+        append = true
+    '''
+    logger.warning('StatsH5 will be removed in version 3.0.0, it is replaced by pyopia.io.StatsToDisc')
+    return StatsToDisc(**kwargs)

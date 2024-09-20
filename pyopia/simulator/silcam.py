@@ -2,10 +2,11 @@
 Module containing tools for assessing statistical reliability of silcam size distributions
 '''
 import numpy as np
-from skimage.draw import disk
+import skimage.draw
 import matplotlib.pyplot as plt
 import skimage.util
 import pandas as pd
+import os
 
 import pyopia.statistics
 import pyopia.plotting
@@ -161,8 +162,21 @@ class SilcamSimulator():
                                                                                    axis=0),
                                                                            self.dias)
 
-    def synthesize(self):
-        '''Synthesize an image and measure droplets
+    def synthesize(self, add_noise=False, noise_var=0.001, database_path='', database_image_ext='tiff'):
+        '''Synthesize an image and document the distributions of particles used as input
+
+        Parameters
+        ----------
+        add_noise : bool, optional
+            Uses skimage.util.random_noise() to add gaussian noise with variance defined by `noise_var`, by default False
+        noise_var : float, optional
+            Passed to the var argument of skimage.util.random_noise(), by default 0.001
+        database_path : str, optional
+            Path to a folder of particle ROI images to be randomly selected from to build the synthetic image.
+            If this is an empty string (default), then black discs will be used instead of real images., by default ''
+        database_image_ext : str, optional
+            Image file extension to look for within the folder specified by `database_path`
+            (must be a type that is loadable by skimage.io.imread() e.g. png of tiff), by default 'tiff'
 
         Parameters
         ----------
@@ -171,36 +185,52 @@ class SilcamSimulator():
         data['synthetic_image_data']['input_volume_distribution'] : array
             Volume distribution used to create the synthetic image
         '''
-        nc = int(sum(self.data['number_distribution']))  # number concentration
+
+        number_concentration = int(sum(self.data['number_distribution']))  # number concentration
 
         # preallocate the image and logged volume distribution variables
         img = np.zeros((self.imx, self.imy, 3), dtype=np.uint8()) + 230  # scale the initial brightness down a bit
-        log_ecd = np.zeros(nc)
+        log_ecd = np.zeros(number_concentration)
         # randomly select a droplet radii from the input distribution
         # radius is in pixels
-        rad = np.random.choice(self.dias / 2,
-                               size=nc,
-                               p=self.data['number_distribution'] / sum(self.data['number_distribution'])) / self.PIX_SIZE
-        log_ecd = rad * 2 * self.PIX_SIZE  # log these sizes as a diameter in um
-        for rad_ in rad:
-            # randomly decide where to put particles within the image
-            col = np.random.randint(1, high=self.imx - rad_)
-            row = np.random.randint(1, high=self.imy - rad_)
+        radii = np.random.choice(self.dias / 2,
+                                 size=number_concentration,
+                                 p=self.data['number_distribution'] / sum(self.data['number_distribution'])) / self.PIX_SIZE
+        log_ecd = radii * 2 * self.PIX_SIZE  # log these sizes as a diameter in um
 
-            rr, cc = disk((col, row), rad_)  # make a cirle of the radius selected from the distribution
-            img[rr, cc, :] = 0
+        if database_path != '':
+            from pyopia.pipeline import FilesToProcess
+            file_list = FilesToProcess(os.path.join(database_path, '*.' + database_image_ext)).files
+
+        self.example_images = []
+        for radius in radii:
+            # randomly decide where to put particles within the image
+            row = np.random.randint(low=radius * 2, high=self.imx - (radius * 2))
+            col = np.random.randint(low=radius * 2, high=self.imy - (radius * 2))
+
+            if database_path != '':
+                example_image = extract_and_scale_example_image(radius, file_list)
+                img[row:row + example_image.shape[0],
+                    col:col + example_image.shape[1],
+                    :] = example_image
+                if np.min(np.shape(example_image[:, :, 0])) > 5:
+                    self.example_images.append(example_image)
+            else:
+                rr, cc = skimage.draw.disk((row, col), radius)  # make a cirle of the radius selected from the distribution
+                img[rr, cc, :] = 0
 
         necd, edges = np.histogram(log_ecd, self.bin_limits)  # count the input diameters into a number distribution
         # convert to a volume distribution
-        log_vd = pyopia.statistics.vd_from_nd(necd, self.dias, sample_volume=self.sample_volume)
+        temporal_volume_distribution = pyopia.statistics.vd_from_nd(necd, self.dias, sample_volume=self.sample_volume)
 
-        # add some noise to the synthesized image
-        img = np.uint8(255 * skimage.util.random_noise(np.float64(img) / 255))
+        if add_noise:
+            # add some noise to the synthesized image
+            img = np.uint8(255 * skimage.util.random_noise(np.float64(img) / 255, mode='gaussian', var=noise_var))
 
         img = np.uint8(img)  # convert to uint8
         self.data['synthetic_image_data'] = dict()
         self.data['synthetic_image_data']['image'] = img
-        self.data['synthetic_image_data']['input_volume_distribution'] = log_vd
+        self.data['synthetic_image_data']['input_volume_distribution'] = temporal_volume_distribution
 
     def process_synthetic_image(self):
         '''Put the synthetic image `data['synthetic_image_data']['image']` through a basic pyopia processing pipeline
@@ -278,3 +308,39 @@ class SilcamSimulator():
         plt.legend()
 
         plt.tight_layout()
+
+
+def extract_and_scale_example_image(output_length, file_list):
+    '''Randomly select a file from the input file_list list,
+    load this and then scale it (maintaining aspect ratio) to match the longest x-y dimention
+    to rad_ number of pixel
+
+    Parameters
+    ----------
+    output_length : float
+        wanted longest dimention
+    file_list : list
+        list of filenames to chose from (to be read with skimage.io.imread)
+
+    Returns
+    -------
+    example_image : array
+        resized image
+    '''
+    filename = np.random.choice(file_list, size=1)[0]
+    raw_image = skimage.io.imread(filename).astype(float)
+
+    longest_axis = np.max(raw_image.shape[0:2])
+
+    scale_factor = output_length * 2 / longest_axis
+
+    size_row = scale_factor * np.float64(raw_image.shape[0])
+    size_col = scale_factor * np.float64(raw_image.shape[1])
+
+    example_image = skimage.transform.resize(raw_image,
+                                             (size_row, size_col),
+                                             anti_aliasing=True)
+
+    if np.min(np.shape(example_image)) > 0:
+        example_image += 255 - np.max(example_image)
+    return example_image
