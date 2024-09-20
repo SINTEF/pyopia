@@ -37,7 +37,7 @@ def docs():
 
 @app.command()
 def modify_config(existing_filename: str, modified_filename: str,
-                  raw_files=None,
+                  raw_files=None, pixel_size=None,
                   step_name=None, modify_arg=None, modify_value=None):
     '''Modify a existing config.toml file and write a new one to disc
 
@@ -49,6 +49,8 @@ def modify_config(existing_filename: str, modified_filename: str,
         e.g. config_new.toml
     raw_files : str, optional
         modify the raw file input in the `[general]` settings, by default None
+    pixel_size : str, optional
+        modify the pixel size in the `[general]` settings, by default None
     step_name : str, optional
         the name of the step to modify e.g. `segmentation`, by default None
     modify_arg : str, optional
@@ -61,11 +63,18 @@ def modify_config(existing_filename: str, modified_filename: str,
     toml_settings = pyopia.io.load_toml(existing_filename)
 
     if raw_files is not None:
-        toml_settings['general']['raw_files'] = raw_files
+        toml_settings['general']['raw_files'] = f'{raw_files}'
+    if pixel_size is not None:
+        toml_settings['general']['pixel_size'] = float(pixel_size)
 
     if step_name is not None:
         try:
-            modify_value = float(modify_value)
+            if modify_arg == 'average_window':
+                modify_value = int(modify_value)
+            elif modify_arg == 'threshold':
+                modify_value = float(modify_value)
+            else:
+                modify_value = str(modify_value)
         except ValueError:
             pass
 
