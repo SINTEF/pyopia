@@ -11,6 +11,7 @@ import xarray
 import os
 from glob import glob
 import xarray as xr
+from tqdm.auto import tqdm
 
 from pyopia import __version__ as pyopia_version
 
