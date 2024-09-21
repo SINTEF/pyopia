@@ -203,7 +203,7 @@ def combine_stats_netcdf_files(path_to_data, prefix='*'):
         Folder name containing nc files with pattern '*Image-D*-STATS.nc'
 
     prefix : str
-        Prefix to multi-file dataset (for replacing <prefix> in the file name pattern '<prefix>Image-D*-STATS.nc').
+        Prefix to multi-file dataset (for replacing the wildcard in '*Image-D*-STATS.nc').
         Defaults to '*'
 
     Returns
@@ -214,19 +214,43 @@ def combine_stats_netcdf_files(path_to_data, prefix='*'):
         summary statistics of each raw image (including those with no particles)
     '''
 
+    # Get sorted list of per-image stats netcdf files
     sorted_filelist = sorted(glob(os.path.join(path_to_data, prefix + 'Image-D*-STATS.nc')))
-    with xarray.open_mfdataset(sorted_filelist, combine='nested', concat_dim='index',
-                               decode_cf=True, parallel=False,
-                               coords='minimal', compat='override') as ds:
-        xstats = ds.load()
 
-    # Check if we have image statistics, if so, load it.
+    if len(sorted_filelist) < 1:
+        logger.error('No files found to concatenate, doing nothing.')
+        return None, None
+
+    # We load one dataset at the time into a list for later merge
+    datasets = []
+    datasets_image_stats = []
+
+    # Check if we have image statistics in first file, if not, we skip checking the rest
+    skip_image_stats = False
     try:
-        with xarray.open_mfdataset(sorted_filelist, group='image_stats') as ds:
-            image_stats = ds.load()
+        with xr.open_dataset(sorted_filelist[0], group='image_stats') as ds:
+            ds.load()
     except OSError:
         logger.info('Could get image_stats from netcdf files for merging, returning None for this.')
-        image_stats = None
+        skip_image_stats = True
+
+    # Load datasets from each file into the lists
+    for f in tqdm(sorted_filelist, desc='Loading datasets'):
+        with xr.open_dataset(f) as ds:
+            ds.load()
+            datasets.append(ds)
+
+        if not skip_image_stats:
+            with xr.open_dataset(f, group='image_stats') as ds:
+                ds.load()
+                datasets_image_stats.append(ds)
+
+    # Combine the individual datasets loaded above
+    logging.info('Combining datasets')
+    xstats = xr.concat(datasets, dim='index')
+    image_stats = None
+    if not skip_image_stats:
+        image_stats = xr.concat(datasets_image_stats, dim='timestamp')
 
     return xstats, image_stats
 
@@ -245,7 +269,7 @@ def merge_and_save_mfdataset(path_to_data, prefix='*'):
         Defaults to '*'
     '''
 
-    logging.info(f'combine stats netcdf files from {path_to_data}')
+    logging.info(f'Combine stats netcdf files from {path_to_data}')
     xstats, image_stats = combine_stats_netcdf_files(path_to_data, prefix=prefix)
 
     settings = steps_from_xstats(xstats)
