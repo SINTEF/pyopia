@@ -204,7 +204,7 @@ def combine_stats_netcdf_files(path_to_data, prefix='*'):
         Folder name containing nc files with pattern '*Image-D*-STATS.nc'
 
     prefix : str
-        Prefix to multi-file dataset (for replacing the wildcard in '*Image-D*-STATS.nc').
+        Prefix to multi-file dataset (for replacing <prefix> in the file name pattern '<prefix>Image-D*-STATS.nc').
         Defaults to '*'
 
     Returns
