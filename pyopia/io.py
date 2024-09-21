@@ -3,7 +3,7 @@ Module containing tools for datafile and metadata handling
 '''
 
 from datetime import datetime
-
+import numpy as np
 import h5py
 import pandas as pd
 import toml
