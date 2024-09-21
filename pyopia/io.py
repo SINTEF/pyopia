@@ -194,30 +194,22 @@ def load_stats(datafilename):
     return xstats
 
 
-def combine_stats_netcdf_files(path_to_data, prefix='*'):
+def combine_stats_netcdf_files(sorted_filelist):
     '''Combine a multi-file directory of STATS.nc files into a 'stats' xarray dataset created by :func:`pyopia.io.write_stats`
     when using 'append = false'
 
     Parameters
     ----------
-    path_to_data : str
-        Folder name containing nc files with pattern '*Image-D*-STATS.nc'
-
-    prefix : str
-        Prefix to multi-file dataset (for replacing <prefix> in the file name pattern '<prefix>Image-D*-STATS.nc').
-        Defaults to '*'
+    sorted_filelist : str
+        List of files to be combined into single dataset
 
     Returns
     -------
-    xstats : xarray.Dataset
+    xstats : xarray.Dataset or None
         Particle statistics and metatdata from processing steps
-    image_stats : xarray.Dataset
-        summary statistics of each raw image (including those with no particles)
+    image_stats : xarray.Dataset or None
+        Summary statistics of each raw image (including those with no particles)
     '''
-
-    # Get sorted list of per-image stats netcdf files
-    sorted_filelist = sorted(glob(os.path.join(path_to_data, prefix + 'Image-D*-STATS.nc')))
-
     if len(sorted_filelist) < 1:
         logger.error('No files found to concatenate, doing nothing.')
         return None, None
@@ -269,23 +261,49 @@ def merge_and_save_mfdataset(path_to_data, prefix='*'):
         Prefix to multi-file dataset (for replacing the wildcard in '*Image-D*-STATS.nc').
         Defaults to '*'
     '''
-
     logging.info(f'Combine stats netcdf files from {path_to_data}')
-    xstats, image_stats = combine_stats_netcdf_files(path_to_data, prefix=prefix)
 
-    settings = steps_from_xstats(xstats)
+    # Get sorted list of per-image stats netcdf files
+    sorted_filelist = sorted(glob(os.path.join(path_to_data, prefix + 'Image-D*-STATS.nc')))
 
-    prefix_out = os.path.basename(settings['steps']['output']['output_datafile'])
+    num_files = len(sorted_filelist)
+    chunk_size = 1000
+    num_chunks = int(np.ceil(num_files / chunk_size))
+    filelist_chunks = [sorted_filelist[i*chunk_size:min(num_files, (i+1)*chunk_size)] for i in range(num_chunks)]
+    logging.info('Processing {num_chunks} partial file lists of {chunk_size} files each.')
+
+    merged_files = []
+    for i, filelist_ in enumerate(filelist_chunks):
+        xstats, image_stats = combine_stats_netcdf_files(filelist_)
+
+        settings = steps_from_xstats(xstats)
+        prefix_out = os.path.basename(settings['steps']['output']['output_datafile'])
+        output_name = os.path.join(path_to_data, f'{i:03d}-{prefix_out}')
+        merged_files.append(output_name)
+
+        logging.info(f'Writing {output_name}')
+
+        # Save the particle statistics (xstats) to NetCDF
+        encoding = setup_xstats_encoding(xstats)
+        if xstats is not None:
+            xstats.to_netcdf(output_name + '-STATS.nc', encoding=encoding, engine=NETCDF_ENGINE, format='NETCDF4')
+
+        # If summary data for each raw image are available (image_stats), save this into the image_stats group
+        if image_stats is not None:
+            image_stats.to_netcdf(output_name + '-STATS.nc', group='image_stats', mode='a', engine=NETCDF_ENGINE)
+
+        logging.info(f'Writing {output_name} done.')
+
+    # Finally, merge the partially merged files
+    logging.info('Doing final merge of partially merged files')
     output_name = os.path.join(path_to_data, prefix_out)
+    with xr.open_mfdataset(merged_files) as ds:
+        ds.to_netcdf(output_name)
 
-    logging.info(f'writing {output_name}')
-    # save the particle statistics (xstats) to NetCDF
-    encoding = setup_xstats_encoding(xstats)
-    xstats.to_netcdf(output_name + '-STATS.nc', encoding=encoding, engine=NETCDF_ENGINE, format='NETCDF4')
-    # if summary data for each raw image are available (image_stats), save this into the image_stats group
-    if image_stats is not None:
-        image_stats.to_netcdf(output_name + '-STATS.nc', group='image_stats', mode='a', engine=NETCDF_ENGINE)
-    logging.info(f'writing {output_name} done.')
+    with xr.open_mfdataset(merged_files, group='image_stats') as ds:
+        ds.to_netcdf(output_name, group='image_stats')
+
+    logging.info(f'Writing {output_name} done.')
 
 
 def steps_from_xstats(xstats):
