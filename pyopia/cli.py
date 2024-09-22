@@ -186,8 +186,8 @@ def process(config_filename: str, num_chunks: int = 1):
 
 
 @app.command()
-def merge_mfdata(path_to_data: str, prefix='*', overwrite_existing_partials : bool = True,
-                 chunk_size : int = None):
+def merge_mfdata(path_to_data: str, prefix='*', overwrite_existing_partials: bool = True,
+                 chunk_size: int = None):
     '''Combine a multi-file directory of STATS.nc files into a single '-STATS.nc' file
     that can then be loaded with {func}`pyopia.io.load_stats`
 

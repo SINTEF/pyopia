@@ -270,7 +270,7 @@ def merge_and_save_mfdataset(path_to_data, prefix='*', overwrite_existing_partia
         Number of files to be loaded and merged in each step. Produces a number
         of intermediate/partially merged netcdf files equal to the total number
         of input files divided by chunk_size. The last chunk may contain less
-        files than specified, depending on the total number of files. 
+        files than specified, depending on the total number of files.
         Default: None, which processes all files together.
     '''
     logging.info(f'Combine stats netcdf files from {path_to_data}')
@@ -285,7 +285,9 @@ def merge_and_save_mfdataset(path_to_data, prefix='*', overwrite_existing_partia
     chunk_size_used = num_files if chunk_size is None else min(chunk_size, num_files)
     num_chunks = int(np.ceil(num_files / chunk_size_used))
     filelist_chunks = [sorted_filelist[i*chunk_size_used:min(num_files, (i+1)*chunk_size_used)] for i in range(num_chunks)]
-    logging.info(f'Processing {num_chunks} partial file lists of {chunk_size_used} files each, based on a total of {num_files} files.')
+    infostr = f'Processing {num_chunks} partial file lists of {chunk_size_used} files each'
+    infostr += ', based on a total of {num_files} files.'
+    logging.info(infostr)
 
     # Get config from first file in list
     xstats = load_stats(sorted_filelist[0])
