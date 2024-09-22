@@ -248,7 +248,7 @@ def combine_stats_netcdf_files(sorted_filelist):
     return xstats, image_stats
 
 
-def merge_and_save_mfdataset(path_to_data, prefix='*'):
+def merge_and_save_mfdataset(path_to_data, prefix='*', overwrite_existing_partials=False, chunk_size=None):
     '''Combine a multi-file directory of STATS.nc files into a single '-STATS.nc' file
     that can then be loaded with :func:`pyopia.io.load_stats`
 
@@ -260,48 +260,76 @@ def merge_and_save_mfdataset(path_to_data, prefix='*'):
     prefix : str
         Prefix to multi-file dataset (for replacing the wildcard in '*Image-D*-STATS.nc').
         Defaults to '*'
+
+    overwrite_existing_partials : bool
+        Do not reprocess existing merged netcdf files for each chunk if False.
+        Otherwise reprocess (load) and overwrite. This can be used to restart
+        or continue a previous merge operation as new files become available.
+
+    chunk_size : int
+        Number of files to be loaded and merged in each step. Produces a number
+        of intermediate/partially merged netcdf files equal to the total number
+        of input files divided by chunk_size. The last chunk may contain less
+        files than specified, depending on the total number of files. 
+        Default: None, which processes all files together.
     '''
     logging.info(f'Combine stats netcdf files from {path_to_data}')
+    if (chunk_size is not None) and (chunk_size < 1):
+        raise ValueError(f'Invalid chunk size, must be greater than 0, was {chunk_size}')
 
     # Get sorted list of per-image stats netcdf files
     sorted_filelist = sorted(glob(os.path.join(path_to_data, prefix + 'Image-D*-STATS.nc')))
 
+    # Chunk the file list into smaller parts if specified
     num_files = len(sorted_filelist)
-    chunk_size = 1000
-    num_chunks = int(np.ceil(num_files / chunk_size))
-    filelist_chunks = [sorted_filelist[i*chunk_size:min(num_files, (i+1)*chunk_size)] for i in range(num_chunks)]
-    logging.info('Processing {num_chunks} partial file lists of {chunk_size} files each.')
+    chunk_size_used = num_files if chunk_size is None else min(chunk_size, num_files)
+    num_chunks = int(np.ceil(num_files / chunk_size_used))
+    filelist_chunks = [sorted_filelist[i*chunk_size_used:min(num_files, (i+1)*chunk_size_used)] for i in range(num_chunks)]
+    logging.info(f'Processing {num_chunks} partial file lists of {chunk_size_used} files each, based on a total of {num_files} files.')
 
-    merged_files = []
-    for i, filelist_ in enumerate(filelist_chunks):
+    # Get config from first file in list
+    xstats = load_stats(sorted_filelist[0])
+    settings = steps_from_xstats(xstats)
+    prefix_out = os.path.basename(settings['steps']['output']['output_datafile'])
+    encoding = setup_xstats_encoding(xstats)
+
+    def process_store(i, filelist_):
+        output_name = os.path.join(path_to_data, f'part-{i:04d}-{prefix_out}-STATS.nc')
+
+        # Skip this chunk if the merged output file exists and overwrite is set to False
+        if os.path.exists(output_name) and not overwrite_existing_partials:
+            logging.info(f'File exists ({output_name}), skipping')
+            return output_name
+
+        # Load the individual datasets
         xstats, image_stats = combine_stats_netcdf_files(filelist_)
 
-        settings = steps_from_xstats(xstats)
-        prefix_out = os.path.basename(settings['steps']['output']['output_datafile'])
-        output_name = os.path.join(path_to_data, f'{i:03d}-{prefix_out}')
-        merged_files.append(output_name)
-
-        logging.info(f'Writing {output_name}')
-
         # Save the particle statistics (xstats) to NetCDF
-        encoding = setup_xstats_encoding(xstats)
+        logging.info(f'Writing {output_name}')
         if xstats is not None:
-            xstats.to_netcdf(output_name + '-STATS.nc', encoding=encoding, engine=NETCDF_ENGINE, format='NETCDF4')
+            xstats.to_netcdf(output_name, mode='w', encoding=encoding, engine=NETCDF_ENGINE, format='NETCDF4')
 
         # If summary data for each raw image are available (image_stats), save this into the image_stats group
         if image_stats is not None:
-            image_stats.to_netcdf(output_name + '-STATS.nc', group='image_stats', mode='a', engine=NETCDF_ENGINE)
-
+            image_stats.to_netcdf(output_name, group='image_stats', mode='a', engine=NETCDF_ENGINE)
         logging.info(f'Writing {output_name} done.')
+
+        return output_name
+
+    # Loop over filelist chunkst and created merged netcdf files for each
+    merged_files = []
+    for i, filelist_ in enumerate(filelist_chunks):
+        output_name = process_store(i, filelist_)
+        merged_files.append(output_name)
 
     # Finally, merge the partially merged files
     logging.info('Doing final merge of partially merged files')
-    output_name = os.path.join(path_to_data, prefix_out)
-    with xr.open_mfdataset(merged_files) as ds:
-        ds.to_netcdf(output_name)
+    output_name = os.path.join(path_to_data, prefix_out + '-STATS.nc')
+    with xr.open_mfdataset(merged_files, concat_dim='index', combine='nested') as ds:
+        ds.to_netcdf(output_name, mode='w', encoding=encoding, engine=NETCDF_ENGINE, format='NETCDF4')
 
-    with xr.open_mfdataset(merged_files, group='image_stats') as ds:
-        ds.to_netcdf(output_name, group='image_stats')
+    with xr.open_mfdataset(merged_files, group='image_stats', concat_dim='timestamp', combine='nested') as ds:
+        ds.to_netcdf(output_name, mode='a', group='image_stats', engine=NETCDF_ENGINE)
 
     logging.info(f'Writing {output_name} done.')
 
