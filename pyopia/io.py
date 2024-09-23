@@ -179,7 +179,7 @@ def load_stats(datafilename):
     '''
 
     if datafilename.endswith('.nc'):
-        with xarray.open_dataset(datafilename) as xstats:
+        with xarray.open_dataset(datafilename, engine=NETCDF_ENGINE) as xstats:
             xstats.load()
     elif datafilename.endswith('.h5'):
         logger.warning('In future, load_stats will only take .nc files')
@@ -221,7 +221,7 @@ def combine_stats_netcdf_files(sorted_filelist):
     # Check if we have image statistics in first file, if not, we skip checking the rest
     skip_image_stats = False
     try:
-        with xr.open_dataset(sorted_filelist[0], group='image_stats') as ds:
+        with xr.open_dataset(sorted_filelist[0], group='image_stats', engine=NETCDF_ENGINE) as ds:
             ds.load()
     except OSError:
         logger.info('Could get image_stats from netcdf files for merging, returning None for this.')
@@ -229,12 +229,12 @@ def combine_stats_netcdf_files(sorted_filelist):
 
     # Load datasets from each file into the lists
     for f in tqdm(sorted_filelist, desc='Loading datasets'):
-        with xr.open_dataset(f) as ds:
+        with xr.open_dataset(f, engine=NETCDF_ENGINE) as ds:
             ds.load()
             datasets.append(ds)
 
         if not skip_image_stats:
-            with xr.open_dataset(f, group='image_stats') as ds:
+            with xr.open_dataset(f, group='image_stats', engine=NETCDF_ENGINE) as ds:
                 ds.load()
                 datasets_image_stats.append(ds)
 
@@ -327,10 +327,10 @@ def merge_and_save_mfdataset(path_to_data, prefix='*', overwrite_existing_partia
     # Finally, merge the partially merged files
     logging.info('Doing final merge of partially merged files')
     output_name = os.path.join(path_to_data, prefix_out + '-STATS.nc')
-    with xr.open_mfdataset(merged_files, concat_dim='index', combine='nested') as ds:
+    with xr.open_mfdataset(merged_files, concat_dim='index', combine='nested', engine=NETCDF_ENGINE) as ds:
         ds.to_netcdf(output_name, mode='w', encoding=encoding, engine=NETCDF_ENGINE, format='NETCDF4')
 
-    with xr.open_mfdataset(merged_files, group='image_stats', concat_dim='timestamp', combine='nested') as ds:
+    with xr.open_mfdataset(merged_files, group='image_stats', concat_dim='timestamp', combine='nested', engine=NETCDF_ENGINE) as ds:
         ds.to_netcdf(output_name, mode='a', group='image_stats', engine=NETCDF_ENGINE)
 
     logging.info(f'Writing {output_name} done.')
