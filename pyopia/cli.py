@@ -186,7 +186,8 @@ def process(config_filename: str, num_chunks: int = 1):
 
 
 @app.command()
-def merge_mfdata(path_to_data: str, prefix='*'):
+def merge_mfdata(path_to_data: str, prefix='*', overwrite_existing_partials: bool = True,
+                 chunk_size: int = None):
     '''Combine a multi-file directory of STATS.nc files into a single '-STATS.nc' file
     that can then be loaded with {func}`pyopia.io.load_stats`
 
@@ -198,8 +199,21 @@ def merge_mfdata(path_to_data: str, prefix='*'):
     prefix : str
         Prefix to multi-file dataset (for replacing the wildcard in '*Image-D*-STATS.nc').
         Defaults to '*'
+
+    overwrite_existing_partials : bool
+        Do not reprocess existing merged netcdf files for each chunk if False.
+        Otherwise reprocess (load) and overwrite. This can be used to restart
+        or continue a previous merge operation as new files become available.
+
+    chunk_size : int
+        Process this many files together and store as partially merged netcdf files, which
+        are then merged at the end. Default: None, process all files together.
     '''
-    pyopia.io.merge_and_save_mfdataset(path_to_data, prefix=prefix)
+    setup_logging({'general': {}})
+
+    pyopia.io.merge_and_save_mfdataset(path_to_data, prefix=prefix,
+                                       overwrite_existing_partials=overwrite_existing_partials,
+                                       chunk_size=chunk_size)
 
 
 def setup_logging(pipeline_config):
