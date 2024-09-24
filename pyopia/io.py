@@ -194,9 +194,53 @@ def load_stats(datafilename):
     return xstats
 
 
-def combine_stats_netcdf_files(sorted_filelist):
-    '''Combine a multi-file directory of STATS.nc files into a 'stats' xarray dataset created by :func:`pyopia.io.write_stats`
+def combine_stats_netcdf_files(path_to_data, prefix='*'):
+    '''.. deprecated:: 2.4.11
+        :class:`pyopia.io.combine_stats_netcdf_files` will be removed in version 3.0.0, it is replaced by
+        :class:`pyopia.io.concat_stats_netcdf_files`.
+
+    Combine a multi-file directory of STATS.nc files into a 'stats' xarray dataset created by :func:`pyopia.io.write_stats`
     when using 'append = false'
+
+    Parameters
+    ----------
+    path_to_data : str
+        Folder name containing nc files with pattern '*Image-D*-STATS.nc'
+
+    prefix : str
+        Prefix to multi-file dataset (for replacing <prefix> in the file name pattern '<prefix>Image-D*-STATS.nc').
+        Defaults to '*'
+
+    Returns
+    -------
+    xstats : xarray.Dataset
+        Particle statistics and metatdata from processing steps
+    image_stats : xarray.Dataset
+        summary statistics of each raw image (including those with no particles)
+    '''
+
+    sorted_filelist = sorted(glob(os.path.join(path_to_data, prefix + 'Image-D*-STATS.nc')))
+    with xarray.open_mfdataset(sorted_filelist, combine='nested', concat_dim='index',
+                               decode_cf=True, parallel=False,
+                               coords='minimal', compat='override') as ds:
+        xstats = ds.load()
+
+    # Check if we have image statistics, if so, load it.
+    try:
+        with xarray.open_mfdataset(sorted_filelist, group='image_stats') as ds:
+            image_stats = ds.load()
+    except OSError:
+        logger.info('Could get image_stats from netcdf files for merging, returning None for this.')
+        image_stats = None
+
+    return xstats, image_stats
+
+
+def concat_stats_netcdf_files(sorted_filelist):
+    '''Concatenate specified list of STATS.nc files into one 'xstats' xarray dataset
+    created by :func:`pyopia.io.write_stats when using 'append = false'.
+
+    Existing files are first loaded and then combined, so memory usage will go up with longer file lists.
 
     Parameters
     ----------
@@ -304,7 +348,7 @@ def merge_and_save_mfdataset(path_to_data, prefix='*', overwrite_existing_partia
             return output_name
 
         # Load the individual datasets
-        xstats, image_stats = combine_stats_netcdf_files(filelist_)
+        xstats, image_stats = concat_stats_netcdf_files(filelist_)
 
         # Save the particle statistics (xstats) to NetCDF
         logging.info(f'Writing {output_name}')
@@ -327,10 +371,10 @@ def merge_and_save_mfdataset(path_to_data, prefix='*', overwrite_existing_partia
     # Finally, merge the partially merged files
     logging.info('Doing final merge of partially merged files')
     output_name = os.path.join(path_to_data, prefix_out + '-STATS.nc')
-    with xr.open_mfdataset(merged_files, concat_dim='index', combine='nested', engine=NETCDF_ENGINE) as ds:
+    with xr.open_mfdataset(merged_files, concat_dim='index', combine='nested') as ds:
         ds.to_netcdf(output_name, mode='w', encoding=encoding, engine=NETCDF_ENGINE, format='NETCDF4')
 
-    with xr.open_mfdataset(merged_files, group='image_stats', concat_dim='timestamp', combine='nested', engine=NETCDF_ENGINE) as ds:
+    with xr.open_mfdataset(merged_files, group='image_stats', concat_dim='timestamp', combine='nested') as ds:
         ds.to_netcdf(output_name, mode='a', group='image_stats', engine=NETCDF_ENGINE)
 
     logging.info(f'Writing {output_name} done.')
