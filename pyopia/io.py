@@ -83,17 +83,21 @@ def write_stats(stats,
         if append and os.path.isfile(datafilename + '-STATS.nc'):
             existing_stats = load_stats(datafilename + '-STATS.nc')
             xstats = xarray.concat([existing_stats, xstats], 'index')
-            ximage_stats = image_stats.to_xarray()
         elif not append:
             # When appending, only store the last row in the image_stats DataFrame
-            ximage_stats = image_stats.loc[[image_stats.index[-1]], :].to_xarray()
             datafilename += ('-Image-D' +
                              str(xstats['timestamp'][0].values).replace('-', '').replace(':', '').replace('.', '-'))
+
         encoding = setup_xstats_encoding(xstats)
         xstats.to_netcdf(datafilename + '-STATS.nc', encoding=encoding, engine=NETCDF_ENGINE, format='NETCDF4')
 
         # If we have image statistics (summary data for each raw image), add the image_stats a group
         if image_stats is not None:
+            if append:
+                ximage_stats = image_stats.to_xarray()
+            else:
+                ximage_stats = image_stats.loc[[image_stats.index[-1]], :].to_xarray()
+
             ximage_stats.to_netcdf(datafilename + '-STATS.nc', group='image_stats', mode='a', engine=NETCDF_ENGINE)
 
 
