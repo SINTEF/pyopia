@@ -259,14 +259,12 @@ def extract_particles(imc, timestamp, Classification, region_properties,
     stats : DataFrame
         List of particle statistics for every particle, according to Partstats class
     '''
-    filenames = ['not_exported'] * len(region_properties)
+    num_rows = max(len(region_properties), 1)
+    filenames = ['not_exported'] * num_rows
 
     if Classification is not None:
         # pre-allocation
-        predictions = np.zeros((len(region_properties),
-                                len(Classification.class_labels)),
-                               dtype='float64')
-        predictions *= np.nan
+        predictions = np.nan * np.zeros((num_rows, len(Classification.class_labels)), dtype='float64')
 
     # obtain the original image filename from the timestamp
     filename = timestamp.strftime('D%Y%m%dT%H%M%S.%f')
@@ -292,8 +290,8 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         HDF5File = None
 
     # pre-allocate some things
-    data = np.zeros((len(region_properties), len(propnames)), dtype=np.float64)
-    bboxes = np.zeros((len(region_properties), 4), dtype=np.float64)
+    data = np.nan * np.zeros((num_rows, len(propnames)), dtype=np.float64)
+    bboxes = np.nan * np.zeros((num_rows, 4), dtype=np.float64)
     nb_extractable_part = 0
 
     for i, el in enumerate(region_properties):
@@ -630,7 +628,7 @@ class CalculateImageStats():
         data['image_stats'].loc[data['timestamp'], 'saturation'] = image_saturation
 
         # Skip remaining calculations if no particles where found
-        if data['stats'].size == 0:
+        if data['stats'].dropna().size == 0:
             return data
 
         # Calculate D50, nc and vc stats
