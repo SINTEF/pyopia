@@ -173,7 +173,7 @@ def correct_im_accurate_divide(imbg, imraw):
     '''
 
     image_shape = np.shape(imbg)
-    if len(image_shape) > 2: 
+    if len(image_shape) > 2:
         # change the zero_value pixels in each channel to prevent RuntimeWarning: 'divide by zero'
         for i in range(imbg.shape[2]):
             imbg[:, :, i][imbg[:, :, i] == 0] = 1 / 255
