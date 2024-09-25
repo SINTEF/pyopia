@@ -151,6 +151,39 @@ def correct_im_fast(imbg, imraw):
     return im_corrected
 
 
+def correct_im_accurate_divid(imbg, imraw):
+    '''
+    Corrects raw image by dividing the background and scaling the output
+    (see Davies et al., 2017: https://doi.org/10.1016/j.marpolbul.2016.11.063)
+
+    There is a small chance of clipping of imc in both crushed blacks and blown
+    highlights if the background or raw images are very poorly obtained
+
+    Parameters
+    -----------
+    imbg : float64
+        background averaged image
+    imraw : float64
+        raw image
+
+    Returns
+    -------
+    im_corrected : float64
+        corrected image, same type as input
+    '''
+
+    zero_mask = imbg == 0   # a mask to find pixels with zero value
+    imbg[zero_mask] = 1 / 255   # change the zero_value pixels to prevent RuntimeWarning: 'divide by zero'
+
+    im_corrected = imraw / imbg
+
+    im_corrected += (1 / 2 - np.percentile(im_corrected, 50))
+
+    im_corrected += 1 - im_corrected.max()
+
+    return im_corrected
+
+
 def shift_and_correct(bgstack, imbg, imraw, stacklength, real_time_stats=False):
     '''
     Shifts the background stack and averaged image and corrects the new
@@ -256,10 +289,11 @@ class CorrectBackgroundAccurate():
     Then you could use :class:`pyopia.pipeline.CorrectBackgroundNone` if you need to instead.
     '''
 
-    def __init__(self, bgshift_function='pass', average_window=1, image_source='imraw'):
+    def __init__(self, bgshift_function='pass', average_window=1, image_source='imraw', divide_bg=True):
         self.bgshift_function = bgshift_function
         self.average_window = average_window
         self.image_source = image_source
+        self.divide_bg = divide_bg
 
     def _build_background_step(self, data):
         '''Add one layer to the background stack from the raw image in data pipeline, and update the background image.'''
@@ -284,7 +318,10 @@ class CorrectBackgroundAccurate():
             data['skip_next_steps'] = True
             return data
 
-        data['im_corrected'] = correct_im_accurate(data['imbg'], data[self.image_source])
+        if self.divide_bg:
+            data['im_corrected'] = correct_im_accurate_divid(data['imbg'], data[self.image_source])
+        else:
+            data['im_corrected'] = correct_im_accurate(data['imbg'], data[self.image_source])
 
         match self.bgshift_function:
             case 'pass':
