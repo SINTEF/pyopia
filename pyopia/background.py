@@ -172,8 +172,8 @@ def correct_im_accurate_divide(imbg, imraw):
         corrected image, same type as input
     '''
 
-    zero_mask = imbg == 0   # a mask to find pixels with zero value
-    imbg[zero_mask] = 1 / 255   # change the zero_value pixels to prevent RuntimeWarning: 'divide by zero'
+    for i in range(imbg.shape[2]):
+        imbg[:, :, i][imbg[:, :, i] == 0] = 1 / 255   # change the zero_value pixels to prevent RuntimeWarning: 'divide by zero'
 
     im_corrected = imraw / imbg
 
