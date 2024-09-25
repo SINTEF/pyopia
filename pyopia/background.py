@@ -151,7 +151,7 @@ def correct_im_fast(imbg, imraw):
     return im_corrected
 
 
-def correct_im_accurate_divid(imbg, imraw):
+def correct_im_accurate_divide(imbg, imraw):
     '''
     Corrects raw image by dividing the background and scaling the output
     (see Davies et al., 2017: https://doi.org/10.1016/j.marpolbul.2016.11.063)
@@ -240,7 +240,7 @@ class CorrectBackgroundAccurate():
     ----------
     bgshift_function : (string, optional)
         Function used to shift the background. Defaults to passing (i.e. static background)
-        Available options are 'accurate', 'fast', or 'pass' to apply a statick background correction:
+        Available options are 'accurate', 'fast', or 'pass' to apply a static background correction:
 
         :func:`pyopia.background.shift_bgstack_accurate`
 
@@ -252,6 +252,10 @@ class CorrectBackgroundAccurate():
     image_source: (str, optional)
         The key in Pipeline.data of the image to be background corrected.
         Defaults to 'imraw'
+
+    divide_bg : (bool, optional)
+        If True, the correction will be performed by dividing the raw image by the background.
+        Default to True.
 
     Returns
     -------
@@ -319,7 +323,7 @@ class CorrectBackgroundAccurate():
             return data
 
         if self.divide_bg:
-            data['im_corrected'] = correct_im_accurate_divid(data['imbg'], data[self.image_source])
+            data['im_corrected'] = correct_im_accurate_divide(data['imbg'], data[self.image_source])
         else:
             data['im_corrected'] = correct_im_accurate(data['imbg'], data[self.image_source])
 
