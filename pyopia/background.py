@@ -95,7 +95,7 @@ def shift_bgstack_fast(bgstack, imbg, imnew):
     return bgstack, imbg
 
 
-def correct_im_accurate(imbg, imraw, divide_bg=True):
+def correct_im_accurate(imbg, imraw, divide_bg=False):
     '''
     Corrects raw image by subtracting or dividing the background and scaling the output
 
@@ -112,7 +112,7 @@ def correct_im_accurate(imbg, imraw, divide_bg=True):
         raw image
     divide_bg : (bool, optional)
         If True, the correction will be performed by dividing the raw image by the background
-        Default to True
+        Default to False
 
     Returns
     -------
@@ -120,9 +120,8 @@ def correct_im_accurate(imbg, imraw, divide_bg=True):
         corrected image, same type as input
     '''
 
-    imbg = np.clip(imbg, a_min=1/255, a_max=None)   # Clipping the zero_value pixels
-
     if divide_bg:
+        imbg = np.clip(imbg, a_min=1/255, a_max=None)   # Clipping the zero_value pixels
         im_corrected = imraw / imbg
     else:
         im_corrected = imraw - imbg
@@ -233,7 +232,7 @@ class CorrectBackgroundAccurate():
 
     divide_bg : (bool)
         If True, it performs background correction by dividing the raw image by the background.
-        Default to True.
+        Default to False.
 
     Returns
     -------
@@ -271,7 +270,7 @@ class CorrectBackgroundAccurate():
     Then you could use :class:`pyopia.pipeline.CorrectBackgroundNone` if you need to instead.
     '''
 
-    def __init__(self, bgshift_function='pass', average_window=1, image_source='imraw', divide_bg=True):
+    def __init__(self, bgshift_function='pass', average_window=1, image_source='imraw', divide_bg=False):
         self.bgshift_function = bgshift_function
         self.average_window = average_window
         self.image_source = image_source
