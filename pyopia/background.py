@@ -95,9 +95,11 @@ def shift_bgstack_fast(bgstack, imbg, imnew):
     return bgstack, imbg
 
 
-def correct_im_accurate(imbg, imraw):
+def correct_im_accurate(imbg, imraw, divide_bg=True):
     '''
-    Corrects raw image by subtracting the background and scaling the output
+    Corrects raw image by subtracting or dividing the background and scaling the output
+
+    For dividing method see: https://doi.org/10.1016/j.marpolbul.2016.11.063)
 
     There is a small chance of clipping of imc in both crushed blacks and blown
     highlights if the background or raw images are very poorly obtained
@@ -108,6 +110,9 @@ def correct_im_accurate(imbg, imraw):
         background averaged image
     imraw : float64
         raw image
+    divide_bg : (bool, optional)
+        If True, the correction will be performed by dividing the raw image by the background
+        Default to True
 
     Returns
     -------
@@ -115,7 +120,13 @@ def correct_im_accurate(imbg, imraw):
         corrected image, same type as input
     '''
 
-    im_corrected = imraw - imbg
+    imbg = np.clip(imbg, a_min=1/255)   # Clipping the zero_value pixels
+
+    if divide_bg:
+        im_corrected = imraw / imbg
+    else:
+        im_corrected = imraw - imbg
+
     im_corrected += (1 / 2 - np.percentile(im_corrected, 50))
 
     im_corrected += 1 - im_corrected.max()
@@ -147,44 +158,6 @@ def correct_im_fast(imbg, imraw):
 
     im_corrected += 215/255
     im_corrected = np.clip(im_corrected, 0, 1)
-
-    return im_corrected
-
-
-def correct_im_accurate_divide(imbg, imraw):
-    '''
-    Corrects raw image by dividing the background and scaling the output
-    (see Davies et al., 2017: https://doi.org/10.1016/j.marpolbul.2016.11.063)
-
-    There is a small chance of clipping of imc in both crushed blacks and blown
-    highlights if the background or raw images are very poorly obtained
-
-    Parameters
-    -----------
-    imbg : float64
-        background averaged image
-    imraw : float64
-        raw image
-
-    Returns
-    -------
-    im_corrected : float64
-        corrected image, same type as input
-    '''
-
-    image_shape = np.shape(imbg)
-    if len(image_shape) > 2:
-        # change the zero_value pixels in each channel to prevent RuntimeWarning: 'divide by zero'
-        for i in range(imbg.shape[2]):
-            imbg[:, :, i][imbg[:, :, i] == 0] = 1 / 255
-        else:
-            imbg[imbg == 0] = 1 / 255
-
-    im_corrected = imraw / imbg
-
-    im_corrected += (1 / 2 - np.percentile(im_corrected, 50))
-
-    im_corrected += 1 - im_corrected.max()
 
     return im_corrected
 
@@ -258,8 +231,8 @@ class CorrectBackgroundAccurate():
         The key in Pipeline.data of the image to be background corrected.
         Defaults to 'imraw'
 
-    divide_bg : (bool, optional)
-        If True, the correction will be performed by dividing the raw image by the background.
+    divide_bg : (bool)
+        If True, it performs background correction by dividing the raw image by the background.
         Default to True.
 
     Returns
@@ -327,10 +300,7 @@ class CorrectBackgroundAccurate():
             data['skip_next_steps'] = True
             return data
 
-        if self.divide_bg:
-            data['im_corrected'] = correct_im_accurate_divide(data['imbg'], data[self.image_source])
-        else:
-            data['im_corrected'] = correct_im_accurate(data['imbg'], data[self.image_source])
+        data['im_corrected'] = correct_im_accurate(data['imbg'], data[self.image_source], divide_bg=self.divide_bg)
 
         match self.bgshift_function:
             case 'pass':
