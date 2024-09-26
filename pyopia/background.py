@@ -271,6 +271,7 @@ class CorrectBackgroundAccurate():
     Then you could use :class:`pyopia.pipeline.CorrectBackgroundNone` if you need to instead.
     '''
 
+
     def __init__(self, bgshift_function='pass', average_window=1, image_source='imraw', divide_bg=True):
         self.bgshift_function = bgshift_function
         self.average_window = average_window
