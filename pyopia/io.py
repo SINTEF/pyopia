@@ -84,14 +84,21 @@ def write_stats(stats,
             existing_stats = load_stats(datafilename + '-STATS.nc')
             xstats = xarray.concat([existing_stats, xstats], 'index')
         elif not append:
+            # When appending, only store the last row in the image_stats DataFrame
             datafilename += ('-Image-D' +
                              str(xstats['timestamp'][0].values).replace('-', '').replace(':', '').replace('.', '-'))
+
         encoding = setup_xstats_encoding(xstats)
         xstats.to_netcdf(datafilename + '-STATS.nc', encoding=encoding, engine=NETCDF_ENGINE, format='NETCDF4')
 
         # If we have image statistics (summary data for each raw image), add the image_stats a group
         if image_stats is not None:
-            image_stats.to_xarray().to_netcdf(datafilename + '-STATS.nc', group='image_stats', mode='a', engine=NETCDF_ENGINE)
+            if append:
+                ximage_stats = image_stats.to_xarray()
+            else:
+                ximage_stats = image_stats.loc[[image_stats.index[-1]], :].to_xarray()
+
+            ximage_stats.to_netcdf(datafilename + '-STATS.nc', group='image_stats', mode='a', engine=NETCDF_ENGINE)
 
 
 def setup_xstats_encoding(xstats, string_vars=['export name', 'holo_filename']):
@@ -330,7 +337,7 @@ def merge_and_save_mfdataset(path_to_data, prefix='*', overwrite_existing_partia
     num_chunks = int(np.ceil(num_files / chunk_size_used))
     filelist_chunks = [sorted_filelist[i*chunk_size_used:min(num_files, (i+1)*chunk_size_used)] for i in range(num_chunks)]
     infostr = f'Processing {num_chunks} partial file lists of {chunk_size_used} files each'
-    infostr += ', based on a total of {num_files} files.'
+    infostr += f', based on a total of {num_files} files.'
     logging.info(infostr)
 
     # Get config from first file in list
