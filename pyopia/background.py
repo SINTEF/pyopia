@@ -120,7 +120,7 @@ def correct_im_accurate(imbg, imraw, divide_bg=True):
         corrected image, same type as input
     '''
 
-    imbg = np.clip(imbg, a_min=1/255)   # Clipping the zero_value pixels
+    imbg = np.clip(imbg, a_min=1/255, a_max=None)   # Clipping the zero_value pixels
 
     if divide_bg:
         im_corrected = imraw / imbg
