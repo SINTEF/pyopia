@@ -8,7 +8,7 @@ import os
 import datetime
 import traceback
 import logging
-from rich.progress import track, Progress
+from rich.progress import Progress
 import rich.progress
 from rich.logging import RichHandler
 import pandas as pd
@@ -182,15 +182,15 @@ def process(config_filename: str, num_chunks: int = 1):
 
     def process_file_list(file_list, c):
         processing_pipeline = Pipeline(pipeline_config)
-        with get_custom_progress_bar(f'[blue]Processing progress (chunk {c})', disable=c!=1) as pbar:
+        with get_custom_progress_bar(f'[blue]Processing progress (chunk {c})', disable=c != 1) as pbar:
             for filename in pbar.track(file_list, description=f'[blue]Processing progress (chunk {c})'):
                 try:
                     logger.debug(f'Chunk {c} starting to process {filename}')
                     processing_pipeline.run(filename)
                 except Exception as e:
                     logger.warning('[red]An error occured in processing, ' +
-                                'skipping rest of pipeline and moving to next image.' +
-                                f'(chunk {c})')
+                                   'skipping rest of pipeline and moving to next image.' +
+                                   f'(chunk {c})')
                     logger.error(e)
                     logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
