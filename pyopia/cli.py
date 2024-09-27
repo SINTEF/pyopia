@@ -5,6 +5,7 @@ PyOPIA top-level code primarily for managing cmd line entry points
 import typer
 import toml
 import os
+import time
 import datetime
 import traceback
 import logging
@@ -129,6 +130,8 @@ def process(config_filename: str, num_chunks: int = 1):
     from pyopia.io import load_toml
     from pyopia.pipeline import Pipeline
 
+    t1 = time.time()
+
     with Progress(transient=True) as progress:
         progress.console.print("[blue]LOAD CONFIG")
         pipeline_config = load_toml(config_filename)
@@ -177,12 +180,21 @@ def process(config_filename: str, num_chunks: int = 1):
                 logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
     # With one chunk we keep the non-threaded functionality to ensure backwards compatibility
+    job_list = []
     if num_chunks == 1:
         process_file_list(raw_files, 0)
     else:
         for c, chunk in enumerate(raw_files.chunked_files):
             job = threading.Thread(target=process_file_list, args=(chunk, c, ))
             job.start()
+            job_list.append(job)
+
+    # Calculate and print total processing time
+    # If we are using threads, make sure all jobs have finished
+    [job.join() for job in job_list]
+    time_total = pd.to_timedelta(time.time() - t1, 'seconds')
+    with Progress(transient=True) as progress:
+        progress.console.print(f"[blue]PROCESSING COMPLETED IN {time_total}")
 
 
 @app.command()
