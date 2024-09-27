@@ -15,6 +15,7 @@ import rich.progress
 import pandas as pd
 import threading
 
+import pyopia
 import pyopia.background
 import pyopia.instrument.silcam
 import pyopia.instrument.holo
@@ -117,25 +118,27 @@ def generate_config(instrument: str, raw_files: str, model_path: str, outfolder:
 
 
 @app.command()
-def process(config_filename: str, num_chunks: int = 1):
+def process(config_filename: str, num_chunks: int = 1, strategy: str = 'block'):
     '''Run a PyOPIA processing pipeline based on given a config.toml
 
     Parameters
     ----------
     config_filename : str
-        config filename
+        Config filename
+
     numchunks : int, optional
-        split the dataset into chucks, and process in parallell, by default 1
+        Split the dataset into chucks, and process in parallell, by default 1
 
+    strategy : str, optional
+        Strategy to use for chunking dataset, either `block` or `interleave`. Defult: `block`
     '''
-    from pyopia.io import load_toml
-    from pyopia.pipeline import Pipeline
-
     t1 = time.time()
 
     with Progress(transient=True) as progress:
+        progress.console.print(f"[blue]PYOPIA VERSION {pyopia.__version__}")
+
         progress.console.print("[blue]LOAD CONFIG")
-        pipeline_config = load_toml(config_filename)
+        pipeline_config = pyopia.io.load_toml(config_filename)
 
         setup_logging(pipeline_config)
         logger = logging.getLogger('rich')
@@ -144,11 +147,14 @@ def process(config_filename: str, num_chunks: int = 1):
         check_chunks(num_chunks, pipeline_config)
 
         progress.console.print("[blue]OBTAIN IMAGE LIST")
-        raw_files = pyopia.pipeline.FilesToProcess(pipeline_config['general']['raw_files'])
         conf_corrbg = pipeline_config['steps'].get('correctbackground', dict())
         average_window = conf_corrbg.get('average_window', 0)
         bgshift_function = conf_corrbg.get('bgshift_function', 'pass')
-        raw_files.prepare_chunking(num_chunks, average_window, bgshift_function)
+        raw_files = pyopia.pipeline.FilesToProcess(pipeline_config['general']['raw_files'])
+        raw_files.prepare_chunking(num_chunks, average_window, bgshift_function, strategy=strategy)
+
+        # Write the dataset list of images to a text file
+        raw_files.to_filelist_file('filelist.txt')
 
         progress.console.print('[blue]PREPARE FOLDERS')
         if 'output' not in pipeline_config['steps']:
@@ -167,7 +173,7 @@ def process(config_filename: str, num_chunks: int = 1):
         progress.console.print("[blue]INITIALISE PIPELINE")
 
     def process_file_list(file_list, c):
-        processing_pipeline = Pipeline(pipeline_config)
+        processing_pipeline = pyopia.pipeline.Pipeline(pipeline_config)
 
         with get_custom_progress_bar(f'[blue]Processing progress (chunk {c})', disable=c != 0) as pbar:
             for filename in pbar.track(file_list, description=f'[blue]Processing progress (chunk {c})'):

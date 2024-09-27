@@ -373,25 +373,53 @@ class FilesToProcess:
         with open(path_to_filelist, 'w') as fh:
             [fh.writelines(L + '\n') for L in self.files]
 
-    def prepare_chunking(self, num_chunks, average_window, bgshift_function):
+        with open(path_to_filelist+'.chunks', 'w') as fh:
+            for i, chunk in enumerate(self.chunked_files):
+                fh.write(f'--- Chunk {i}, N = {len(chunk)} ---\n')
+                [fh.writelines(L + '\n') for L in chunk]
+
+    def prepare_chunking(self, num_chunks, average_window, bgshift_function, strategy='block'):
+        '''Chunk the file list and add initial background files to each chunk
+
+        Parameters
+        ----------
+        num_chunks : int
+            Number of chunks to produce (must be at least 1)
+        average_window : int
+            Number of images to use for background correction
+        bgshift_function : str
+            Background update strategy, either `pass` (static background) or `accurate`
+        strategy : str, optional
+            Strategy to use for chunking dataset, either `block` or `interleave`. Defult: `block`
+        '''
         if num_chunks > len(self.files) // 2:
             raise RuntimeError('Number of chunks exceeds more than half the number of files to process. Use less chunks.')
-        self.chunk_files(num_chunks)
+        self.chunk_files(num_chunks, strategy)
         self.build_initial_background_files(average_window=average_window)
         self.insert_bg_files_into_chunks(bgshift_function=bgshift_function)
 
-    def chunk_files(self, num_chunks: int):
+    def chunk_files(self, num_chunks: int, strategy: str = 'block'):
         '''Chunk the file list and create FilesToProcess.chunked_files
 
         Parameters
         ----------
         num_chunks : int
             number of chunks to produce (must be at least 1)
+        strategy : str, optional
+            Strategy to use for chunking dataset, either `block` or `interleave`. Defult: `block`
         '''
         if num_chunks < 1:
             raise RuntimeError('You must have at least one chunk')
         chunk_length = int(np.ceil(len(self.files) / num_chunks))
-        self.chunked_files = [self.files[i:i + chunk_length] for i in range(0, len(self.files), chunk_length)]
+        if strategy == 'block':
+            logging.debug('Chunking file list with strategy: block')
+            self.chunked_files = [self.files[i:i + chunk_length] for i in range(0, len(self.files), chunk_length)]
+        elif strategy == 'interleave':
+            logging.debug('Chunking file list with strategy: interleave')
+            self.chunked_files = [self.files[i::num_chunks] for i in range(0, num_chunks)]
+        else:
+            logging.debug(f'Invalid chunking strategy: {strategy}')
+            raise RuntimeError(f'Unknown strategy: {strategy}. Should be either block or interleave')
 
     def insert_bg_files_into_chunks(self, bgshift_function='pass'):
         average_window = len(self.background_files)
