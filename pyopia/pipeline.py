@@ -335,26 +335,32 @@ class FilesToProcess:
     '''Build file list from glob pattern if specified.
     Create FilesToProcess.chunked_files is chunks specified
     File list from glob will be sorted.
+    If a filelist file is specified, load the list from there without sorting.
 
     Parameters
     ----------
     glob_pattern : str, optional
-        Glob pattern, by default None
+        Glob pattern, by default None. If it ends with .txt, interpret as a filelist file.
     '''
     def __init__(self, glob_pattern=None):
         self.files = None
         self.background_files = []
         self.chunked_files = []
         if glob_pattern is not None:
-            self.files = sorted(glob(glob_pattern))
+            # If a .txt file is specified, this indicates we should get the filelist from there
+            if glob_pattern.endswith('.txt'):
+                self.from_filelist_file(glob_pattern)
+            else:
+                self.files = sorted(glob(glob_pattern))
 
     def from_filelist_file(self, path_to_filelist):
         '''
         Initialize explicit list of files to process from a text file.
         The text file should contain one path to an image per line, which should be processed in order.
         '''
+        logger.info(f'Loading explicit image file list from file: {path_to_filelist}')
         with open(path_to_filelist, 'r') as fh:
-            self.files = list(fh.readlines())
+            self.files = [line.rstrip() for line in fh.readlines()]
 
     def to_filelist_file(self, path_to_filelist):
         '''Write file list to a txt file

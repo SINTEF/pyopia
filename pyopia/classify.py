@@ -5,7 +5,6 @@ Module containing tools for classifying particle ROIs
 import os
 import numpy as np
 import pandas as pd
-
 import logging
 logger = logging.getLogger()
 
@@ -77,6 +76,10 @@ class Classify():
         self.model_path = model_path
         self.load_model()
 
+        # Get config for image resizing from the model
+        _, self.img_height, self.img_width, _ = self.model.get_config()['layers'][0]['config']['batch_shape']
+        self.pad_to_aspect_ratio = getattr(self.model.layers[0], 'pad_to_aspect_ratio', False)
+
         # Enable this to perform whitebalance correction in the preprocessing step
         self.correct_whitebalance = False
 
@@ -134,7 +137,7 @@ class Classify():
             A particle ROI with range 0.-255., corrected and preprocessed, ready for prediction
         '''
 
-        whitebalanced = np.copy(img_input).astype(np.float64)
+        whitebalanced = img_input.astype(np.float64)
 
         # Do white-balance correction as a per-channel histogram shift
         if self.correct_whitebalance:
@@ -150,14 +153,10 @@ class Classify():
         # which loads images in 0-255 range
         img = keras.utils.img_to_array(whitebalanced * 255)
 
-        # Get config for image resizing from the model
-        _, img_height, img_width, _ = self.model.get_config()['layers'][0]['config']['batch_shape']
-        pad_to_aspect_ratio = getattr(self.model.layers[0], 'pad_to_aspect_ratio', False)
-
         # resize to match the dimentions expected by the network
-        img = tf.image.resize(img, [img_height, img_width],
+        img = tf.image.resize(img, [self.img_height, self.img_width],
                               method=tf.image.ResizeMethod.BILINEAR,
-                              preserve_aspect_ratio=pad_to_aspect_ratio)
+                              preserve_aspect_ratio=self.pad_to_aspect_ratio)
 
         img_array = tf.keras.utils.img_to_array(img)
         img_preprocessed = tf.expand_dims(img_array, 0)  # Create a batch
