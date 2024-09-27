@@ -139,7 +139,7 @@ def process(config_filename: str, num_chunks: int = 1):
 
         check_chunks(num_chunks, pipeline_config)
 
-        progress.console.print("[blue]OBTAIN FILE LIST")
+        progress.console.print("[blue]OBTAIN IMAGE LIST")
         raw_files = pyopia.pipeline.FilesToProcess(pipeline_config['general']['raw_files'])
         conf_corrbg = pipeline_config['steps'].get('correctbackground', dict())
         average_window = conf_corrbg.get('average_window', 0)
