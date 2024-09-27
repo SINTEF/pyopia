@@ -115,7 +115,7 @@ def generate_config(instrument: str, raw_files: str, model_path: str, outfolder:
 
 
 @app.command()
-def process(config_filename: str, num_chunks: int = 1):
+def process(config_filename: str, num_chunks: int = 1, strategy: str = 'block'):
     '''Run a PyOPIA processing pipeline based on given a config.toml
 
     Parameters
@@ -144,7 +144,7 @@ def process(config_filename: str, num_chunks: int = 1):
         conf_corrbg = pipeline_config['steps'].get('correctbackground', dict())
         average_window = conf_corrbg.get('average_window', 0)
         bgshift_function = conf_corrbg.get('bgshift_function', 'pass')
-        raw_files.prepare_chunking(num_chunks, average_window, bgshift_function)
+        raw_files.prepare_chunking(num_chunks, average_window, bgshift_function, strategy=strategy)
 
         progress.console.print('[blue]PREPARE FOLDERS')
         if 'output' not in pipeline_config['steps']:

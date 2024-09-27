@@ -363,14 +363,14 @@ class FilesToProcess:
         with open(path_to_filelist, 'w') as fh:
             [fh.writelines(L + '\n') for L in self.files]
 
-    def prepare_chunking(self, num_chunks, average_window, bgshift_function):
+    def prepare_chunking(self, num_chunks, average_window, bgshift_function, strategy='block'):
         if num_chunks > len(self.files) // 2:
             raise RuntimeError('Number of chunks exceeds more than half the number of files to process. Use less chunks.')
-        self.chunk_files(num_chunks)
+        self.chunk_files(num_chunks, strategy)
         self.build_initial_background_files(average_window=average_window)
         self.insert_bg_files_into_chunks(bgshift_function=bgshift_function)
 
-    def chunk_files(self, num_chunks: int):
+    def chunk_files(self, num_chunks: int, strategy: str = 'block'):
         '''Chunk the file list and create FilesToProcess.chunked_files
 
         Parameters
@@ -381,7 +381,13 @@ class FilesToProcess:
         if num_chunks < 1:
             raise RuntimeError('You must have at least one chunk')
         chunk_length = int(np.ceil(len(self.files) / num_chunks))
-        self.chunked_files = [self.files[i:i + chunk_length] for i in range(0, len(self.files), chunk_length)]
+        if strategy == 'block':
+            self.chunked_files = [self.files[i:i + chunk_length] for i in range(0, len(self.files), chunk_length)]
+        elif strategy == 'stripe':
+            self.chunked_files = [self.files[i::num_chunks] for i in range(0, num_chunks)]
+        else:
+            raise RuntimeError(f'Unknown strategy: {strategy}. Should be either block or stripe')
+
 
     def insert_bg_files_into_chunks(self, bgshift_function='pass'):
         average_window = len(self.background_files)
