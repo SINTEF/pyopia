@@ -9,8 +9,9 @@ import time
 import datetime
 import traceback
 import logging
-from rich.progress import track, Progress
+from rich.progress import Progress
 from rich.logging import RichHandler
+import rich.progress
 import pandas as pd
 import threading
 
@@ -26,6 +27,22 @@ import pyopia.process
 import pyopia.statistics
 
 app = typer.Typer()
+
+
+def get_custom_progress_bar(description, disable):
+    ''' Create a custom rich.progress.Progress object for displaying progress bars'''
+    progress = Progress(
+        rich.progress.TextColumn(description),
+        rich.progress.BarColumn(),
+        rich.progress.TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        rich.progress.MofNCompleteColumn(),
+        rich.progress.TextColumn("•"),
+        rich.progress.TimeElapsedColumn(),
+        rich.progress.TextColumn("•"),
+        rich.progress.TimeRemainingColumn(),
+        disable=disable
+    )
+    return progress
 
 
 @app.command()
@@ -167,17 +184,18 @@ def process(config_filename: str, num_chunks: int = 1):
 
     def process_file_list(file_list, c):
         processing_pipeline = Pipeline(pipeline_config)
-        for filename in track(file_list, description=f'[blue]Processing progress (chunk {c})',
-                              disable=c != 0):
-            try:
-                logger.debug(f'Chunk {c} starting to process {filename}')
-                processing_pipeline.run(filename)
-            except Exception as e:
-                logger.warning('[red]An error occured in processing, ' +
-                               'skipping rest of pipeline and moving to next image.' +
-                               f'(chunk {c})')
-                logger.error(e)
-                logger.debug(''.join(traceback.format_tb(e.__traceback__)))
+
+        with get_custom_progress_bar(f'[blue]Processing progress (chunk {c})', disable=c != 0) as pbar:
+            for filename in pbar.track(file_list, description=f'[blue]Processing progress (chunk {c})'):
+                try:
+                    logger.debug(f'Chunk {c} starting to process {filename}')
+                    processing_pipeline.run(filename)
+                except Exception as e:
+                    logger.warning('[red]An error occured in processing, ' +
+                                   'skipping rest of pipeline and moving to next image.' +
+                                   f'(chunk {c})')
+                    logger.error(e)
+                    logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
     # With one chunk we keep the non-threaded functionality to ensure backwards compatibility
     job_list = []
