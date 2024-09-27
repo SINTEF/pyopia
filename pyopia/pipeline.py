@@ -373,6 +373,11 @@ class FilesToProcess:
         with open(path_to_filelist, 'w') as fh:
             [fh.writelines(L + '\n') for L in self.files]
 
+        with open(path_to_filelist+'.chunks', 'w') as fh:
+            for i, chunk in enumerate(self.chunked_files):
+                fh.write(f'--- Chunk {i}, N = {len(chunk)} ---\n')
+                [fh.writelines(L + '\n') for L in chunk]
+
     def prepare_chunking(self, num_chunks, average_window, bgshift_function, strategy='block'):
         if num_chunks > len(self.files) // 2:
             raise RuntimeError('Number of chunks exceeds more than half the number of files to process. Use less chunks.')
@@ -392,12 +397,14 @@ class FilesToProcess:
             raise RuntimeError('You must have at least one chunk')
         chunk_length = int(np.ceil(len(self.files) / num_chunks))
         if strategy == 'block':
+            logging.debug('Chunking file list with strategy: block')
             self.chunked_files = [self.files[i:i + chunk_length] for i in range(0, len(self.files), chunk_length)]
-        elif strategy == 'stripe':
+        elif strategy == 'interleave':
+            logging.debug('Chunking file list with strategy: interleave')
             self.chunked_files = [self.files[i::num_chunks] for i in range(0, num_chunks)]
         else:
-            raise RuntimeError(f'Unknown strategy: {strategy}. Should be either block or stripe')
-
+            logging.debug(f'Invalid chunking strategy: {strategy}')
+            raise RuntimeError(f'Unknown strategy: {strategy}. Should be either block or interleave')
 
     def insert_bg_files_into_chunks(self, bgshift_function='pass'):
         average_window = len(self.background_files)
