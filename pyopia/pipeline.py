@@ -4,6 +4,7 @@ Module for managing the PyOpia processing pipeline
 Refer to the :class:`Pipeline` class documentation for examples of how to process datasets and images
 '''
 from typing import TypedDict
+import time
 import datetime
 import pandas as pd
 from operator import methodcaller
@@ -114,7 +115,10 @@ class Pipeline():
                 continue
 
             logger.info(f'Running pipeline step: {stepname}')
+            t1 = time.time()
             self.run_step(stepname)
+            t2 = time.time()
+            logger.debug(f'Running pipeline step {stepname} took {t2-t1:.3f} seconds')
 
             # Check for signal from this step that we should skip remaining pipeline for this image
             if self.data['skip_next_steps']:
