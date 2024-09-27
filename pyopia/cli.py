@@ -29,22 +29,6 @@ import pyopia.statistics
 app = typer.Typer()
 
 
-def get_custom_progress_bar(description, disable):
-    ''' Create a custom rich.progress.Progress object for displaying progress bars'''
-    progress = Progress(
-        rich.progress.TextColumn(description),
-        rich.progress.BarColumn(),
-        rich.progress.TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-        rich.progress.MofNCompleteColumn(),
-        rich.progress.TextColumn("•"),
-        rich.progress.TimeElapsedColumn(),
-        rich.progress.TextColumn("•"),
-        rich.progress.TimeRemainingColumn(),
-        disable=disable
-    )
-    return progress
-
-
 @app.command()
 def docs():
     '''Open browser at PyOPIA's readthedocs page
@@ -277,6 +261,22 @@ def check_chunks(chunks, pipeline_config):
     append_enabled = pipeline_config['steps']['output'].get('append', True)
     if chunks > 1 and append_enabled:
         raise RuntimeError('Output mode must be set to "append = false" in "output" step when using more than one chunk')
+
+
+def get_custom_progress_bar(description, disable):
+    ''' Create a custom rich.progress.Progress object for displaying progress bars'''
+    progress = Progress(
+        rich.progress.TextColumn(description),
+        rich.progress.BarColumn(),
+        rich.progress.TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        rich.progress.MofNCompleteColumn(),
+        rich.progress.TextColumn("•"),
+        rich.progress.TimeElapsedColumn(),
+        rich.progress.TextColumn("•"),
+        rich.progress.TimeRemainingColumn(),
+        disable=disable
+    )
+    return progress
 
 
 if __name__ == "__main__":

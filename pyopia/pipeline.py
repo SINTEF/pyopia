@@ -118,7 +118,7 @@ class Pipeline():
             t1 = time.time()
             self.run_step(stepname)
             t2 = time.time()
-            logger.info(f'Running pipeline step {stepname} took {t2-t1:.3f} seconds')
+            logger.debug(f'Running pipeline step {stepname} took {t2-t1:.3f} seconds')
 
             # Check for signal from this step that we should skip remaining pipeline for this image
             if self.data['skip_next_steps']:
