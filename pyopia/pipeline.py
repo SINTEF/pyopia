@@ -379,6 +379,19 @@ class FilesToProcess:
                 [fh.writelines(L + '\n') for L in chunk]
 
     def prepare_chunking(self, num_chunks, average_window, bgshift_function, strategy='block'):
+        '''Chunk the file list and add initial background files to each chunk
+
+        Parameters
+        ----------
+        num_chunks : int
+            Number of chunks to produce (must be at least 1)
+        average_window : int
+            Number of images to use for background correction
+        bgshift_function : str
+            Background update strategy, either `pass` (static background) or `accurate`
+        strategy : str, optional
+            Strategy to use for chunking dataset, either `block` or `interleave`. Defult: `block`
+        '''
         if num_chunks > len(self.files) // 2:
             raise RuntimeError('Number of chunks exceeds more than half the number of files to process. Use less chunks.')
         self.chunk_files(num_chunks, strategy)
@@ -392,6 +405,8 @@ class FilesToProcess:
         ----------
         num_chunks : int
             number of chunks to produce (must be at least 1)
+        strategy : str, optional
+            Strategy to use for chunking dataset, either `block` or `interleave`. Defult: `block`
         '''
         if num_chunks < 1:
             raise RuntimeError('You must have at least one chunk')
