@@ -123,12 +123,14 @@ def correct_im_accurate(imbg, imraw, divide_bg=False):
     if divide_bg:
         imbg = np.clip(imbg, a_min=1/255, a_max=None)   # Clipping the zero_value pixels
         im_corrected = imraw / imbg
+        im_corrected += (1 / 2 - np.percentile(im_corrected, 50))
+        im_corrected -= im_corrected.min()   # Shift the negative values to zero
+        im_corrected = np.clip(im_corrected, a_min=0, a_max=1)
     else:
         im_corrected = imraw - imbg
-
-    im_corrected += (1 / 2 - np.percentile(im_corrected, 50))
-
-    im_corrected += 1 - im_corrected.max()
+        im_corrected += (1 / 2 - np.percentile(im_corrected, 50))
+        im_corrected += 1 - im_corrected.max()   # Shift the positive values exceeding unity to one
+        im_corrected = np.clip(im_corrected, a_min=0, a_max=1)
 
     return im_corrected
 
