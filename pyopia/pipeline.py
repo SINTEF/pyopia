@@ -4,6 +4,7 @@ Module for managing the PyOpia processing pipeline
 Refer to the :class:`Pipeline` class documentation for examples of how to process datasets and images
 '''
 from typing import TypedDict
+import time
 import datetime
 import pandas as pd
 from operator import methodcaller
@@ -114,7 +115,10 @@ class Pipeline():
                 continue
 
             logger.info(f'Running pipeline step: {stepname}')
+            t1 = time.time()
             self.run_step(stepname)
+            t2 = time.time()
+            logger.debug(f'Running pipeline step {stepname} took {t2-t1:.3f} seconds')
 
             # Check for signal from this step that we should skip remaining pipeline for this image
             if self.data['skip_next_steps']:
@@ -331,26 +335,32 @@ class FilesToProcess:
     '''Build file list from glob pattern if specified.
     Create FilesToProcess.chunked_files is chunks specified
     File list from glob will be sorted.
+    If a filelist file is specified, load the list from there without sorting.
 
     Parameters
     ----------
     glob_pattern : str, optional
-        Glob pattern, by default None
+        Glob pattern, by default None. If it ends with .txt, interpret as a filelist file.
     '''
     def __init__(self, glob_pattern=None):
         self.files = None
         self.background_files = []
         self.chunked_files = []
         if glob_pattern is not None:
-            self.files = sorted(glob(glob_pattern))
+            # If a .txt file is specified, this indicates we should get the filelist from there
+            if glob_pattern.endswith('.txt'):
+                self.from_filelist_file(glob_pattern)
+            else:
+                self.files = sorted(glob(glob_pattern))
 
     def from_filelist_file(self, path_to_filelist):
         '''
         Initialize explicit list of files to process from a text file.
         The text file should contain one path to an image per line, which should be processed in order.
         '''
+        logger.info(f'Loading explicit image file list from file: {path_to_filelist}')
         with open(path_to_filelist, 'r') as fh:
-            self.files = list(fh.readlines())
+            self.files = [line.rstrip() for line in fh.readlines()]
 
     def to_filelist_file(self, path_to_filelist):
         '''Write file list to a txt file
@@ -363,25 +373,53 @@ class FilesToProcess:
         with open(path_to_filelist, 'w') as fh:
             [fh.writelines(L + '\n') for L in self.files]
 
-    def prepare_chunking(self, num_chunks, average_window, bgshift_function):
+        with open(path_to_filelist+'.chunks', 'w') as fh:
+            for i, chunk in enumerate(self.chunked_files):
+                fh.write(f'--- Chunk {i}, N = {len(chunk)} ---\n')
+                [fh.writelines(L + '\n') for L in chunk]
+
+    def prepare_chunking(self, num_chunks, average_window, bgshift_function, strategy='block'):
+        '''Chunk the file list and add initial background files to each chunk
+
+        Parameters
+        ----------
+        num_chunks : int
+            Number of chunks to produce (must be at least 1)
+        average_window : int
+            Number of images to use for background correction
+        bgshift_function : str
+            Background update strategy, either `pass` (static background) or `accurate`
+        strategy : str, optional
+            Strategy to use for chunking dataset, either `block` or `interleave`. Defult: `block`
+        '''
         if num_chunks > len(self.files) // 2:
             raise RuntimeError('Number of chunks exceeds more than half the number of files to process. Use less chunks.')
-        self.chunk_files(num_chunks)
+        self.chunk_files(num_chunks, strategy)
         self.build_initial_background_files(average_window=average_window)
         self.insert_bg_files_into_chunks(bgshift_function=bgshift_function)
 
-    def chunk_files(self, num_chunks: int):
+    def chunk_files(self, num_chunks: int, strategy: str = 'block'):
         '''Chunk the file list and create FilesToProcess.chunked_files
 
         Parameters
         ----------
         num_chunks : int
             number of chunks to produce (must be at least 1)
+        strategy : str, optional
+            Strategy to use for chunking dataset, either `block` or `interleave`. Defult: `block`
         '''
         if num_chunks < 1:
             raise RuntimeError('You must have at least one chunk')
         chunk_length = int(np.ceil(len(self.files) / num_chunks))
-        self.chunked_files = [self.files[i:i + chunk_length] for i in range(0, len(self.files), chunk_length)]
+        if strategy == 'block':
+            logging.debug('Chunking file list with strategy: block')
+            self.chunked_files = [self.files[i:i + chunk_length] for i in range(0, len(self.files), chunk_length)]
+        elif strategy == 'interleave':
+            logging.debug('Chunking file list with strategy: interleave')
+            self.chunked_files = [self.files[i::num_chunks] for i in range(0, num_chunks)]
+        else:
+            logging.debug(f'Invalid chunking strategy: {strategy}')
+            raise RuntimeError(f'Unknown strategy: {strategy}. Should be either block or interleave')
 
     def insert_bg_files_into_chunks(self, bgshift_function='pass'):
         average_window = len(self.background_files)
