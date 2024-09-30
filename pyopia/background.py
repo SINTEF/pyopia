@@ -130,7 +130,6 @@ def correct_im_accurate(imbg, imraw, divide_bg=False):
         im_corrected = imraw - imbg
         im_corrected += (1 / 2 - np.percentile(im_corrected, 50))
         im_corrected += 1 - im_corrected.max()   # Shift the positive values exceeding unity to one
-        im_corrected = np.clip(im_corrected, a_min=0, a_max=1)
 
     return im_corrected
 
