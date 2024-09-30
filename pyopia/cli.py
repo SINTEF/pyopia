@@ -5,14 +5,17 @@ PyOPIA top-level code primarily for managing cmd line entry points
 import typer
 import toml
 import os
+import time
 import datetime
 import traceback
 import logging
-from rich.progress import track, Progress
+from rich.progress import Progress
 from rich.logging import RichHandler
+import rich.progress
 import pandas as pd
 import threading
 
+import pyopia
 import pyopia.background
 import pyopia.instrument.silcam
 import pyopia.instrument.holo
@@ -115,23 +118,27 @@ def generate_config(instrument: str, raw_files: str, model_path: str, outfolder:
 
 
 @app.command()
-def process(config_filename: str, num_chunks: int = 1):
+def process(config_filename: str, num_chunks: int = 1, strategy: str = 'block'):
     '''Run a PyOPIA processing pipeline based on given a config.toml
 
     Parameters
     ----------
     config_filename : str
-        config filename
-    numchunks : int, optional
-        split the dataset into chucks, and process in parallell, by default 1
+        Config filename
 
+    numchunks : int, optional
+        Split the dataset into chucks, and process in parallell, by default 1
+
+    strategy : str, optional
+        Strategy to use for chunking dataset, either `block` or `interleave`. Defult: `block`
     '''
-    from pyopia.io import load_toml
-    from pyopia.pipeline import Pipeline
+    t1 = time.time()
 
     with Progress(transient=True) as progress:
+        progress.console.print(f"[blue]PYOPIA VERSION {pyopia.__version__}")
+
         progress.console.print("[blue]LOAD CONFIG")
-        pipeline_config = load_toml(config_filename)
+        pipeline_config = pyopia.io.load_toml(config_filename)
 
         setup_logging(pipeline_config)
         logger = logging.getLogger('rich')
@@ -139,12 +146,15 @@ def process(config_filename: str, num_chunks: int = 1):
 
         check_chunks(num_chunks, pipeline_config)
 
-        progress.console.print("[blue]OBTAIN FILE LIST")
-        raw_files = pyopia.pipeline.FilesToProcess(pipeline_config['general']['raw_files'])
+        progress.console.print("[blue]OBTAIN IMAGE LIST")
         conf_corrbg = pipeline_config['steps'].get('correctbackground', dict())
         average_window = conf_corrbg.get('average_window', 0)
         bgshift_function = conf_corrbg.get('bgshift_function', 'pass')
-        raw_files.prepare_chunking(num_chunks, average_window, bgshift_function)
+        raw_files = pyopia.pipeline.FilesToProcess(pipeline_config['general']['raw_files'])
+        raw_files.prepare_chunking(num_chunks, average_window, bgshift_function, strategy=strategy)
+
+        # Write the dataset list of images to a text file
+        raw_files.to_filelist_file('filelist.txt')
 
         progress.console.print('[blue]PREPARE FOLDERS')
         if 'output' not in pipeline_config['steps']:
@@ -163,26 +173,36 @@ def process(config_filename: str, num_chunks: int = 1):
         progress.console.print("[blue]INITIALISE PIPELINE")
 
     def process_file_list(file_list, c):
-        processing_pipeline = Pipeline(pipeline_config)
-        for filename in track(file_list, description=f'[blue]Processing progress (chunk {c})',
-                              disable=c != 0):
-            try:
-                logger.debug(f'Chunk {c} starting to process {filename}')
-                processing_pipeline.run(filename)
-            except Exception as e:
-                logger.warning('[red]An error occured in processing, ' +
-                               'skipping rest of pipeline and moving to next image.' +
-                               f'(chunk {c})')
-                logger.error(e)
-                logger.debug(''.join(traceback.format_tb(e.__traceback__)))
+        processing_pipeline = pyopia.pipeline.Pipeline(pipeline_config)
+
+        with get_custom_progress_bar(f'[blue]Processing progress (chunk {c})', disable=c != 0) as pbar:
+            for filename in pbar.track(file_list, description=f'[blue]Processing progress (chunk {c})'):
+                try:
+                    logger.debug(f'Chunk {c} starting to process {filename}')
+                    processing_pipeline.run(filename)
+                except Exception as e:
+                    logger.warning('[red]An error occured in processing, ' +
+                                   'skipping rest of pipeline and moving to next image.' +
+                                   f'(chunk {c})')
+                    logger.error(e)
+                    logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
     # With one chunk we keep the non-threaded functionality to ensure backwards compatibility
+    job_list = []
     if num_chunks == 1:
         process_file_list(raw_files, 0)
     else:
         for c, chunk in enumerate(raw_files.chunked_files):
             job = threading.Thread(target=process_file_list, args=(chunk, c, ))
             job.start()
+            job_list.append(job)
+
+    # Calculate and print total processing time
+    # If we are using threads, make sure all jobs have finished
+    [job.join() for job in job_list]
+    time_total = pd.to_timedelta(time.time() - t1, 'seconds')
+    with Progress(transient=True) as progress:
+        progress.console.print(f"[blue]PROCESSING COMPLETED IN {time_total}")
 
 
 @app.command()
@@ -247,6 +267,22 @@ def check_chunks(chunks, pipeline_config):
     append_enabled = pipeline_config['steps']['output'].get('append', True)
     if chunks > 1 and append_enabled:
         raise RuntimeError('Output mode must be set to "append = false" in "output" step when using more than one chunk')
+
+
+def get_custom_progress_bar(description, disable):
+    ''' Create a custom rich.progress.Progress object for displaying progress bars'''
+    progress = Progress(
+        rich.progress.TextColumn(description),
+        rich.progress.BarColumn(),
+        rich.progress.TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        rich.progress.MofNCompleteColumn(),
+        rich.progress.TextColumn("•"),
+        rich.progress.TimeElapsedColumn(),
+        rich.progress.TextColumn("•"),
+        rich.progress.TimeRemainingColumn(),
+        disable=disable
+    )
+    return progress
 
 
 if __name__ == "__main__":

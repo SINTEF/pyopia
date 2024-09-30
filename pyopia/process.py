@@ -623,7 +623,7 @@ class CalculateImageStats():
 
         # Add image "global" statistics, separate from the particle stats above (stats)
         image_saturation = np.nan if stats.empty else stats['saturation'].values[0]
-        data['image_stats'].loc[data['timestamp'], 'filename'] = getattr(data, 'filename', '')
+        data['image_stats'].loc[data['timestamp'], 'filename'] = data.get('filename', '')
         data['image_stats'].loc[data['timestamp'], 'particle_count'] = int(stats.shape[0])
         data['image_stats'].loc[data['timestamp'], 'saturation'] = image_saturation
 
