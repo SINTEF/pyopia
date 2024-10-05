@@ -95,9 +95,11 @@ def shift_bgstack_fast(bgstack, imbg, imnew):
     return bgstack, imbg
 
 
-def correct_im_accurate(imbg, imraw):
+def correct_im_accurate(imbg, imraw, divide_bg=False):
     '''
-    Corrects raw image by subtracting the background and scaling the output
+    Corrects raw image by subtracting or dividing the background and scaling the output
+
+    For dividing method see: https://doi.org/10.1016/j.marpolbul.2016.11.063)
 
     There is a small chance of clipping of imc in both crushed blacks and blown
     highlights if the background or raw images are very poorly obtained
@@ -108,6 +110,9 @@ def correct_im_accurate(imbg, imraw):
         background averaged image
     imraw : float64
         raw image
+    divide_bg : (bool, optional)
+        If True, the correction will be performed by dividing the raw image by the background
+        Default to False
 
     Returns
     -------
@@ -115,10 +120,16 @@ def correct_im_accurate(imbg, imraw):
         corrected image, same type as input
     '''
 
-    im_corrected = imraw - imbg
-    im_corrected += (1 / 2 - np.percentile(im_corrected, 50))
-
-    im_corrected += 1 - im_corrected.max()
+    if divide_bg:
+        imbg = np.clip(imbg, a_min=1/255, a_max=None)   # Clipping the zero_value pixels
+        im_corrected = imraw / imbg
+        im_corrected += (1 / 2 - np.percentile(im_corrected, 50))
+        im_corrected -= im_corrected.min()   # Shift the negative values to zero
+        im_corrected = np.clip(im_corrected, a_min=0, a_max=1)
+    else:
+        im_corrected = imraw - imbg
+        im_corrected += (1 / 2 - np.percentile(im_corrected, 50))
+        im_corrected += 1 - im_corrected.max()   # Shift the positive values exceeding unity to one
 
     return im_corrected
 
@@ -207,7 +218,7 @@ class CorrectBackgroundAccurate():
     ----------
     bgshift_function : (string, optional)
         Function used to shift the background. Defaults to passing (i.e. static background)
-        Available options are 'accurate', 'fast', or 'pass' to apply a statick background correction:
+        Available options are 'accurate', 'fast', or 'pass' to apply a static background correction:
 
         :func:`pyopia.background.shift_bgstack_accurate`
 
@@ -219,6 +230,10 @@ class CorrectBackgroundAccurate():
     image_source: (str, optional)
         The key in Pipeline.data of the image to be background corrected.
         Defaults to 'imraw'
+
+    divide_bg : (bool)
+        If True, it performs background correction by dividing the raw image by the background.
+        Default to False.
 
     Returns
     -------
@@ -256,10 +271,11 @@ class CorrectBackgroundAccurate():
     Then you could use :class:`pyopia.pipeline.CorrectBackgroundNone` if you need to instead.
     '''
 
-    def __init__(self, bgshift_function='pass', average_window=1, image_source='imraw'):
+    def __init__(self, bgshift_function='pass', average_window=1, image_source='imraw', divide_bg=False):
         self.bgshift_function = bgshift_function
         self.average_window = average_window
         self.image_source = image_source
+        self.divide_bg = divide_bg
 
     def _build_background_step(self, data):
         '''Add one layer to the background stack from the raw image in data pipeline, and update the background image.'''
@@ -284,7 +300,7 @@ class CorrectBackgroundAccurate():
             data['skip_next_steps'] = True
             return data
 
-        data['im_corrected'] = correct_im_accurate(data['imbg'], data[self.image_source])
+        data['im_corrected'] = correct_im_accurate(data['imbg'], data[self.image_source], divide_bg=self.divide_bg)
 
         match self.bgshift_function:
             case 'pass':

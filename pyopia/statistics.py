@@ -534,7 +534,7 @@ def get_j(dias, number_distribution):
 
     # use polyfit to obtain the slope of the ditriubtion in log-space (which is
     # assumed near-linear in most parts of the ocean)
-    p = np.polyfit(np.log(dias[ind]), np.log(number_distribution[ind]), 1)
+    p = np.polyfit(np.log(dias[ind]), np.log(number_distribution[ind], where=number_distribution[ind] > 0), 1)
     junge_slope = p[0]
     return junge_slope
 
