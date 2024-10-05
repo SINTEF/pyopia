@@ -245,7 +245,7 @@ class SilCamLoad():
         self.extension_load = {'.silc': load_rgb8,
                                '.msilc': load_mono8,
                                '.bsilc': load_bayer_rgb8,
-                               '.bmp': skimage.io.imread}
+                               '.bmp': lambda filename: skimage.io.imread(filename).astype(np.float64) / 255}
         self.format_load = {'RGB8': load_rgb8,
                             'MONO8': load_mono8, 'BAYER_RG8': load_bayer_rgb8}
 
