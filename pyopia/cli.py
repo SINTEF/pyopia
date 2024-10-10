@@ -259,7 +259,7 @@ def setup_logging(pipeline_config):
         handlers = [logging.FileHandler(log_file, mode='a')]
 
     # Configure logger
-    log_format = '%(asctime)s %(levelname)s %(threadName)s [%(module)s.%(funcName)s] %(message)s'
+    log_format = '%(asctime)s %(levelname)s %(processName)s [%(module)s.%(funcName)s] %(message)s'
     logging.basicConfig(level=log_level, datefmt='%Y-%m-%d %H:%M:%S', format=log_format, handlers=handlers)
 
 
