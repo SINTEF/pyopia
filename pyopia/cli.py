@@ -13,7 +13,7 @@ from rich.progress import Progress
 from rich.logging import RichHandler
 import rich.progress
 import pandas as pd
-import threading
+import multiprocessing
 
 import pyopia
 import pyopia.background
@@ -187,19 +187,22 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = 'block'):
                     logger.error(e)
                     logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
-    # With one chunk we keep the non-threaded functionality to ensure backwards compatibility
+    # With one chunk we keep the non-multiprocess functionality to ensure backwards compatibility
     job_list = []
     if num_chunks == 1:
         process_file_list(raw_files, 0)
     else:
         for c, chunk in enumerate(raw_files.chunked_files):
-            job = threading.Thread(target=process_file_list, args=(chunk, c, ))
-            job.start()
+            job = multiprocessing.Process(target=process_file_list, args=(chunk, c))
             job_list.append(job)
 
-    # Calculate and print total processing time
-    # If we are using threads, make sure all jobs have finished
+    # Start all the jobs
+    [job.start() for job in job_list]
+
+    # If we are using multiprocessing, make sure all jobs have finished
     [job.join() for job in job_list]
+
+    # Calculate and print total processing time
     time_total = pd.to_timedelta(time.time() - t1, 'seconds')
     with Progress(transient=True) as progress:
         progress.console.print(f"[blue]PROCESSING COMPLETED IN {time_total}")
@@ -256,7 +259,7 @@ def setup_logging(pipeline_config):
         handlers = [logging.FileHandler(log_file, mode='a')]
 
     # Configure logger
-    log_format = '%(asctime)s %(levelname)s %(threadName)s [%(module)s.%(funcName)s] %(message)s'
+    log_format = '%(asctime)s %(levelname)s %(processName)s [%(module)s.%(funcName)s] %(message)s'
     logging.basicConfig(level=log_level, datefmt='%Y-%m-%d %H:%M:%S', format=log_format, handlers=handlers)
 
 
