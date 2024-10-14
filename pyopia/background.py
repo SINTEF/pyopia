@@ -92,12 +92,20 @@ def shift_bgstack_fast(bgstack, imbg, imnew):
         updated actual background image
     '''
     stacklength = len(bgstack)
-    imold = bgstack.pop(0)  # pop the oldest image from the stack,
-    # subtract the old image from the average (scaled by the average window)
+
+    # Pop oldest image from stack, convert to float [0 - 1]
+    imold = bgstack.pop(0).astype(np.float64) / 255
+
+    # Subtract the old image from the average (scaled by the average window)
     imbg -= (imold / stacklength)
-    # add the new image to the average (scaled by the average window)
+
+    # Add the new image to the average (scaled by the average window)
     imbg += (imnew / stacklength)
-    bgstack.append(imnew)  # append the new image to the stack
+
+    # Append the new image to the stack. Convert to uint8 from float [0-1],
+    # to save memory for large bgstacks, and speed up mean calculation of mean.
+    bgstack.append((255 * imnew).astype(np.uint8))  # append the new image to the stack
+
     return bgstack, imbg
 
 
@@ -290,8 +298,13 @@ class CorrectBackgroundAccurate():
 
         init_complete = True
         if len(data['bgstack']) < self.average_window:
-            data['bgstack'].append(data[self.image_source])
-            data['imbg'] = np.mean(data['bgstack'], axis=0)
+            # Append the new image to the stack. Convert to uint8 from float [0-1],
+            # to save memory for large bgstacks, and speed up mean calculation of mean.
+            img_uint8 = (255 * data[self.image_source]).astype(np.uint8)
+            data['bgstack'].append(img_uint8)
+
+            # Calculate background as mean image (float [0 - 1])
+            data['imbg'] = np.mean(data['bgstack'], axis=0) / 255
             init_complete = False
 
         return init_complete
