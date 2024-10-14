@@ -56,8 +56,14 @@ def shift_bgstack_accurate(bgstack, imbg, imnew):
         updated actual background image
     '''
     bgstack.pop(0)  # pop the oldest image from the stack,
-    bgstack.append(imnew)  # append the new image to the stack
-    imbg = np.mean(bgstack, axis=0)
+
+    # Append the new image to the stack. Convert to uint8 from float [0-1],
+    # to save memory for large bgstacks, and speed up mean calculation of mean.
+    bgstack.append((255 * imnew).astype(np.uint8))
+
+    # Calculate mean image (float [0 - 1])
+    imbg = np.mean(bgstack, axis=0) / 255
+
     return bgstack, imbg
 
 
