@@ -14,7 +14,7 @@ from rich.logging import RichHandler
 import rich.progress
 import pandas as pd
 import multiprocessing
-
+import psutil
 import pyopia
 import pyopia.background
 import pyopia.instrument.silcam
@@ -28,6 +28,15 @@ import pyopia.process
 import pyopia.statistics
 
 app = typer.Typer()
+
+
+def log_memory_usage():
+    logger = logging.getLogger()
+    process = psutil.Process(os.getpid())
+    total = psutil.virtual_memory().total / 1e9
+    used = process.memory_info().rss / 1e9
+    used_percent = used / total * 100
+    logger.info(f'Current memory usage is: {used:.1f} / {total:.1f} GB ({used_percent:3.0f} %)')
 
 
 @app.command()
@@ -186,9 +195,12 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = 'block'):
                                    f'(chunk {c})')
                     logger.error(e)
                     logger.debug(''.join(traceback.format_tb(e.__traceback__)))
+                finally:
+                    log_memory_usage()
 
     # With one chunk we keep the non-multiprocess functionality to ensure backwards compatibility
     job_list = []
+    multiprocessing.set_start_method('fork')
     if num_chunks == 1:
         process_file_list(raw_files, 0)
     else:
