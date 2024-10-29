@@ -172,28 +172,13 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = 'block'):
 
         progress.console.print("[blue]INITIALISE PIPELINE")
 
-    def process_file_list(file_list, c):
-        processing_pipeline = pyopia.pipeline.Pipeline(pipeline_config)
-
-        with get_custom_progress_bar(f'[blue]Processing progress (chunk {c})', disable=c != 0) as pbar:
-            for filename in pbar.track(file_list, description=f'[blue]Processing progress (chunk {c})'):
-                try:
-                    logger.debug(f'Chunk {c} starting to process {filename}')
-                    processing_pipeline.run(filename)
-                except Exception as e:
-                    logger.warning('[red]An error occured in processing, ' +
-                                   'skipping rest of pipeline and moving to next image.' +
-                                   f'(chunk {c})')
-                    logger.error(e)
-                    logger.debug(''.join(traceback.format_tb(e.__traceback__)))
-
     # With one chunk we keep the non-multiprocess functionality to ensure backwards compatibility
     job_list = []
     if num_chunks == 1:
-        process_file_list(raw_files, 0)
+        process_file_list(raw_files, 0, pipeline_config, logger)
     else:
         for c, chunk in enumerate(raw_files.chunked_files):
-            job = multiprocessing.Process(target=process_file_list, args=(chunk, c))
+            job = multiprocessing.Process(target=process_file_list, args=(chunk, c, pipeline_config, logger))
             job_list.append(job)
 
     # Start all the jobs
@@ -237,6 +222,22 @@ def merge_mfdata(path_to_data: str, prefix='*', overwrite_existing_partials: boo
     pyopia.io.merge_and_save_mfdataset(path_to_data, prefix=prefix,
                                        overwrite_existing_partials=overwrite_existing_partials,
                                        chunk_size=chunk_size)
+
+
+def process_file_list(file_list, c, pipeline_config, logger):
+        processing_pipeline = pyopia.pipeline.Pipeline(pipeline_config)
+
+        with get_custom_progress_bar(f'[blue]Processing progress (chunk {c})', disable=c != 0) as pbar:
+            for filename in pbar.track(file_list, description=f'[blue]Processing progress (chunk {c})'):
+                try:
+                    logger.debug(f'Chunk {c} starting to process {filename}')
+                    processing_pipeline.run(filename)
+                except Exception as e:
+                    logger.warning('[red]An error occured in processing, ' +
+                                   'skipping rest of pipeline and moving to next image.' +
+                                   f'(chunk {c})')
+                    logger.error(e)
+                    logger.debug(''.join(traceback.format_tb(e.__traceback__)))
 
 
 def setup_logging(pipeline_config):
