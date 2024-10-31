@@ -175,10 +175,10 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = 'block'):
     # With one chunk we keep the non-multiprocess functionality to ensure backwards compatibility
     job_list = []
     if num_chunks == 1:
-        process_file_list(raw_files, 0, pipeline_config, logger)
+        process_file_list(raw_files, pipeline_config, 0)
     else:
         for c, chunk in enumerate(raw_files.chunked_files):
-            job = multiprocessing.Process(target=process_file_list, args=(chunk, c, pipeline_config, logger))
+            job = multiprocessing.Process(target=process_file_list, args=(chunk, pipeline_config, c))
             job_list.append(job)
 
     # Start all the jobs
@@ -224,8 +224,10 @@ def merge_mfdata(path_to_data: str, prefix='*', overwrite_existing_partials: boo
                                        chunk_size=chunk_size)
 
 
-def process_file_list(file_list, c, pipeline_config, logger):
+def process_file_list(file_list, pipeline_config, c):
     processing_pipeline = pyopia.pipeline.Pipeline(pipeline_config)
+    setup_logging(pipeline_config)
+    logger = logging.getLogger('rich')
 
     with get_custom_progress_bar(f'[blue]Processing progress (chunk {c})', disable=c != 0) as pbar:
         for filename in pbar.track(file_list, description=f'[blue]Processing progress (chunk {c})'):
