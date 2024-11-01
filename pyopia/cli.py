@@ -225,6 +225,20 @@ def merge_mfdata(path_to_data: str, prefix='*', overwrite_existing_partials: boo
 
 
 def process_file_list(file_list, pipeline_config, c):
+    '''Run a PyOPIA processing pipeline for a chuncked list of files based on a given config.toml
+
+    Parameters
+    ----------
+    file_list : str
+        List of file paths to process, where each file will be passed individually through the processing pipeline
+
+    pipeline_config : str
+        Loaded config.toml file to initialize the processing pipeline and setup logging
+
+    c : int
+        Chunk index for tracking progress and logging. If set to 0, enables the
+        progress bar; for other values, the progress bar is disabled.
+    '''
     processing_pipeline = pyopia.pipeline.Pipeline(pipeline_config)
     setup_logging(pipeline_config)
     logger = logging.getLogger('rich')
