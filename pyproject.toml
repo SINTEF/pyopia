@@ -1,6 +1,6 @@
 [project]
 name = "PyOPIA"
-version = "2.8.2"
+version = "2.9.0"
 description = "A Python Ocean Particle Image Analysis toolbox."
 authors = [
     { name = "Emlyn Davies", email = "emlyn.davies@sintef.no" },
