@@ -3,6 +3,14 @@ PyOpia
 
 A Python Ocean Particle Image Analysis toolbox
 
+# Quick tryout of PyOPIA
+
+1) Install [uv](https://docs.astral.sh/uv/getting-started/installation)
+2) Run PyOPIA classification tests on database particles
+```bash
+uv run --python 3.12 --with git+https://github.com/SINTEF/pyopia --with tensorflow==2.16.2 --with keras==3.5.0 python -m pyopia.tests.test_classify
+```
+
 # Documentation:
 
 [![Jupyter Book Badge](https://jupyterbook.org/badge.svg)](https://pyopia.readthedocs.io) [![Documentation](https://readthedocs.org/projects/pyopia/badge/?version=latest)](https://pyopia.readthedocs.io/en/latest/?badge=latest)
@@ -53,9 +61,8 @@ Users are expected to be familiar with Python. Please refer to the recommended i
 
 ## For developers from source
 
-Install [Python](https://github.com/conda-forge/miniforge/#download) version 3.10.
 
-A prompt such as is provided by the [miniforge installation](https://github.com/conda-forge/miniforge/#download) may be used for the following:
+Install (uv)[https://docs.astral.sh/uv/getting-started/installation/]
 
 1. Navigate to the folder where you want to install pyopia using the 'cd' command.
 
@@ -67,44 +74,18 @@ git clone https://github.com/SINTEF/pyopia.git
 cd pyopia
 ```
 
-For the next steps, you need to be located in the directory that contains the file 'environment.yml'.
+For the next steps, you need to be located in the PyOPIA root directory that contains the file 'pyproject.toml'.
 
-1. (optional, but recommended) Create a virtual environment using the environment.yml. This will create an environment called pyopia, but with no dependencies installed. Dependencies are managed by poetry (in step 2):
-
-```bash
-conda env create -f environment.yml
-```
-and activate the environment:
+2. Install all requirements with
 
 ```bash
-conda activate pyopia
+uv sync --all-extras
 ```
-
-2. Install dependencies using poetry:
-
-```bash
-poetry install
-```
-
-Optional dependecies (for classification), can be installed like this:
-
-```bash
-poetry install --extras "classification"
-```
-
-or for arm/silicon systems:
-
-```bash
-poetry install --extras "classification-arm64"
-```
-
-Note: If poetry spends ages resolving dependencies, you can install a development environment with pip, like this: `pip install -e ".[classification]"` or for arm/silicon: `pip install -e ".[classification-arm64]"`
-
 
 3. (optional) Run local tests:
 
 ```bash
-poetry run pytest
+uv run pytest
 ```
 
 #### Version numbering
