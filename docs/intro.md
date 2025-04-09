@@ -36,25 +36,15 @@ Full documentation for the code is [here](api)
 Installing
 ==================================
 
-Users are expected to be familiar with Python, and have [Python](https://github.com/conda-forge/miniforge/#download) version 3.10, [pip](https://pypi.org/project/pip/). You can then install PyOPIA like this:
+Users are expected to be familiar with Python and [uv](https://docs.astral.sh/uv/getting-started/installation/). You can create a new uv project and install PyOPIA like this:
 
 ```
-pip install pyopia
+uv init mypyopiaproject
+cd mypyopiaproject
+uv add pyopia --all-extras
 ```
 
-We would usually recommend installing within a virtual python environment, which you can read more about [here](https://jni.github.io/using-python-for-science/intro-to-environments.html).
-
-If you want to use PyOPIA's Classificaiton module, you need to also install the extra classification dependencies, like this:
-
-````
-pip install pyopia[classification]
-````
-
-or (for Apple silicon)
-
-```
-pip install pyopia[classification-arm64]
-```
+The --all-extras flags installs tensorflow which is required by PyOPIA's Classification module, and is optional.
 
 If you would like to install a development environment, please refer to the instructions in the README on GitHub, [here](https://github.com/SINTEF/pyopia/blob/main/README.md)
 

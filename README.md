@@ -1,4 +1,4 @@
-PyOpia
+PyOPIA
 ===============================
 
 A Python Ocean Particle Image Analysis toolbox
