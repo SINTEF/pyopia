@@ -44,6 +44,8 @@ cd mypyopiaproject
 uv add pyopia --all-extras
 ```
 
+To run PyOPIA, either use uv (uv run pyopia --help), or activate the venv first (source .venv/bin/activate), before running pyopia (pyopia --help).
+
 The --all-extras flags installs tensorflow which is required by PyOPIA's Classification module, and is optional.
 
 If you would like to install a development environment, please refer to the instructions in the README on GitHub, [here](https://github.com/SINTEF/pyopia/blob/main/README.md)
