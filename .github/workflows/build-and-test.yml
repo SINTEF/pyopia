@@ -3,7 +3,7 @@ name: Build and test
 on: [pull_request]
 
 jobs:
-  Windows_pip:
+  Windows_uv:
     runs-on: windows-latest
     timeout-minutes: 60
 
@@ -11,45 +11,51 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Install Python
-        uses: actions/setup-python@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.12'
+          version: "0.6.10"
 
-      - name: Install pyopia
-        run: pip install -e ".[classification]"
+      - name: Install PyOPIA
+        run: uv sync --all-extras --dev
 
-      - name: Test
-        run: python -m pytest -v
-  Ubuntu_poetry:
+      - name: Run the automated tests
+        run: uv run pytest -v
+
+  Ubuntu_uv:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v3
-      - name: Install Python
-        uses: actions/setup-python@v4
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.12' 
-      - name: Install poetry
-        uses: abatilo/actions-poetry@v2
-      - name: Install dependencies
-        run: poetry install --extras "classification"
+          version: "0.6.10"
+
+      - name: Install PyOPIA
+        run: uv sync --all-extras --dev
+
       - name: Run the automated tests
-        run: poetry run pytest -v
-  MacOS_poetry:
+        run: uv run pytest -v
+
+  MacOS_uv:
     runs-on: macos-latest
     timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v3
-      - name: Install Python
-        uses: actions/setup-python@v4
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.12' 
-      - name: Install poetry
-        uses: abatilo/actions-poetry@v2
-      - name: Install dependencies
-        run: poetry install --extras "classification-arm64"
+          version: "0.6.10"
+
+      - name: Install PyOPIA
+        run: uv sync --all-extras --dev
+
       - name: Run the automated tests
-        run: poetry run pytest -v
+        run: uv run pytest -v
