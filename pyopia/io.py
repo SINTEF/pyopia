@@ -661,6 +661,15 @@ def add_cf_attributes(xstats):
         if var in CF_METADATA:
             metadata = CF_METADATA[var]
             xstats[var].attrs.update(metadata)
+        
+        # Variables starting with probability_ are handled separately
+        if var.startswith("probability_"):
+            class_name = "_".join(var.split("_")[1:])
+            xstats[var].attrs["long_name"] = f"Probability of particle belonging to class {class_name}"
+            xstats[var].attrs["units"] = "dimensionless fraction"
+            xstats[var].attrs["calculation_method"] = "Determined by neural network classifier"
+            xstats[var].attrs["standard_name"] = f"probability_of_{class_name}"
+            xstats[var].attrs["pyopia_process_level"] = 1      
 
     return xstats
 
@@ -721,5 +730,31 @@ CF_METADATA = {
         "units": "percent",
         "calculation_method": "Computed as the percentage of the image covered by particles relative to the maximum acceptable coverage",
         "pyopia_process_level": 1,
+    },
+    "index": {
+        "standard_name": "index",
+        "long_name": "Index of the particle in the dataset",
+        "units": "",
+        "calculation_method": "Sequential numbering of particles in the dataset",
+        "pyopia_process_level": 1,
+    },
+    "export_name": {
+        "standard_name": "export_name",
+        "long_name": "Name of the exported particle ROI file",
+        "units": "",
+        "calculation_method": "Generated during particle export",
+        "pyopia_process_level": 1,
+    },
+    "time": {
+        "standard_name": "time",
+        "long_name": "Time of particle observation",
+        "calculation_method": "Extracted from the timestamp of the observation",
+        "pyopia_process_level": 0,
+    },
+    "timestamp": {
+        "standard_name": "timestamp",
+        "long_name": "Timestamp of particle observation",
+        "calculation_method": "Recorded during particle observation",
+        "pyopia_process_level": 0,
     },
 }
