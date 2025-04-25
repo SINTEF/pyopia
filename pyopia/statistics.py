@@ -476,7 +476,7 @@ def gen_roifiles(stats, auto_scaler=500):
         a list of string of filenames that can be passed to montage_maker() for making nice montages
     '''
 
-    roifiles = stats['export name'][stats['export name'] != 'not_exported'].values
+    roifiles = stats['export_name'][stats['export_name'] != 'not_exported'].values
 
     # subsample the particles if necessary
     logger.info('rofiles: {0}'.format(len(roifiles)))
@@ -699,17 +699,17 @@ def add_depth_to_stats(stats, time, depth):
 
 
 def roi_from_export_name(exportname, path):
-    '''Returns an image from the export name string in the -STATS.h5 file
+    '''Returns an image from the export_name string in the -STATS.h5 file
 
     Get the exportname like this:
     ```python
-    exportname = stats['export name'].values[0]
+    exportname = stats['export_name'].values[0]
     ```
 
     Parameters
     ----------
     exportname : str
-        string containing the name of the exported particle e.g. stats['export name'].values[0]
+        string containing the name of the exported particle e.g. stats['export_name'].values[0]
     path : str
         path to exported h5 files
 
