@@ -43,7 +43,7 @@ def write_stats(
     stats : DataFrame or xr.Dataset
         particle statistics
     export_name_len : int
-        Max number of chars allowed for col 'export name'
+        Max number of chars allowed for col 'export_name'
     append : bool
         Append all processed data into one nc file.
         Defaults to True.
@@ -59,8 +59,8 @@ def write_stats(
     if len(stats) == 0:  # to avoid issue with wrong time datatypes in xarray
         return
 
-    if "export name" in stats.columns:
-        min_itemsize = {"export name": export_name_len}
+    if "export_name" in stats.columns:
+        min_itemsize = {"export_name": export_name_len}
     else:
         min_itemsize = None
 
@@ -124,7 +124,7 @@ def write_stats(
             )
 
 
-def setup_xstats_encoding(xstats, string_vars=["export name", "holo_filename"]):
+def setup_xstats_encoding(xstats, string_vars=["export_name", "holo_filename"]):
     """Setup encoding for writing to NetCDF, where string variables are explicitly defined as string types
 
     Notes
@@ -138,7 +138,7 @@ def setup_xstats_encoding(xstats, string_vars=["export name", "holo_filename"]):
     xstats : xarray.Dataset
         Xarray version of stats dataframe, including metadata
     string_vars : list, optional
-        list of string columns in xstats, by default ['export name', 'holo_filename']
+        list of string columns in xstats, by default ['export_name', 'holo_filename']
 
     Returns
     -------
@@ -526,7 +526,7 @@ class StatsToDisc:
     dataformat : str
         either 'nc' or 'h5
     export_name_len : int
-        max number of chars allowed for col 'export name'. Defaults to 40
+        max number of chars allowed for col 'export_name'. Defaults to 40
     append : bool
         Append all processed data into one nc file.
         Defaults to True.
@@ -606,7 +606,7 @@ def StatsH5(**kwargs):
     dataformat : str
         either 'nc' or 'h5
     export_name_len : int
-        max number of chars allowed for col 'export name'. Defaults to 40
+        max number of chars allowed for col 'export_name'. Defaults to 40
     append : bool
         Append all processed data into one nc file.
         Defaults to True.
