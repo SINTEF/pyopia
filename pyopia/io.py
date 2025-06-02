@@ -16,6 +16,7 @@ import xarray as xr
 from tqdm.auto import tqdm
 
 import json
+from pathlib import Path
 
 from pyopia import __version__ as pyopia_version
 
@@ -638,6 +639,10 @@ def StatsH5(**kwargs):
     )
     return StatsToDisc(**kwargs)
 
+def get_cf_metadata_spec():
+    path_to_cf_json = Path(__file__).parent / Path('cf_metadata.json')
+    with open(path_to_cf_json,'r') as file:
+        return json.load(file)
 
 def add_cf_attributes(xstats):
     """
@@ -648,6 +653,10 @@ def add_cf_attributes(xstats):
     xstats : xarray.Dataset
         The dataset to which CF-compliant attributes will be added.
     """
+
+    # Read in CF Metadata from .json specification file
+    cf_metadata = get_cf_metadata_spec()
+
     # Add CF-compliant global attributes
     xstats.attrs["Conventions"] = "CF-1.8"
     xstats.attrs["license"] = "CC-BY-4.0"
@@ -660,8 +669,8 @@ def add_cf_attributes(xstats):
 
     # Apply metadata from CF_METADATA if available
     for var in xstats.data_vars:
-        if var in CF_METADATA:
-            metadata = CF_METADATA[var]
+        if var in cf_metadata:
+            metadata = cf_metadata[var]
             xstats[var].attrs.update(metadata)
         
         # Variables starting with probability_ are handled separately
@@ -674,6 +683,3 @@ def add_cf_attributes(xstats):
             xstats[var].attrs["pyopia_process_level"] = 1      
 
     return xstats
-
-with open('D:/data_DTOBioFlow/Pyopia/pyopia/cf_metadata.json','r') as file:
-    CF_METADATA = json.load(file)

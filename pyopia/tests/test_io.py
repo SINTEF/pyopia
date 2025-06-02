@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import pytest
 import pandas as pd
-from pyopia.io import write_stats, load_stats, CF_METADATA
+from pyopia.io import write_stats, load_stats, get_cf_metadata_spec
 from pyopia.instrument.silcam import generate_config
 
 
@@ -51,7 +51,7 @@ def test_write_and_load_stats(tmp_path: Path):
         assert all(loaded_stats[var].values == stats_df[var].values)
 
     # Verify CF_METADATA attributes
-    for var, metadata in CF_METADATA.items():
+    for var, metadata in get_cf_metadata_spec().items():
         if var in loaded_stats.data_vars:
             for attr, value in metadata.items():
                 assert loaded_stats[var].attrs.get(attr) == value
