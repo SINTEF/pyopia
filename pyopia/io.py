@@ -639,10 +639,12 @@ def StatsH5(**kwargs):
     )
     return StatsToDisc(**kwargs)
 
+
 def get_cf_metadata_spec():
-    path_to_cf_json = Path(__file__).parent / Path('cf_metadata.json')
-    with open(path_to_cf_json,'r') as file:
+    path_to_cf_json = Path(__file__).parent / Path("cf_metadata.json")
+    with open(path_to_cf_json, "r") as file:
         return json.load(file)
+
 
 def add_cf_attributes(xstats):
     """
@@ -672,14 +674,18 @@ def add_cf_attributes(xstats):
         if var in cf_metadata:
             metadata = cf_metadata[var]
             xstats[var].attrs.update(metadata)
-        
+
         # Variables starting with probability_ are handled separately
         if var.startswith("probability_"):
             class_name = "_".join(var.split("_")[1:])
-            xstats[var].attrs["long_name"] = f"Probability of particle belonging to class {class_name}"
+            xstats[var].attrs["long_name"] = (
+                f"Probability of particle belonging to class {class_name}"
+            )
             xstats[var].attrs["units"] = "dimensionless fraction"
-            xstats[var].attrs["calculation_method"] = "Determined by neural network classifier"
+            xstats[var].attrs["calculation_method"] = (
+                "Determined by neural network classifier"
+            )
             xstats[var].attrs["standard_name"] = f"probability_of_{class_name}"
-            xstats[var].attrs["pyopia_process_level"] = 1      
+            xstats[var].attrs["pyopia_process_level"] = 1
 
     return xstats
