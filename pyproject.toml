@@ -1,6 +1,6 @@
 [project]
 name = "PyOPIA"
-version = "2.9.0"
+dynamic = ["version"]
 description = "A Python Ocean Particle Image Analysis toolbox."
 authors = [
     { name = "Emlyn Davies", email = "emlyn.davies@sintef.no" },
@@ -69,11 +69,9 @@ include = ["pyopia"]
 [tool.hatch.build.targets.wheel]
 include = ["pyopia"]
 
+[tool.hatch.version]
+path = "pyopia/__init__.py"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.poetry-version-plugin]
-source = "init"
-
-[tool.setuptools_scm]
