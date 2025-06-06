@@ -381,12 +381,13 @@ def merge_and_save_mfdataset(
         glob(os.path.join(path_to_data, prefix + "Image-D*-STATS.nc"))
     )
 
+    # fmt: off
     # Chunk the file list into smaller parts if specified
     num_files = len(sorted_filelist)
     chunk_size_used = num_files if chunk_size is None else min(chunk_size, num_files)
     num_chunks = int(np.ceil(num_files / chunk_size_used))
     filelist_chunks = [
-        sorted_filelist[i * chunk_size_used : min(num_files, (i + 1) * chunk_size_used)]
+        sorted_filelist[i * chunk_size_used:min(num_files, (i + 1) * chunk_size_used)]
         for i in range(num_chunks)
     ]
     infostr = (
@@ -394,6 +395,7 @@ def merge_and_save_mfdataset(
     )
     infostr += f", based on a total of {num_files} files."
     logging.info(infostr)
+    # fmt: on
 
     # Get config from first file in list
     xstats = load_stats(sorted_filelist[0])
