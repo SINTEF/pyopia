@@ -171,7 +171,8 @@ def make_xstats(stats, toml_steps):
     xstats.attrs["steps"] = toml.dumps(toml_steps)
     xstats.attrs["Modified"] = str(datetime.now())
     xstats.attrs["PyOPIA_version"] = pyopia_version
-    xstats = xstats.assign_coords(time=xstats.timestamp)
+    xstats = xstats.assign_coords({"timestamp": xstats.timestamp})
+    xstats = add_cf_attributes(xstats)
     return xstats
 
 
