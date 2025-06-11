@@ -83,7 +83,7 @@ def get_example_model(download_directory="./"):
     string
         model_filename
     """
-    model_filename = "pyopia-default-classifier.keras"
+    model_filename = "pyopia-default-classifier-20250409.keras"
     model_path = Path(download_directory, model_filename)
     model_url = (
         f"https://pysilcam.blob.core.windows.net/test-data/{str(model_filename)}"

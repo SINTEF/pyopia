@@ -34,6 +34,10 @@ class Classify:
     ----------
     model_path : str
         path to particle-classifier e.g. '/testdata/model_name/particle_classifier.keras'
+    normalize_intensity : bool
+        Scale input image intensity to [0-1] range before classification
+    correct_whitebalance : bool
+        Perform whitebalance correction before classification
 
     Example
     -------
@@ -75,7 +79,12 @@ class Classify:
 
     """
 
-    def __init__(self, model_path=None):
+    def __init__(
+        self,
+        model_path=None,
+        normalize_intensity=True,
+        correct_whitebalance=False,
+    ):
         self.model_path = model_path
         self.load_model()
 
@@ -88,10 +97,10 @@ class Classify:
         )
 
         # Enable this to perform whitebalance correction in the preprocessing step
-        self.correct_whitebalance = False
+        self.correct_whitebalance = correct_whitebalance
 
         # Enable this to rescale intensity in the preprocessing step
-        self.normalize_intensity = True
+        self.normalize_intensity = normalize_intensity
 
     def __call__(self):
         return self
