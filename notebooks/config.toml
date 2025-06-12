@@ -6,7 +6,7 @@ pixel_size = 24 # pixel size of imaging system in microns
 
     [steps.classifier]
     pipeline_class = 'pyopia.classify.Classify'
-    model_path = 'silcam-classification_database_20240822-200-20240829T091048/silcam-classification_database_20240822-200-20240829T091048.keras' # path to trained nn model
+    model_path = 'pyopia-default-classifier-20250409.keras' # path to trained nn model
 
     [steps.load]
     pipeline_class = 'pyopia.instrument.silcam.SilCamLoad'
