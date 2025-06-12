@@ -34,6 +34,7 @@ def write_stats(
     dataformat="nc",
     append=True,
     image_stats=None,
+    proj_metadata_df=None,
 ):
     """
     Writes particle stats into the ouput file.
@@ -44,7 +45,7 @@ def write_stats(
     datafilename : str
         Filame prefix for -STATS.h5 file that may or may not include a path
     stats : DataFrame or xr.Dataset
-        particle statistics
+        Particle statistics
     export_name_len : int
         Max number of chars allowed for col 'export_name'
     append : bool
@@ -56,7 +57,9 @@ def write_stats(
         where appending causes substantial slowdown
         as the dataset gets larger.
     image_stats : xr.Dataset
-        summary statistics of each raw image (including those with no particles)
+        Summary statistics of each raw image (including those with no particles)
+    proj_metadata_df : pd.DataFrame
+        Project metadata, such as license, creator, etc. Added to stats netcdf
     """
 
     if len(stats) == 0:  # to avoid issue with wrong time datatypes in xarray
@@ -88,7 +91,7 @@ def write_stats(
         if isinstance(stats, xr.Dataset):
             xstats = stats
         else:
-            xstats = make_xstats(stats, settings)
+            xstats = make_xstats(stats, settings, proj_metadata_df)
 
         xstats = add_cf_attributes(xstats)
 
@@ -152,7 +155,7 @@ def setup_xstats_encoding(xstats, string_vars=["export_name", "holo_filename"]):
     return encoding
 
 
-def make_xstats(stats, toml_steps):
+def make_xstats(stats, toml_steps, proj_metadata_df=None):
     """Converts a stats dataframe into xarray DataSet, with metadata
 
     Parameters
@@ -161,6 +164,8 @@ def make_xstats(stats, toml_steps):
         particle statistics
     toml_steps : dict
         TOML-based steps dictionary
+    proj_metadata_df : pd.DataFrame
+        Project metadata, such as license, creator, etc. Added to stats netcdf
 
     Returns
     -------
@@ -171,6 +176,9 @@ def make_xstats(stats, toml_steps):
     xstats.attrs["steps"] = toml.dumps(toml_steps)
     xstats.attrs["Modified"] = str(datetime.now())
     xstats.attrs["PyOPIA_version"] = pyopia_version
+    if proj_metadata_df is not None:
+        for _, row in proj_metadata_df.iterrows():
+            xstats.attrs[row.iloc[0]] = row.iloc[1]
     xstats = xstats.assign_coords({"timestamp": xstats.timestamp})
     xstats = add_cf_attributes(xstats)
     return xstats
@@ -556,17 +564,28 @@ class StatsToDisc:
         pipeline_class = 'pyopia.io.StatsToDisc'
         output_datafile = './test' # prefix path for output nc file
         append = true
+        project_metadata_file = 'metadata.txt'
     """
 
     def __init__(
-        self, output_datafile="data", dataformat="nc", export_name_len=40, append=True
+        self,
+        output_datafile="data",
+        dataformat="nc",
+        export_name_len=40,
+        append=True,
+        project_metadata_file=None,
     ):
         self.output_datafile = output_datafile
         self.dataformat = dataformat
         self.export_name_len = export_name_len
         self.append = append
+        self.project_metadata_file = project_metadata_file
 
     def __call__(self, data):
+        proj_metadata_df = None
+        if self.project_metadata_file is not None:
+            proj_metadata_df = pd.read_csv(self.project_metadata_file)
+
         write_stats(
             data["stats"],
             self.output_datafile,
@@ -575,6 +594,7 @@ class StatsToDisc:
             export_name_len=self.export_name_len,
             append=self.append,
             image_stats=data["image_stats"],
+            proj_metadata_df=proj_metadata_df,
         )
 
         return data
