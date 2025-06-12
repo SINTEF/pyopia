@@ -14,9 +14,13 @@ def test_notebooks():
     notebooks = sorted(Path("notebooks/").rglob("*.ipynb"))
     notebooks.append("docs/notebooks/background_correction.ipynb")
     for notebook_filename in notebooks:
-        with open(notebook_filename) as f:
+        with open(notebook_filename, encoding="utf8") as f:
             nb = nbformat.read(f, as_version=4)
             ep = ExecutePreprocessor()
             print("running", notebook_filename)
             ep.preprocess(nb, {"metadata": {"path": "notebooks/"}})
             print(notebook_filename, "complete")
+
+
+if __name__ == "__main__":
+    test_notebooks()
