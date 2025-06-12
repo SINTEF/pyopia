@@ -162,7 +162,7 @@ def test_pipeline_classification():
             canvas[rc : rc + img_shape[0], rc : rc + img_shape[1], :] = np.float64(img)
 
         settings = {
-            "general": {"raw_files": None, "pixel_size": 24},
+            "general": {"raw_files": None},
             "steps": {"note": "non-standard pipeline."},
         }
 
