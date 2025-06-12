@@ -1,6 +1,6 @@
-'''
+"""
 PyOPIA top-level code primarily for managing cmd line entry points
-'''
+"""
 
 import typer
 import toml
@@ -14,6 +14,8 @@ from rich.logging import RichHandler
 import rich.progress
 import pandas as pd
 import multiprocessing
+import pathlib
+import contextlib
 
 import pyopia
 import pyopia.background
@@ -26,23 +28,30 @@ import pyopia.pipeline
 import pyopia.plotting
 import pyopia.process
 import pyopia.statistics
+import pyopia.auxillarydata
+import pyopia.exampledata
 
 app = typer.Typer()
 
 
 @app.command()
 def docs():
-    '''Open browser at PyOPIA's readthedocs page
-    '''
+    """Open browser at PyOPIA's readthedocs page"""
     print("Opening PyOPIA's docs")
     typer.launch("https://pyopia.readthedocs.io")
 
 
 @app.command()
-def modify_config(existing_filename: str, modified_filename: str,
-                  raw_files=None, pixel_size=None,
-                  step_name=None, modify_arg=None, modify_value=None):
-    '''Modify a existing config.toml file and write a new one to disc
+def modify_config(
+    existing_filename: str,
+    modified_filename: str,
+    raw_files=None,
+    pixel_size=None,
+    step_name=None,
+    modify_arg=None,
+    modify_value=None,
+):
+    """Modify a existing config.toml file and write a new one to disc
 
     Parameters
     ----------
@@ -62,34 +71,36 @@ def modify_config(existing_filename: str, modified_filename: str,
     modify_value : str or floar, optional
         new value to attach to the 'modify_arg' setting e.g. 0.85.
         Accepts either string or float input, by default None
-    '''
+    """
     toml_settings = pyopia.io.load_toml(existing_filename)
 
     if raw_files is not None:
-        toml_settings['general']['raw_files'] = f'{raw_files}'
+        toml_settings["general"]["raw_files"] = f"{raw_files}"
     if pixel_size is not None:
-        toml_settings['general']['pixel_size'] = float(pixel_size)
+        toml_settings["general"]["pixel_size"] = float(pixel_size)
 
     if step_name is not None:
         try:
-            if modify_arg == 'average_window':
+            if modify_arg == "average_window":
                 modify_value = int(modify_value)
-            elif modify_arg == 'threshold':
+            elif modify_arg == "threshold":
                 modify_value = float(modify_value)
             else:
                 modify_value = str(modify_value)
         except ValueError:
             pass
 
-        toml_settings['steps'][step_name][modify_arg] = modify_value
+        toml_settings["steps"][step_name][modify_arg] = modify_value
 
     with open(modified_filename, "w") as toml_file:
         toml.dump(toml_settings, toml_file)
 
 
 @app.command()
-def generate_config(instrument: str, raw_files: str, model_path: str, outfolder: str, output_prefix: str):
-    '''Put an example config.toml file in the current directory
+def generate_config(
+    instrument: str, raw_files: str, model_path: str, outfolder: str, output_prefix: str
+):
+    """Put an example config.toml file in the current directory
 
     Parameters
     ----------
@@ -103,14 +114,20 @@ def generate_config(instrument: str, raw_files: str, model_path: str, outfolder:
         outfolder
     output_prefix : str
         output_prefix
-    '''
+    """
     match instrument:
-        case 'silcam':
-            pipeline_config = pyopia.instrument.silcam.generate_config(raw_files, model_path, outfolder, output_prefix)
-        case 'holo':
-            pipeline_config = pyopia.instrument.holo.generate_config(raw_files, model_path, outfolder, output_prefix)
-        case 'uvp':
-            pipeline_config = pyopia.instrument.uvp.generate_config(raw_files, model_path, outfolder, output_prefix)
+        case "silcam":
+            pipeline_config = pyopia.instrument.silcam.generate_config(
+                raw_files, model_path, outfolder, output_prefix
+            )
+        case "holo":
+            pipeline_config = pyopia.instrument.holo.generate_config(
+                raw_files, model_path, outfolder, output_prefix
+            )
+        case "uvp":
+            pipeline_config = pyopia.instrument.uvp.generate_config(
+                raw_files, model_path, outfolder, output_prefix
+            )
 
     config_filename = instrument + "-config.toml"
     with open(config_filename, "w") as toml_file:
@@ -118,8 +135,91 @@ def generate_config(instrument: str, raw_files: str, model_path: str, outfolder:
 
 
 @app.command()
-def process(config_filename: str, num_chunks: int = 1, strategy: str = 'block'):
-    '''Run a PyOPIA processing pipeline based on given a config.toml
+def init_project(project_name: str, instrument: str = "silcam"):
+    """Initialize a PyOPIA processing project with a standard config file and folder layout
+
+    Parameters
+    ----------
+    project_name : str
+        name of project, a folder with this name will be created
+    instrument : str
+        either `silcam`, `holo` or `uvp`
+    """
+    raw_files = "images/*.silc"
+    outfolder = "processed"
+    output_prefix = project_name
+    model_path = ""
+    config_filename = "config.toml"
+    proj_folder = pathlib.Path(project_name)
+
+    project_metadata_template = [
+        f"title,project,{project_name}",
+        f"instrument,{instrument}",
+        "longitude,NOT_SPECIFIED",
+        "latitude,NOT_SPECIFIED",
+        "creator_email,NOT_SPECIFIED",
+        "creator_url,NOT_SPECIFIED",
+        "license,CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/",
+    ]
+
+    readme_lines = [
+        f"{project_name}",
+        "=" * len(project_name),
+        "@TODO: Place your .silc images in the images/ folder",
+        "@TODO: Describe your project and data here",
+        "@TODO: Update metadata.txt with project info",
+        "@TODO: Update auxillary_data.csv with per-image data",
+        "@TODO: Update PyOPIA config.toml as needed - note that logging to pyopia.log file is enabled",
+    ]
+
+    # Create project folder
+    # If it exists, exist with warning
+    print(f"[blue]Creating PyOPIA project folder {proj_folder}")
+    if proj_folder.exists():
+        print(f"[red]ERROR: Project folder {proj_folder} exists")
+        return
+    proj_folder.mkdir()
+
+    # Create subfolders
+    print("[blue]Creating project folder structure")
+    auxdata_folder = pathlib.Path(proj_folder, "auxillarydata")
+    auxdata_folder.mkdir()
+    images_folder = pathlib.Path(proj_folder, "images")
+    images_folder.mkdir()
+
+    # Get default classifier
+    print("[blue]Downloading PyOPIA example classifier")
+    with contextlib.chdir(proj_folder):
+        model_path = pyopia.exampledata.get_example_model()
+
+    # Generate config
+    print("[blue]Generating default PyOPIA config")
+    config_generator = getattr(pyopia.instrument, instrument).generate_config
+    pipeline_config = config_generator(raw_files, model_path, outfolder, output_prefix)
+    with open(pathlib.Path(proj_folder, config_filename), "w") as toml_file:
+        toml.dump(pipeline_config, toml_file)
+
+    # Add README file
+    print("[blue]Adding README file")
+    with open(pathlib.Path(proj_folder, "README"), "w") as fh:
+        print(*readme_lines, sep="\n", end="\n", file=fh)
+
+    # Generate project metadata template file
+    print("[blue]Creating metadata template file")
+    with open(pathlib.Path(proj_folder, "metadata.txt"), "w") as fh:
+        print(*project_metadata_template, sep="\n", end="\n", file=fh)
+
+    # Generate auxillary data template file
+    with open(pathlib.Path(auxdata_folder, "auxillary_data.csv"), "w") as fh:
+        print(pyopia.auxillarydata.AUXILLARY_DATA_FILE_TEMPLATE, file=fh)
+
+    # Get example image data
+    # @TODO
+
+
+@app.command()
+def process(config_filename: str, num_chunks: int = 1, strategy: str = "block"):
+    """Run a PyOPIA processing pipeline based on given a config.toml
 
     Parameters
     ----------
@@ -131,7 +231,7 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = 'block'):
 
     strategy : str, optional
         Strategy to use for chunking dataset, either `block` or `interleave`. Defult: `block`
-    '''
+    """
     t1 = time.time()
 
     with Progress(transient=True) as progress:
@@ -141,34 +241,39 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = 'block'):
         pipeline_config = pyopia.io.load_toml(config_filename)
 
         setup_logging(pipeline_config)
-        logger = logging.getLogger('rich')
-        logger.info(f'PyOPIA process started {pd.Timestamp.now()}')
+        logger = logging.getLogger("rich")
+        logger.info(f"PyOPIA process started {pd.Timestamp.now()}")
 
         check_chunks(num_chunks, pipeline_config)
 
         progress.console.print("[blue]OBTAIN IMAGE LIST")
-        conf_corrbg = pipeline_config['steps'].get('correctbackground', dict())
-        average_window = conf_corrbg.get('average_window', 0)
-        bgshift_function = conf_corrbg.get('bgshift_function', 'pass')
-        raw_files = pyopia.pipeline.FilesToProcess(pipeline_config['general']['raw_files'])
-        raw_files.prepare_chunking(num_chunks, average_window, bgshift_function, strategy=strategy)
+        conf_corrbg = pipeline_config["steps"].get("correctbackground", dict())
+        average_window = conf_corrbg.get("average_window", 0)
+        bgshift_function = conf_corrbg.get("bgshift_function", "pass")
+        raw_files = pyopia.pipeline.FilesToProcess(
+            pipeline_config["general"]["raw_files"]
+        )
+        raw_files.prepare_chunking(
+            num_chunks, average_window, bgshift_function, strategy=strategy
+        )
 
         # Write the dataset list of images to a text file
-        raw_files.to_filelist_file('filelist.txt')
+        raw_files.to_filelist_file("filelist.txt")
 
-        progress.console.print('[blue]PREPARE FOLDERS')
-        if 'output' not in pipeline_config['steps']:
-            raise Exception('The given config file is missing an "output" step.\n' +
-                            'This is needed to setup how to save data to disc.')
-        output_datafile = pipeline_config['steps']['output']['output_datafile']
-        os.makedirs(os.path.split(output_datafile)[:-1][0],
-                    exist_ok=True)
+        progress.console.print("[blue]PREPARE FOLDERS")
+        if "output" not in pipeline_config["steps"]:
+            raise Exception(
+                'The given config file is missing an "output" step.\n'
+                + "This is needed to setup how to save data to disc."
+            )
+        output_datafile = pipeline_config["steps"]["output"]["output_datafile"]
+        os.makedirs(os.path.split(output_datafile)[:-1][0], exist_ok=True)
 
-        if os.path.isfile(output_datafile + '-STATS.nc'):
-            dt_now = datetime.datetime.now().strftime('D%Y%m%dT%H%M%S')
-            newname = output_datafile + '-conflict-' + str(dt_now) + '-STATS.nc'
-            logger.warning(f'Renaming conflicting file to: {newname}')
-            os.rename(output_datafile + '-STATS.nc', newname)
+        if os.path.isfile(output_datafile + "-STATS.nc"):
+            dt_now = datetime.datetime.now().strftime("D%Y%m%dT%H%M%S")
+            newname = output_datafile + "-conflict-" + str(dt_now) + "-STATS.nc"
+            logger.warning(f"Renaming conflicting file to: {newname}")
+            os.rename(output_datafile + "-STATS.nc", newname)
 
         progress.console.print("[blue]INITIALISE PIPELINE")
 
@@ -178,7 +283,9 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = 'block'):
         process_file_list(raw_files, pipeline_config, 0)
     else:
         for c, chunk in enumerate(raw_files.chunked_files):
-            job = multiprocessing.Process(target=process_file_list, args=(chunk, pipeline_config, c))
+            job = multiprocessing.Process(
+                target=process_file_list, args=(chunk, pipeline_config, c)
+            )
             job_list.append(job)
 
     # Start all the jobs
@@ -188,15 +295,19 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = 'block'):
     [job.join() for job in job_list]
 
     # Calculate and print total processing time
-    time_total = pd.to_timedelta(time.time() - t1, 'seconds')
+    time_total = pd.to_timedelta(time.time() - t1, "seconds")
     with Progress(transient=True) as progress:
         progress.console.print(f"[blue]PROCESSING COMPLETED IN {time_total}")
 
 
 @app.command()
-def merge_mfdata(path_to_data: str, prefix='*', overwrite_existing_partials: bool = True,
-                 chunk_size: int = None):
-    '''Combine a multi-file directory of STATS.nc files into a single '-STATS.nc' file
+def merge_mfdata(
+    path_to_data: str,
+    prefix="*",
+    overwrite_existing_partials: bool = True,
+    chunk_size: int = None,
+):
+    """Combine a multi-file directory of STATS.nc files into a single '-STATS.nc' file
     that can then be loaded with {func}`pyopia.io.load_stats`
 
     Parameters
@@ -216,16 +327,19 @@ def merge_mfdata(path_to_data: str, prefix='*', overwrite_existing_partials: boo
     chunk_size : int
         Process this many files together and store as partially merged netcdf files, which
         are then merged at the end. Default: None, process all files together.
-    '''
-    setup_logging({'general': {}})
+    """
+    setup_logging({"general": {}})
 
-    pyopia.io.merge_and_save_mfdataset(path_to_data, prefix=prefix,
-                                       overwrite_existing_partials=overwrite_existing_partials,
-                                       chunk_size=chunk_size)
+    pyopia.io.merge_and_save_mfdataset(
+        path_to_data,
+        prefix=prefix,
+        overwrite_existing_partials=overwrite_existing_partials,
+        chunk_size=chunk_size,
+    )
 
 
 def process_file_list(file_list, pipeline_config, c):
-    '''Run a PyOPIA processing pipeline for a chuncked list of files based on a given config.toml
+    """Run a PyOPIA processing pipeline for a chuncked list of files based on a given config.toml
 
     Parameters
     ----------
@@ -238,59 +352,72 @@ def process_file_list(file_list, pipeline_config, c):
     c : int
         Chunk index for tracking progress and logging. If set to 0, enables the
         progress bar; for other values, the progress bar is disabled.
-    '''
+    """
     processing_pipeline = pyopia.pipeline.Pipeline(pipeline_config)
     setup_logging(pipeline_config)
-    logger = logging.getLogger('rich')
+    logger = logging.getLogger("rich")
 
-    with get_custom_progress_bar(f'[blue]Processing progress (chunk {c})', disable=c != 0) as pbar:
-        for filename in pbar.track(file_list, description=f'[blue]Processing progress (chunk {c})'):
+    with get_custom_progress_bar(
+        f"[blue]Processing progress (chunk {c})", disable=c != 0
+    ) as pbar:
+        for filename in pbar.track(
+            file_list, description=f"[blue]Processing progress (chunk {c})"
+        ):
             try:
-                logger.debug(f'Chunk {c} starting to process {filename}')
+                logger.debug(f"Chunk {c} starting to process {filename}")
                 processing_pipeline.run(filename)
             except Exception as e:
-                logger.warning('[red]An error occured in processing, ' +
-                               'skipping rest of pipeline and moving to next image.' +
-                               f'(chunk {c})')
+                logger.warning(
+                    "[red]An error occured in processing, "
+                    + "skipping rest of pipeline and moving to next image."
+                    + f"(chunk {c})"
+                )
                 logger.error(e)
-                logger.debug(''.join(traceback.format_tb(e.__traceback__)))
+                logger.debug("".join(traceback.format_tb(e.__traceback__)))
 
 
 def setup_logging(pipeline_config):
-    '''Configure logging
+    """Configure logging
 
     Parameters
     ----------
     pipeline_config : dict
         TOML settings
-    '''
+    """
     # Get user parameters or default values for logging
-    log_file = pipeline_config['general'].get('log_file', None)
-    log_level_name = pipeline_config['general'].get('log_level', 'INFO')
+    log_file = pipeline_config["general"].get("log_file", None)
+    log_level_name = pipeline_config["general"].get("log_level", "INFO")
     log_level = getattr(logging, log_level_name)
 
     # Either log to file (silent console) or to console with Rich
     if log_file is None:
         handlers = [RichHandler(show_time=True, show_level=False)]
     else:
-        handlers = [logging.FileHandler(log_file, mode='a')]
+        handlers = [logging.FileHandler(log_file, mode="a")]
 
     # Configure logger
-    log_format = '%(asctime)s %(levelname)s %(processName)s [%(module)s.%(funcName)s] %(message)s'
-    logging.basicConfig(level=log_level, datefmt='%Y-%m-%d %H:%M:%S', format=log_format, handlers=handlers)
+    log_format = "%(asctime)s %(levelname)s %(processName)s [%(module)s.%(funcName)s] %(message)s"
+    logging.basicConfig(
+        level=log_level,
+        datefmt="%Y-%m-%d %H:%M:%S",
+        format=log_format,
+        handlers=handlers,
+    )
 
 
 def check_chunks(chunks, pipeline_config):
     if chunks < 1:
-        raise RuntimeError('You must have at least 1 chunk')
+        raise RuntimeError("You must have at least 1 chunk")
 
-    append_enabled = pipeline_config['steps']['output'].get('append', True)
+    append_enabled = pipeline_config["steps"]["output"].get("append", True)
     if chunks > 1 and append_enabled:
-        raise RuntimeError('Output mode must be set to "append = false" in "output" step when using more than one chunk')
+        raise RuntimeError(
+            'Output mode must be set to "append = false" in "output" step when using more than one chunk'
+        )
 
 
 def get_custom_progress_bar(description, disable):
-    ''' Create a custom rich.progress.Progress object for displaying progress bars'''
+    """Create a custom rich.progress.Progress object for displaying progress bars"""
     progress = Progress(
         rich.progress.TextColumn(description),
         rich.progress.BarColumn(),
@@ -300,7 +427,7 @@ def get_custom_progress_bar(description, disable):
         rich.progress.TimeElapsedColumn(),
         rich.progress.TextColumn("•"),
         rich.progress.TimeRemainingColumn(),
-        disable=disable
+        disable=disable,
     )
     return progress
 
