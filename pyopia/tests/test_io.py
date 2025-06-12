@@ -27,8 +27,10 @@ def test_write_and_load_stats(tmp_path: Path):
         "saturation": [50.0, 75.0],
     }
     # Convert timestamp to datetime format
-    data["timestamp"] = pd.to_datetime(["2025-04-25T10:00:00", "2025-04-25T10:05:00"])
     stats_df = pd.DataFrame(data)
+    stats_df["timestamp"] = pd.to_datetime(
+        ["2025-04-25T10:00:00", "2025-04-25T10:05:00"]
+    )
 
     # Define the output file path
     output_file = os.path.join(temp_dir, "test")
@@ -49,6 +51,8 @@ def test_write_and_load_stats(tmp_path: Path):
     for var in data.keys():
         assert var in loaded_stats.data_vars
         assert all(loaded_stats[var].values == stats_df[var].values)
+
+    assert "timestamp" in loaded_stats.coords
 
     # Verify CF_METADATA attributes
     for var, metadata in get_cf_metadata_spec().items():
