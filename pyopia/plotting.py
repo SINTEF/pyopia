@@ -167,7 +167,7 @@ def plot_classified_rois(roilist, df_class_labels, true_class=None):
             )
 
     # Hide non-used axes in the grid
-    for ax in axes.flatten()[len(roilist) :]:
+    for ax in axes.flatten()[len(roilist):]:
         ax.set_visible(False)
 
     fig.patch.set_linewidth(10)

@@ -159,7 +159,7 @@ def test_pipeline_classification():
             categories.append(category)
             img_shape = np.shape(img)
             rc += rc_shift
-            canvas[rc : rc + img_shape[0], rc : rc + img_shape[1], :] = np.float64(img)
+            canvas[rc: rc + img_shape[0], rc: rc + img_shape[1], :] = np.float64(img)
 
         settings = {
             "general": {"raw_files": None},
