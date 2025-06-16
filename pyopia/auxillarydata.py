@@ -1,4 +1,3 @@
-# import pathlib
 import pandas as pd
 
 # The netcdf4 engine seems to produce errors with the stats dataset, so we use
@@ -21,7 +20,6 @@ Note that the second row contains units for each variable
 
 class AuxillaryData:
     """
-    I
     Handle and add auxillary data to PyOPIA particle statistics file.
 
     Auxillary data variables may include (image) depth, longitude, latitude, etc.
@@ -53,13 +51,7 @@ class AuxillaryData:
         self.auxillary_data_path = auxillary_data_path
         # Load in the auxillary data file
         self.auxillary_data = pd.read_csv(auxillary_data_path)
-
-    # def __init__(self, metadata_dir):
-    # Load metadata
-    #    self.metadata = pd.read_csv(
-    #        pathlib.Path(metadata_dir, "metadata.txt"),
-    #        index_col=0,
-    #    )
+        self.auxillary_data = self.self.auxillary_data.drop([0])
 
     def store_augmented_file(self, xstats, output_filename):
         xstats.to_netcdf(output_filename, engine=NETCDF_ENGINE)
