@@ -407,6 +407,7 @@ def generate_config(
                 "pipeline_class": "pyopia.background.CorrectBackgroundAccurate",
                 "average_window": 5,  # number of images used to create background
                 "bgshift_function": "accurate",  # optional 'fast' or 'accurate' method for moving backgrounds. For static background use 'pass' or comment this line.
+                "divide_bg": True,
                 "image_source": "imraw",
             },
             "imageprep": {
@@ -426,6 +427,7 @@ def generate_config(
             "output": {
                 "pipeline_class": "pyopia.io.StatsToDisc",
                 "output_datafile": os.path.join(outfolder, output_prefix),
+                "append": False,
             },
         },
     }
