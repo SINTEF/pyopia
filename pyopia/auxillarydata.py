@@ -49,13 +49,34 @@ class AuxillaryData:
 
     def __init__(
         self,
-        auxillary_data_path="D:/data_DTOBioFlow/Pyopia/pyopia/myawesomeimgs/auxillarydata/data_test.csv",
+        auxillary_data_path=None,
     ):
         self.auxillary_data_path = auxillary_data_path
         # Load in the auxillary data file
         self.auxillary_data = pd.read_csv(auxillary_data_path)
-        # Drop the first row of metadata file which contains the units
+        # Drop the first row of metadata file which contains the units and reset the index
         self.auxillary_data = self.auxillary_data.drop([0])
+        self.auxillary_data = self.auxillary_data.drop([1]).reset_index(drop=True)
+        # Set time as the index and make sure its type is datetime64[ns]
+        self.auxillary_data["time"] = self.auxillary_data["time"].astype(
+            "datetime64[ns]"
+        )
+        # Transform into xarray
+        self.auxillary_data = self.auxillary_data.to_xarray()
+
+    def __call__(self, data):
+        # loop over columns in the auxillary data.csv and interpolate tbased on their timestep
+        if (
+            self.auxillary_data is not None
+        ):  # Check that the data is there and not empty
+            for col in self.auxillary_data.data_vars:  # Iterate over each column
+                data["stats"][col] = (
+                    self.auxillary_data[col]
+                    .astype(float)
+                    .interp(time=data["stats"]["timestamp"])
+                    .to_pandas()
+                )
+        return data
 
     def store_augmented_file(self, xstats, output_filename):
         xstats.to_netcdf(output_filename, engine=NETCDF_ENGINE)
