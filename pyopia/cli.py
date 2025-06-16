@@ -162,13 +162,21 @@ def init_project(
     output_prefix = project_name
     model_path = ""
     config_filename = "config.toml"
+    metadata_file_name = "metadata.txt"
     proj_folder = pathlib.Path(project_name)
 
+    title = longitude = latitude = "NOT_SPECIFIED"
+    if example_data:
+        title = "PyOPIA example data"
+        longitude = 14.45498
+        latitude = 68.89363
+
     project_metadata_template = [
-        f"title,project,{project_name}",
+        f"title,{title}",
+        f"project,{project_name}",
         f"instrument,{instrument}",
-        "longitude,NOT_SPECIFIED",
-        "latitude,NOT_SPECIFIED",
+        f"longitude,{longitude}",
+        f"latitude,{latitude}",
         "creator_email,NOT_SPECIFIED",
         "creator_url,NOT_SPECIFIED",
         "license,CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/",
@@ -178,7 +186,7 @@ def init_project(
         f"{project_name}",
         "=" * len(project_name),
         "@TODO: Place your .silc images in the images/ folder",
-        "@TODO: Describe your project and data here",
+        "@TODO: Describe your project and data in this README file",
         "@TODO: Update metadata.txt with project info",
         "@TODO: Update auxillary_data.csv with per-image data",
         "@TODO: Update PyOPIA config.toml as needed - note that logging to pyopia.log file is enabled",
@@ -208,6 +216,7 @@ def init_project(
     print("[blue]Generating default PyOPIA config")
     config_generator = getattr(pyopia.instrument, instrument).generate_config
     pipeline_config = config_generator(raw_files, model_path, outfolder, output_prefix)
+    pipeline_config["steps"]["output"]["project_metadata_file"] = metadata_file_name
     with open(pathlib.Path(proj_folder, config_filename), "w") as toml_file:
         toml.dump(pipeline_config, toml_file)
 
@@ -218,7 +227,7 @@ def init_project(
 
     # Generate project metadata template file
     print("[blue]Creating metadata template file")
-    with open(pathlib.Path(proj_folder, "metadata.txt"), "w") as fh:
+    with open(pathlib.Path(proj_folder, metadata_file_name), "w") as fh:
         print(*project_metadata_template, sep="\n", end="\n", file=fh)
 
     # Generate auxillary data template file
