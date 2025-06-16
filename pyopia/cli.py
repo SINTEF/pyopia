@@ -16,6 +16,9 @@ import pandas as pd
 import multiprocessing
 import pathlib
 import contextlib
+import matplotlib.pyplot as plt
+from typing import Tuple
+from typing_extensions import Annotated
 
 import pyopia
 import pyopia.background
@@ -336,6 +339,52 @@ def merge_mfdata(
         overwrite_existing_partials=overwrite_existing_partials,
         chunk_size=chunk_size,
     )
+
+
+@app.command()
+def make_montage(
+    stats_filename: pathlib.Path,
+    output_filename: str = "montage.png",
+    filter_variable: Annotated[Tuple[str, float, float], typer.Option()] = [
+        None,
+        None,
+        None,
+    ],
+):
+    """Create a montage of particles
+
+    Parameters
+    ----------
+    config_filename : str
+        Config filename
+    output_filename: str
+        Store montage figure to this filename
+    filter_variable: list
+        Variables to filter on (name, min, max), e.g. ['depth', 5, None]
+    """
+    print("[blue]LOAD STATS")
+    xstats = pyopia.io.load_stats(str(stats_filename))
+    config = pyopia.io.steps_from_xstats(xstats)
+
+    # Filter the stats
+    if filter_variable[0] is not None:
+        print(filter_variable)
+        xstats = xstats.where(
+            (xstats[filter_variable[0]] <= filter_variable[2])
+            & (xstats[filter_variable[0]] >= filter_variable[1])
+        )
+
+    print("[blue]CREATING MONTAGE")
+    montage = pyopia.statistics.make_montage(
+        xstats.to_pandas(),
+        config["general"]["pixel_size"],
+        config["steps"]["statextract"]["export_outputpath"],
+        eyecandy=False,
+    )
+
+    print("[blue]STORING MONTAGE")
+    pyopia.plotting.montage_plot(montage, config["general"]["pixel_size"])
+    plt.savefig(output_filename, dpi=300, bbox_inches="tight")
 
 
 def process_file_list(file_list, pipeline_config, c):
