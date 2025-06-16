@@ -11,14 +11,19 @@ import traceback
 import logging
 from rich.progress import Progress
 from rich.logging import RichHandler
+from rich import print
 import rich.progress
 import pandas as pd
 import multiprocessing
 import pathlib
+from pathlib import Path
 import contextlib
 import matplotlib.pyplot as plt
+import zipfile
 from typing import Tuple
 from typing_extensions import Annotated
+from operator import methodcaller
+import sys
 
 import pyopia
 import pyopia.background
@@ -138,15 +143,19 @@ def generate_config(
 
 
 @app.command()
-def init_project(project_name: str, instrument: str = "silcam"):
+def init_project(
+    project_name: str, instrument: str = "silcam", example_data: bool = False
+):
     """Initialize a PyOPIA processing project with a standard config file and folder layout
 
     Parameters
     ----------
     project_name : str
-        name of project, a folder with this name will be created
+        Name of project, a folder with this name will be created
     instrument : str
-        either `silcam`, `holo` or `uvp`
+        Either `silcam`, `holo` or `uvp`
+    example_data: bool
+        If specified, download 10 example SilCam images and put them in the images/ folder
     """
     raw_files = "images/*.silc"
     outfolder = "processed"
@@ -217,7 +226,15 @@ def init_project(project_name: str, instrument: str = "silcam"):
         print(pyopia.auxillarydata.AUXILLARY_DATA_FILE_TEMPLATE, file=fh)
 
     # Get example image data
-    # @TODO
+    if example_data:
+        print("[blue]Downloading example SilCam images")
+        example_imgs_zip = proj_folder / Path("pyopia-example-images-10.zip")
+        pyopia.exampledata.get_file_from_pysilcam_blob(
+            example_imgs_zip.name, download_directory=example_imgs_zip.parent
+        )
+        with zipfile.ZipFile(example_imgs_zip, "r") as zipit:
+            zipit.extractall(proj_folder / Path("images/"))
+        os.remove(example_imgs_zip)
 
 
 @app.command()
@@ -339,6 +356,46 @@ def merge_mfdata(
         overwrite_existing_partials=overwrite_existing_partials,
         chunk_size=chunk_size,
     )
+
+
+@app.command()
+def convert_raw_images(config_filename: str):
+    """Convert raw images files to bitmap format (png).
+
+    Input images are inferred from config.toml file. Ouput folder is created.
+
+    Parameters
+    ----------
+    config_filename : str
+        Config filename
+    """
+    output_folder = pathlib.Path("images_converted")
+    print(f"[blue]CREATING IMAGE OUTPUT FOLDER: {output_folder}")
+    output_folder.mkdir()
+
+    print("[blue]LOAD CONFIG")
+    config = pyopia.io.load_toml(config_filename)
+
+    print("[blue]GENERATING IMAGE FILE LIST")
+    p = pathlib.Path(config["general"]["raw_files"])
+    image_files = list(pathlib.Path(p.parent).glob(p.name))
+
+    # Initialize the image loading function based on config specification
+    loader_class = config["steps"]["load"]["pipeline_class"]
+    classname = loader_class.split(".")[-1]
+    modulename = ".".join(loader_class.split(".")[:-1])
+    keys = [k for k in config["steps"]["load"] if k != "pipeline_class"]
+    arguments = {k: config["steps"]["load"] for k in keys}
+    m = methodcaller(classname, **arguments)
+    callobj = m(sys.modules[modulename])
+
+    # Loop over image list, load, convert, store
+    for filename in rich.progress.track(
+        image_files, description="Converting raw images"
+    ):
+        data = dict(filename=filename)
+        callobj(data)
+        plt.imsave(pathlib.Path(output_folder, filename.stem + ".png"), data["imraw"])
 
 
 @app.command()
