@@ -47,11 +47,15 @@ class AuxillaryData:
     Note that the second row contains units for each variable
     """
 
-    def __init__(self, auxillary_data_path=None):
+    def __init__(
+        self,
+        auxillary_data_path="D:/data_DTOBioFlow/Pyopia/pyopia/myawesomeimgs/auxillarydata/data_test.csv",
+    ):
         self.auxillary_data_path = auxillary_data_path
         # Load in the auxillary data file
         self.auxillary_data = pd.read_csv(auxillary_data_path)
-        self.auxillary_data = self.self.auxillary_data.drop([0])
+        # Drop the first row of metadata file which contains the units
+        self.auxillary_data = self.auxillary_data.drop([0])
 
     def store_augmented_file(self, xstats, output_filename):
         xstats.to_netcdf(output_filename, engine=NETCDF_ENGINE)
