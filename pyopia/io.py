@@ -589,7 +589,11 @@ class StatsToDisc:
         self.append = append
         self.project_metadata_file = project_metadata_file
         if self.project_metadata_file is not None:
-            self.proj_metadata_df = pd.read_csv(self.project_metadata_file)
+            self.proj_metadata_df = pd.read_csv(
+                self.project_metadata_file, header=None, index=None
+            )
+        else:
+            self.proj_metadata_df = pd.DataFrame(columns=[1, 2])
 
     def __call__(self, data):
         # Add raw image shape to metadata
@@ -597,6 +601,13 @@ class StatsToDisc:
             "raw_image_shape",
             data["imraw"].shape,
         ]
+
+        # Add classifier model weights file hash to metadata
+        if data["cl"] is not None:
+            self.proj_metadata_df.loc[len(self.proj_metadata_df)] = [
+                "classifier_weights_file_hash",
+                data["cl"].model_hash,
+            ]
 
         write_stats(
             data["stats"],
