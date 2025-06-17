@@ -63,9 +63,22 @@ def test_load_and_write_auxillary_data(tmp_path: Path):
 
     # Create/Read in a sample DataFrame of Auxillary Metadata
     # Matching timesteps to the metadata created above
-    aux_data = pd.read_csv(
-        "D:/data_DTOBioFlow/Pyopia/pyopia/myawesomeimgs/auxillarydata/data_test.csv"
-    )
+    aux = {
+        "depth": ["metres", "depth_below_seaflorrr", 0.0, 5.0],
+        "temperature": ["degC", "sea_water_temperature", 5.7, 5.9],
+        "salinity": ["psu", "sea_water_Salinity", 29.0, 34.4],
+        "latitude": ["degN", "deployment_latitude", 62.3, 62.4],
+        "longitude": ["degE", "deployment_longitude", 10.0, 10.4],
+    }
+
+    aux_data = pd.DataFrame(aux)
+    aux_data["time"] = [
+        "",
+        "auxillary_time",
+        pd.to_datetime("2025-04-25T10:00:00"),
+        pd.to_datetime("2025-04-25T10:05:00"),
+    ]
+
     aux_data = aux_data.drop([0])
     aux_data = aux_data.drop([1]).reset_index(drop=True)
     # Set time as the index and make sure its type is datetime64[ns]
