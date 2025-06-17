@@ -122,10 +122,12 @@ def write_stats(
             else:
                 ximage_stats = image_stats.loc[[image_stats.index[-1]], :].to_xarray()
 
+            encoding_imagestats = setup_xstats_encoding(ximage_stats)
             ximage_stats.to_netcdf(
                 datafilename + "-STATS.nc",
                 group="image_stats",
                 mode="a",
+                encoding=encoding_imagestats,
                 engine=NETCDF_ENGINE,
             )
 
@@ -152,6 +154,12 @@ def setup_xstats_encoding(xstats, string_vars=["export_name", "holo_filename"]):
         'encoding' input argument to be given to xstats.to_netcdf()
     """
     encoding = {k: {"dtype": "str"} for k in string_vars if k in xstats.data_vars}
+
+    # Set timestamp encoding to microseconds since smallest datetime in xstats
+    # Avoid resolution issues with int64 dates (days since)
+    encoding["timestamp"] = {
+        "units": f"microseconds since {np.datetime_as_string(xstats.timestamp.min())}"
+    }
     return encoding
 
 
@@ -580,11 +588,15 @@ class StatsToDisc:
         self.export_name_len = export_name_len
         self.append = append
         self.project_metadata_file = project_metadata_file
+        if self.project_metadata_file is not None:
+            self.proj_metadata_df = pd.read_csv(self.project_metadata_file)
 
     def __call__(self, data):
-        proj_metadata_df = None
-        if self.project_metadata_file is not None:
-            proj_metadata_df = pd.read_csv(self.project_metadata_file)
+        # Add raw image shape to metadata
+        self.proj_metadata_df.loc[len(self.proj_metadata_df)] = [
+            "raw_image_shape",
+            data["imraw"].shape,
+        ]
 
         write_stats(
             data["stats"],
@@ -594,7 +606,7 @@ class StatsToDisc:
             export_name_len=self.export_name_len,
             append=self.append,
             image_stats=data["image_stats"],
-            proj_metadata_df=proj_metadata_df,
+            proj_metadata_df=self.proj_metadata_df,
         )
 
         return data

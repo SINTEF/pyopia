@@ -220,19 +220,26 @@ def init_project(
     with open(pathlib.Path(proj_folder, config_filename), "w") as toml_file:
         toml.dump(pipeline_config, toml_file)
 
+    # Create directory for processed files
+    (
+        proj_folder / Path(pipeline_config["steps"]["output"]["output_datafile"]).parent
+    ).mkdir()
+
     # Add README file
     print("[blue]Adding README file")
     with open(pathlib.Path(proj_folder, "README"), "w") as fh:
-        print(*readme_lines, sep="\n", end="\n", file=fh)
+        # print(*readme_lines, sep="\n", end="\n", file=fh)
+        fh.writelines(l + "\n" for l in readme_lines)
 
     # Generate project metadata template file
     print("[blue]Creating metadata template file")
     with open(pathlib.Path(proj_folder, metadata_file_name), "w") as fh:
-        print(*project_metadata_template, sep="\n", end="\n", file=fh)
+        # print(*project_metadata_template, sep="\n", end="\n", file=fh)
+        fh.writelines(l + "\n" for l in project_metadata_template)
 
     # Generate auxillary data template file
     with open(pathlib.Path(auxdata_folder, "auxillary_data.csv"), "w") as fh:
-        print(pyopia.auxillarydata.AUXILLARY_DATA_FILE_TEMPLATE, file=fh)
+        fh.write(pyopia.auxillarydata.AUXILLARY_DATA_FILE_TEMPLATE)
 
     # Get example image data
     if example_data:
