@@ -590,7 +590,7 @@ class StatsToDisc:
         self.project_metadata_file = project_metadata_file
         if self.project_metadata_file is not None:
             self.proj_metadata_df = pd.read_csv(
-                self.project_metadata_file, header=None, index=None
+                self.project_metadata_file, header=None, index_col=None
             )
         else:
             self.proj_metadata_df = pd.DataFrame(columns=[1, 2])
