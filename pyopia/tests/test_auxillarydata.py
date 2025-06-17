@@ -1,5 +1,4 @@
 import pandas as pd
-import pytest
 from pyopia.instrument.silcam import generate_config
 from pathlib import Path
 import os
@@ -100,4 +99,4 @@ def test_load_and_write_auxillary_data(tmp_path: Path):
 
 
 if __name__ == "__main__":
-    pytest.main()
+    test_load_and_write_auxillary_data()
