@@ -578,6 +578,21 @@ def extract_nth_largest(stats, n=0):
     return stats_extract
 
 
+def extract_oil(stats, THRESH=0.85, solidityThres=0.95):
+    ma = stats['minor_axis_length'] / stats['major_axis_length']
+    stats = stats[ma > 0.3]  # cannot have a deformation more than 0.3
+    stats = stats[stats['solidity'] > solidityThresh]
+    ind = np.logical_or((stats['probability_oil'] > stats['probability_bubble']),
+                        (stats['probability_oil'] > stats['probability_oily_gas']))
+
+    ind2 = (stats['probability_oil'] > THRESH)
+
+    ind = np.logical_and(ind, ind2)
+
+    stats = stats[ind]
+    return stats
+
+
 def extract_nth_longest(stats, n=0):
     '''Return statistics of the nth longest particle
 
