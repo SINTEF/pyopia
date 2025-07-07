@@ -164,6 +164,10 @@ def init_project(
     config_filename = "config.toml"
     metadata_file_name = "metadata.txt"
     proj_folder = pathlib.Path(project_name)
+    auxdata_file_name = "auxillary_data.csv"
+    auxdata_folder_name = "auxillarydata"
+    auxdata_folder = pathlib.Path(proj_folder, auxdata_folder_name)
+    auxillary_data_path = pathlib.Path(auxdata_folder, auxdata_file_name)
 
     title = longitude = latitude = "NOT_SPECIFIED"
     if example_data:
@@ -202,7 +206,6 @@ def init_project(
 
     # Create subfolders
     print("[blue]Creating project folder structure")
-    auxdata_folder = pathlib.Path(proj_folder, "auxillarydata")
     auxdata_folder.mkdir()
     images_folder = pathlib.Path(proj_folder, "images")
     images_folder.mkdir()
@@ -217,6 +220,9 @@ def init_project(
     config_generator = getattr(pyopia.instrument, instrument).generate_config
     pipeline_config = config_generator(raw_files, model_path, outfolder, output_prefix)
     pipeline_config["steps"]["output"]["project_metadata_file"] = metadata_file_name
+    pipeline_config["steps"]["output"]["auxillary_data_file"] = (
+        f"{auxdata_folder_name}/{auxdata_file_name}"
+    )
     with open(pathlib.Path(proj_folder, config_filename), "w") as toml_file:
         toml.dump(pipeline_config, toml_file)
 
@@ -238,7 +244,7 @@ def init_project(
         fh.writelines(l + "\n" for l in project_metadata_template)
 
     # Generate auxillary data template file
-    with open(pathlib.Path(auxdata_folder, "auxillary_data.csv"), "w") as fh:
+    with open(auxillary_data_path, "w") as fh:
         fh.write(pyopia.auxillarydata.AUXILLARY_DATA_FILE_TEMPLATE)
 
     # Get example image data

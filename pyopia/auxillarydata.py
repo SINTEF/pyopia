@@ -1,82 +1,96 @@
 import pandas as pd
+import logging
+import xarray as xr
 
-# The netcdf4 engine seems to produce errors with the stats dataset, so we use
-#  h5netcdf instead
-NETCDF_ENGINE = "h5netcdf"
+logger = logging.getLogger()
 
-AUXILLARY_DATA_FILE_TEMPLATE = """time,depth,temperature
+AUXILLARY_DATA_FILE_TEMPLATE = """% COMMENT LINE: PLEASE UPDATE THIS FILE WITH PROJECT RELEVANT DATA. EACH COLUMN WILL BECOME A NETCDF VARIABLE.
+% COMMENT LINE: ONE LINE PER MEASUREMENT, TIME IS INTERPOLATED TO IMAGE DATA TIMES IN PYOPIA. FOLLOWING LINES ARE UNITS, DESCRIPTION AND VARIABLE NAME.
 ,metres,degC
-2025-03-19T16:59:29.950729,0.0,5.0
-2025-03-19T16:59:57.120311,5.5,6.3
-
-ADD YOUR METADATA
-One line per image in the dataset
-Only the time column is required
-Add as many auxillary columns as you need
-Each column will become a netCDF variable
-Note that the second row contains units for each variable
+Time of measurement,Depth at measurement location,Temperature at measurement location
+time,depth,temperature
+2022-06-08T18:40:00.00000,0.0,5.0
+2022-06-08T18:41:00.00000,5.0,6.0
+2022-06-08T18:42:00.00000,10.0,7.0
+2022-06-08T18:43:00.00000,20.0,8.0
 """
 
 
 class AuxillaryData:
     """
-    Handle and add auxillary data to PyOPIA particle statistics file.
+    Handle auxillary data for PyOPIA particle statistics file.
 
     Auxillary data variables may include (image) depth, longitude, latitude, etc.
-    This class parses and adds such data to the PyOPIA statistics file, based on a
-    defined input format.
+    This class parses a well-defined defined .csv input format, see example below.
 
     Parameters
     ----------
     auxillary_data_path : str
-        path to auxillary data files .csv creates by the enduser
+        Path to auxillary data files .csv creates by the enduser
 
-    Example
-    -------
-    time,depth,temperature,salinity
+
+    Example of auxillary data file
+    ------------------------------
+    % COMMENT LINE:
+    % COMMENT LINE:
     ,m,degC,psu
+    Time of measurement,Depth at measurement location,Temperature at measurement location
+    time,depth,temperature,salinity
     2025-03-19T16:59:29.950729,0.0,5.0,34
+    2025-03-19T17:59:29.950729,0.0,5.0,34
+
 
     Note
     ----
-    ADD YOUR METADATA
-    One line per image in the dataset
-    Only the time column is required
-    Add as many auxillary columns as you need
     Each column will become a netCDF variable
-    Note that the second row contains units for each variable
+    The two first lines are comments, and are ignored
+    Note that the third and fourth rows contain units and description for each variable
     """
 
-    def __init__(
-        self,
-        auxillary_data_path=None,
-    ):
+    def __init__(self, auxillary_data_path=None):
         self.auxillary_data_path = auxillary_data_path
+
+        self.auxillary_data = self.load_auxillary_data()
+
+    def load_auxillary_data(self):
+        """Load and format uxillary data from .csv file"""
+
         # Load in the auxillary data file
-        self.auxillary_data = pd.read_csv(auxillary_data_path)
-        # Drop the first row of metadata file which contains the units and reset the index
-        self.auxillary_data = self.auxillary_data.drop([0])
-        self.auxillary_data = self.auxillary_data.drop([1]).reset_index(drop=True)
+        auxillary_data = pd.read_csv(self.auxillary_data_path, skiprows=4)
+
+        # Load units and description rows
+        units = pd.read_csv(self.auxillary_data_path, skiprows=2, nrows=0).columns
+        long_names = pd.read_csv(self.auxillary_data_path, skiprows=3, nrows=0).columns
+
         # Set time as the index and make sure its type is datetime64[ns]
-        self.auxillary_data["time"] = self.auxillary_data["time"].astype(
-            "datetime64[ns]"
-        )
-        # Transform into xarray
-        self.auxillary_data = self.auxillary_data.to_xarray()
+        auxillary_data["time"] = auxillary_data["time"].astype("datetime64[ns]")
+        auxillary_data = auxillary_data.set_index("time")
 
-    def __call__(self, data):
-        # loop over columns in the auxillary data.csv and interpolate tbased on their timestep
-        if (
-            self.auxillary_data is not None
-        ):  # Check that the data is there and not empty
-            for col in self.auxillary_data.data_vars:  # Iterate over each column
-                data["stats"][col] = (
-                    self.auxillary_data[col]
-                    .astype(float)
-                    .interp(time=data["stats"]["timestamp"])
-                    .to_pandas()
-                )
-        return data
+        # Transform into xarray, add units
+        auxillary_data = auxillary_data.to_xarray()
+        for i, col in enumerate(auxillary_data.data_vars):  # Iterate over each column
+            auxillary_data[col].attrs["units"] = units[i + 1]
+            auxillary_data[col].attrs["long_name"] = long_names[i + 1]
 
-    def store_augmented_file(self, xstats, output_filename):
-        xstats.to_netcdf(output_filename, engine=NETCDF_ENGINE)
+        logging.info(auxillary_data)
+
+        return auxillary_data
+
+    def add_auxillary_data_to_xstats(self, xstats):
+        """Add auxillary data to a PyOPIA xstats object"""
+        logging.info("Adding auxillary data to xstats and storing to new file")
+
+        # Add each auxillary data variable to xstats, interpolated to xstats times
+        for (
+            data_var
+        ) in self.auxillary_data.data_vars:  # Iterate over each data variable
+            xstats[data_var] = xr.DataArray(
+                data=self.auxillary_data[data_var]
+                .astype(float)
+                .interp(time=xstats["timestamp"]),
+                dims=("index",),
+                coords=xstats.coords,
+                attrs=self.auxillary_data[data_var].attrs,
+            )
+
+        return xstats

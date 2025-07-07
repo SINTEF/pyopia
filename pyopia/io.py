@@ -19,6 +19,7 @@ import json
 from pathlib import Path
 
 from pyopia import __version__ as pyopia_version
+from pyopia.auxillarydata import AuxillaryData
 
 logger = logging.getLogger()
 
@@ -35,6 +36,7 @@ def write_stats(
     append=True,
     image_stats=None,
     proj_metadata_df=None,
+    auxillary_data: AuxillaryData = None,
 ):
     """
     Writes particle stats into the ouput file.
@@ -60,6 +62,8 @@ def write_stats(
         Summary statistics of each raw image (including those with no particles)
     proj_metadata_df : pd.DataFrame
         Project metadata, such as license, creator, etc. Added to stats netcdf
+    auxillary_data : AuxillaryData
+        Auxillary data variables, such as depth, temperature, etc. Added to stats netcdf
     """
 
     if len(stats) == 0:  # to avoid issue with wrong time datatypes in xarray
@@ -91,9 +95,7 @@ def write_stats(
         if isinstance(stats, xr.Dataset):
             xstats = stats
         else:
-            xstats = make_xstats(stats, settings, proj_metadata_df)
-
-        xstats = add_cf_attributes(xstats)
+            xstats = make_xstats(stats, settings, proj_metadata_df, auxillary_data)
 
         if append and os.path.isfile(datafilename + "-STATS.nc"):
             existing_stats = load_stats(datafilename + "-STATS.nc")
@@ -163,7 +165,9 @@ def setup_xstats_encoding(xstats, string_vars=["export_name", "holo_filename"]):
     return encoding
 
 
-def make_xstats(stats, toml_steps, proj_metadata_df=None):
+def make_xstats(
+    stats, toml_steps, proj_metadata_df=None, auxillary_data: AuxillaryData = None
+):
     """Converts a stats dataframe into xarray DataSet, with metadata
 
     Parameters
@@ -174,6 +178,8 @@ def make_xstats(stats, toml_steps, proj_metadata_df=None):
         TOML-based steps dictionary
     proj_metadata_df : pd.DataFrame
         Project metadata, such as license, creator, etc. Added to stats netcdf
+    auxillary_data : xr.Dataset
+        Auxillary data varies, such as depth, temperature, etc. Added to stats netcdf
 
     Returns
     -------
@@ -181,6 +187,11 @@ def make_xstats(stats, toml_steps, proj_metadata_df=None):
         Xarray version of stats dataframe, including metadata
     """
     xstats = stats.to_xarray()
+
+    # Add auxillary data variables, including metadata for each
+    if auxillary_data is not None:
+        auxillary_data.add_auxillary_data_to_xstats(xstats)
+
     xstats.attrs["steps"] = toml.dumps(toml_steps)
     xstats.attrs["Modified"] = str(datetime.now())
     xstats.attrs["PyOPIA_version"] = pyopia_version
@@ -556,6 +567,10 @@ class StatsToDisc:
         which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
         This is useful for larger datasets, where appending causes substantial slowdown
         as the dataset gets larger.
+    project_metadata_file: str,
+        Path to project metadata file, this is added to stats netcdf file global metadata.
+    auxillary_data_file: str
+        Path to auxillary data file, columns in this (csv) file is interpolated and added to stats netcdf file.
 
     Returns
     -------
@@ -573,6 +588,7 @@ class StatsToDisc:
         output_datafile = './test' # prefix path for output nc file
         append = true
         project_metadata_file = 'metadata.txt'
+        auxillary_data_file = 'auxillarydata/auxillary_data.csv'
     """
 
     def __init__(
@@ -582,32 +598,47 @@ class StatsToDisc:
         export_name_len=40,
         append=True,
         project_metadata_file=None,
+        auxillary_data_file=None,
     ):
         self.output_datafile = output_datafile
         self.dataformat = dataformat
         self.export_name_len = export_name_len
         self.append = append
         self.project_metadata_file = project_metadata_file
+        self.auxillary_data_file = auxillary_data_file
+
+    def _load_project_metadata(self):
+        """Load project metadata from csv file"""
         if self.project_metadata_file is not None:
-            self.proj_metadata_df = pd.read_csv(
+            proj_metadata_df = pd.read_csv(
                 self.project_metadata_file, header=None, index_col=None
             )
         else:
-            self.proj_metadata_df = pd.DataFrame(columns=[1, 2])
+            proj_metadata_df = pd.DataFrame(columns=[1, 2])
+        return proj_metadata_df
 
     def __call__(self, data):
+        # If project metadata is is not yet in in the pipeline data, load and add
+        if "project_metadata_df" not in data:
+            data["project_metadata_df"] = self._load_project_metadata()
+        project_metadata_df = data["project_metadata_df"]
+
         # Add raw image shape to metadata
-        self.proj_metadata_df.loc[len(self.proj_metadata_df)] = [
+        project_metadata_df.loc[len(project_metadata_df)] = [
             "raw_image_shape",
             data["imraw"].shape,
         ]
 
         # Add classifier model weights file hash to metadata
         if data["cl"] is not None:
-            self.proj_metadata_df.loc[len(self.proj_metadata_df)] = [
+            project_metadata_df.loc[len(project_metadata_df)] = [
                 "classifier_weights_file_hash",
                 data["cl"].model_hash,
             ]
+
+        # If AuxillaryData instance is is not yet in in the pipeline data, initialize and add
+        if "auxillary_data" not in data:
+            data["auxillary_data"] = AuxillaryData(self.auxillary_data_file)
 
         write_stats(
             data["stats"],
@@ -617,7 +648,8 @@ class StatsToDisc:
             export_name_len=self.export_name_len,
             append=self.append,
             image_stats=data["image_stats"],
-            proj_metadata_df=self.proj_metadata_df,
+            proj_metadata_df=project_metadata_df,
+            auxillary_data=data["auxillary_data"],
         )
 
         return data
