@@ -235,13 +235,13 @@ def init_project(
     print("[blue]Adding README file")
     with open(pathlib.Path(proj_folder, "README"), "w") as fh:
         # print(*readme_lines, sep="\n", end="\n", file=fh)
-        fh.writelines(l + "\n" for l in readme_lines)
+        fh.writelines(line + "\n" for line in readme_lines)
 
     # Generate project metadata template file
     print("[blue]Creating metadata template file")
     with open(pathlib.Path(proj_folder, metadata_file_name), "w") as fh:
         # print(*project_metadata_template, sep="\n", end="\n", file=fh)
-        fh.writelines(l + "\n" for l in project_metadata_template)
+        fh.writelines(line + "\n" for line in project_metadata_template)
 
     # Generate auxillary data template file
     with open(auxillary_data_path, "w") as fh:

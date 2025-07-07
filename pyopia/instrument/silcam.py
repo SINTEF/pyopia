@@ -316,8 +316,8 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
         'general': {
             'raw_files': raw_files,
             'pixel_size': 28,  # pixel size in um
-            "log_level": "INFO", # Level of PyOPIA logging during processing
-            "log_file": "pyopia.log", # (optional) Path to logfile (instead of to screen)
+            "log_level": "INFO",  # Level of PyOPIA logging during processing
+            "log_file": "pyopia.log",  # (optional) Path to logfile (instead of to screen)
         },
         'steps': {
             'classifier': {
