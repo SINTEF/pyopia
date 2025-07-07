@@ -638,7 +638,10 @@ class StatsToDisc:
 
         # If AuxillaryData instance is is not yet in in the pipeline data, initialize and add
         if "auxillary_data" not in data:
-            data["auxillary_data"] = AuxillaryData(self.auxillary_data_file)
+            if self.auxillary_data_file is not None:
+                data["auxillary_data"] = AuxillaryData(self.auxillary_data_file)
+            else:
+                data["auxillary_data"] = None
 
         write_stats(
             data["stats"],

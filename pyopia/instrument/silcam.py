@@ -315,7 +315,9 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
     pipeline_config = {
         'general': {
             'raw_files': raw_files,
-            'pixel_size': 28  # pixel size in um
+            'pixel_size': 28,  # pixel size in um
+            "log_level": "INFO", # Level of PyOPIA logging during processing
+            "log_file": "pyopia.log", # (optional) Path to logfile (instead of to screen)
         },
         'steps': {
             'classifier': {
@@ -325,9 +327,16 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
             'load': {
                 'pipeline_class': 'pyopia.instrument.silcam.SilCamLoad'
             },
+            "correctbackground": {
+                "pipeline_class": "pyopia.background.CorrectBackgroundAccurate",
+                "average_window": 5,
+                "bgshift_function": "accurate",
+                "image_source": "imraw",
+                "divide_bg": True
+            },
             'imageprep': {
                 'pipeline_class': 'pyopia.instrument.silcam.ImagePrep',
-                'image_level': 'imraw'
+                'image_level': 'im_corrected'
             },
             'segmentation': {
                 'pipeline_class': 'pyopia.process.Segment',
@@ -336,11 +345,13 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
             },
             'statextract': {
                 'pipeline_class': 'pyopia.process.CalculateStats',
+                "export_outputpath": "roi",
                 'roi_source': 'imref'
             },
             'output': {
                 'pipeline_class': 'pyopia.io.StatsToDisc',
-                'output_datafile': os.path.join(outfolder, output_prefix)
+                'output_datafile': os.path.join(outfolder, output_prefix),
+                "append": False
             }
         }
     }
