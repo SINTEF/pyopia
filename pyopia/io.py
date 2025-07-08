@@ -124,6 +124,9 @@ def write_stats(
             else:
                 ximage_stats = image_stats.loc[[image_stats.index[-1]], :].to_xarray()
 
+            # Add auxillary data to ximage_stats
+            ximage_stats = auxillary_data.add_auxillary_data_to_xstats(ximage_stats)
+
             encoding_imagestats = setup_xstats_encoding(ximage_stats)
             ximage_stats.to_netcdf(
                 datafilename + "-STATS.nc",
