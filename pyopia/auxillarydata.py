@@ -92,7 +92,7 @@ class AuxillaryData:
                 data=self.auxillary_data[data_var]
                 .astype(float)
                 .interp(time=xstats["timestamp"]),
-                dims=("index",),
+                dims=xstats.dims,
                 coords=xstats.coords,
                 attrs=self.auxillary_data[data_var].attrs,
             )
