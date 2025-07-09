@@ -9,6 +9,8 @@ import time
 import datetime
 import traceback
 import logging
+import json
+import numpy as np
 from rich.progress import Progress
 from rich.logging import RichHandler
 from rich import print
@@ -38,6 +40,7 @@ import pyopia.process
 import pyopia.statistics
 import pyopia.auxillarydata
 import pyopia.exampledata
+import pyopia.metadata
 
 app = typer.Typer()
 
@@ -162,29 +165,23 @@ def init_project(
     output_prefix = project_name
     model_path = ""
     config_filename = "config.toml"
-    metadata_file_name = "metadata.txt"
+    metadata_file_name = "metadata.json"
     proj_folder = pathlib.Path(project_name)
     auxdata_file_name = "auxillary_data.csv"
     auxdata_folder_name = "auxillarydata"
     auxdata_folder = pathlib.Path(proj_folder, auxdata_folder_name)
     auxillary_data_path = pathlib.Path(auxdata_folder, auxdata_file_name)
 
-    title = longitude = latitude = "NOT_SPECIFIED"
+    title = "NOT_SPECIFIED"
+    longitude = latitude = np.nan
     if example_data:
         title = "PyOPIA example data"
         longitude = 14.45498
         latitude = 68.89363
 
-    project_metadata_template = [
-        f"title,{title}",
-        f"project,{project_name}",
-        f"instrument,{instrument}",
-        f"longitude,{longitude}",
-        f"latitude,{latitude}",
-        "creator_email,NOT_SPECIFIED",
-        "creator_url,NOT_SPECIFIED",
-        "license,CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/",
-    ]
+    project_metadata_template = pyopia.metadata.Metadata(
+        title=title, project_name=project_name, longitude=longitude, latitude=latitude
+    )
 
     readme_lines = [
         f"{project_name}",
@@ -240,8 +237,7 @@ def init_project(
     # Generate project metadata template file
     print("[blue]Creating metadata template file")
     with open(pathlib.Path(proj_folder, metadata_file_name), "w") as fh:
-        # print(*project_metadata_template, sep="\n", end="\n", file=fh)
-        fh.writelines(line + "\n" for line in project_metadata_template)
+        json.dump(project_metadata_template.model_dump(), fh, indent=4)
 
     # Generate auxillary data template file
     with open(auxillary_data_path, "w") as fh:

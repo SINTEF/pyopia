@@ -49,18 +49,22 @@ class AuxillaryData:
 
     def __init__(self, auxillary_data_path=None):
         self.auxillary_data_path = auxillary_data_path
+        if auxillary_data_path is not None:
+            self.auxillary_data = self.load_auxillary_data(auxillary_data_path)
+        else:
+            self.auxillary_data = pd.DataFrame(
+                index=pd.Index([], name="time")
+            ).to_xarray()
 
-        self.auxillary_data = self.load_auxillary_data()
-
-    def load_auxillary_data(self):
+    def load_auxillary_data(self, auxillary_data_path):
         """Load and format uxillary data from .csv file"""
 
         # Load in the auxillary data file
-        auxillary_data = pd.read_csv(self.auxillary_data_path, skiprows=4)
+        auxillary_data = pd.read_csv(auxillary_data_path, skiprows=4)
 
         # Load units and description rows
-        units = pd.read_csv(self.auxillary_data_path, skiprows=2, nrows=0).columns
-        long_names = pd.read_csv(self.auxillary_data_path, skiprows=3, nrows=0).columns
+        units = pd.read_csv(auxillary_data_path, skiprows=2, nrows=0).columns
+        long_names = pd.read_csv(auxillary_data_path, skiprows=3, nrows=0).columns
 
         # Set time as the index and make sure its type is datetime64[ns]
         auxillary_data["time"] = auxillary_data["time"].astype("datetime64[ns]")
@@ -94,4 +98,3 @@ class AuxillaryData:
             )
 
         return xstats
-
