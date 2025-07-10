@@ -37,7 +37,7 @@ def write_stats(
     append=True,
     image_stats=None,
     proj_metadata=None,
-    auxillary_data: AuxillaryData = None,
+    auxillary_data: AuxillaryData = AuxillaryData(),
 ):
     """
     Writes particle stats into the ouput file.
@@ -170,7 +170,10 @@ def setup_xstats_encoding(xstats, string_vars=["export_name", "holo_filename"]):
 
 
 def make_xstats(
-    stats, toml_steps, proj_metadata=None, auxillary_data: AuxillaryData = None
+    stats,
+    toml_steps,
+    proj_metadata=None,
+    auxillary_data: AuxillaryData = AuxillaryData(),
 ):
     """Converts a stats dataframe into xarray DataSet, with metadata
 
@@ -193,8 +196,7 @@ def make_xstats(
     xstats = stats.to_xarray()
 
     # Add auxillary data variables, including metadata for each
-    if auxillary_data is not None:
-        auxillary_data.add_auxillary_data_to_xstats(xstats)
+    auxillary_data.add_auxillary_data_to_xstats(xstats)
 
     xstats.attrs["steps"] = toml.dumps(toml_steps)
     xstats.attrs["Modified"] = str(datetime.now())
@@ -639,10 +641,7 @@ class StatsToDisc:
 
         # If AuxillaryData instance is is not yet in in the pipeline data, initialize and add
         if "auxillary_data" not in data:
-            if self.auxillary_data_file is not None:
-                data["auxillary_data"] = AuxillaryData(self.auxillary_data_file)
-            else:
-                data["auxillary_data"] = None
+            data["auxillary_data"] = AuxillaryData(self.auxillary_data_file)
 
         write_stats(
             data["stats"],
