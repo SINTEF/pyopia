@@ -578,19 +578,42 @@ def extract_nth_largest(stats, n=0):
     return stats_extract
 
 
-def extract_oil(stats, THRESH=0.85, solidityThres=0.95):
+def extract_oil(stats, proabability_threshold=0.85, solidity_threshold=0.95, feret_threshold=0.3):
+    '''Creates a new stats dataframe containing only oil, based on some thresholds on calculated statistic
+
+    Parameters
+    ----------
+    stats : DataFrame
+        particle statistics
+    proabability_threshold : float, optional
+        Threshold applied to probability_oil (from the classifier), by default 0.85
+    solidity_threshold : float, optional
+        Threshold applied to the solidity statistic (area of object / convex hull).
+        For droplets, this threshold is used as a crude way of removing operlapping droplets
+        by ensuring there are no substantial indents in the alpha shape, by default 0.95
+    feret_threshold : float, optional
+        Threshold of deformation (minor/major axis) beyond which the droplet is considered
+        significantly deformed or at risk of breakup., by default 0.3
+
+    Returns
+    -------
+    oilstats
+        particle statistics for just oil (a new stats dataframe containing only oil).
+        .. warning: this returned dataframe will likely have a shorter length than the original,
+        so be carefull to include all analysed images when calculating volume concentraitons
+    '''
     ma = stats['minor_axis_length'] / stats['major_axis_length']
-    stats = stats[ma > 0.3]  # cannot have a deformation more than 0.3
-    stats = stats[stats['solidity'] > solidityThresh]
+    stats = stats[ma > feret_threshold]  # cannot have a deformation more than 0.3
+    stats = stats[stats['solidity'] > solidity_threshold]
     ind = np.logical_or((stats['probability_oil'] > stats['probability_bubble']),
                         (stats['probability_oil'] > stats['probability_oily_gas']))
 
-    ind2 = (stats['probability_oil'] > THRESH)
+    ind2 = (stats['probability_oil'] > proabability_threshold)
 
     ind = np.logical_and(ind, ind2)
 
-    stats = stats[ind]
-    return stats
+    oil_stats = stats[ind]
+    return oil_stats
 
 
 def extract_nth_longest(stats, n=0):
