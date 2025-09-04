@@ -13,7 +13,7 @@ time,depth,temperature
 2022-06-08T18:41:00.00000,5.0,6.0
 2022-06-08T18:42:00.00000,10.0,7.0
 2022-06-08T18:43:00.00000,20.0,8.0
-"""
+"""  # noqa: E501
 
 
 class AuxillaryData:
@@ -49,12 +49,18 @@ class AuxillaryData:
 
     def __init__(self, auxillary_data_path=None):
         self.auxillary_data_path = auxillary_data_path
+
+        # Create empty dataframe for cases where no file was specified, or an error occured reading it
+        self.auxillary_data = pd.DataFrame(index=pd.Index([], name="time")).to_xarray()
         if auxillary_data_path is not None:
-            self.auxillary_data = self.load_auxillary_data(auxillary_data_path)
-        else:
-            self.auxillary_data = pd.DataFrame(
-                index=pd.Index([], name="time")
-            ).to_xarray()
+            try:
+                self.auxillary_data = self.load_auxillary_data(auxillary_data_path)
+            except RuntimeError as e:
+                print(f"Failed to load auxillary data from file: {self.auxillary_data}")
+                logging.error(
+                    f"Failed to load auxillary data from file: {self.auxillary_data}"
+                )
+                logging.error(e)
 
     def load_auxillary_data(self, auxillary_data_path):
         """Load and format uxillary data from .csv file"""
