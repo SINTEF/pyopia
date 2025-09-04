@@ -44,7 +44,18 @@ cd mypyopiaproject
 uv add pyopia[classification]
 ```
 
-To run PyOPIA, either use uv (uv run pyopia --help), or activate the venv first (source .venv/bin/activate), before running pyopia (pyopia --help).
+To run PyOPIA, either use uv
+```
+uv run pyopia --help
+```
+
+or activate the venv before running PyOPIA (without uv)
+
+```
+source .venv/bin/activate
+pyopia --help
+```
+Note that the activation command differs between operating systems.
 
 The [classification] part installs tensorflow which is required by PyOPIA's Classification module, and is optional. 
 
