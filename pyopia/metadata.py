@@ -9,6 +9,7 @@ class Metadata(BaseModel):
     title: str = "NOT_SPECIFIED"
     project_name: str = "NOT_SPECIFIED"
     instrument: str = "NOT_SPECIFIED"
+    seavox_instrument_identifier: str = "NOT_SPECIFIED"
     longitude: float = np.nan
     latitude: float = np.nan
     station: str = "NOT_SPECIFIED"

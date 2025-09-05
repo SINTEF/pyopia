@@ -178,9 +178,20 @@ def init_project(
         title = "PyOPIA example data"
         longitude = 14.45498
         latitude = 68.89363
+        instrument = "silcam"
+
+    # @todo Move this to instrument modules
+    seavox_instrument_identifier = (
+        "SDN:L22::TOOL2206" if instrument == "silcam" else "NOT_SPECIFIED"
+    )
 
     project_metadata_template = pyopia.metadata.Metadata(
-        title=title, project_name=project_name, longitude=longitude, latitude=latitude
+        title=title,
+        project_name=project_name,
+        longitude=longitude,
+        latitude=latitude,
+        instrument=instrument,
+        seavox_instrument_identifier=seavox_instrument_identifier,
     )
 
     readme_lines = [
