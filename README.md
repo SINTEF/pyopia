@@ -6,10 +6,15 @@ A Python Ocean Particle Image Analysis toolbox
 # Quick tryout of PyOPIA
 
 1) Install [uv](https://docs.astral.sh/uv/getting-started/installation)
-2) Run PyOPIA classification tests on database particles
+2) Initialize PyOPIA project with a small example image dataset and run processing
 ```bash
-uv run --python 3.12 --with git+https://github.com/SINTEF/pyopia --with tensorflow==2.16.2 --with keras==3.5.0 python -m pyopia.tests.test_classify
+uvx --python 3.12 --from pyopia[classification] pyopia --init-project pyopiatest --example-data
+cd pyopiatest
+uvx --python 3.12 --from pyopia[classification] pyopia process config.toml
 ```
+3) Inspect the processed particle statistics in the processed/ folder
+
+See the documentation for more information on how to install and use PyOPIA.
 
 # Documentation:
 
