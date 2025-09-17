@@ -39,8 +39,11 @@ def apply_circular_mask(image, radius, center=None):
     rr, cc = disk(center, radius, shape=mask.shape)
     mask[rr, cc] = False
 
-    # Apply mask, this works both for greyscale (h, w) and colour (h, w, 3)
-    masked_image = np.where(mask[:,:,None], 0.0, image)
+    # Apply mask, handling both greyscale (h, w) and colour (h, w, 3)
+    if len(image.shape) == 3:
+        masked_image = np.where(mask[:,:,None], 0.0, image)
+    else:
+        masked_image = np.where(mask, 0.0, image)
 
     return masked_image
 
