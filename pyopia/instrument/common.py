@@ -5,36 +5,42 @@ Non-instrument-specific functions that operates on the image loading or initial 
 import numpy as np
 from skimage.draw import disk
 
-
-def apply_circular_mask(image, radius):
+def apply_circular_mask(image, radius, center=None):
     """
     Apply a circular mask to an RGB image, zeroing out pixels outside the disc.
 
     Parameters
     ----------
     image: (np.array)
-        numpy array of shape (h, w, 3)
+        numpy array of shape (h,w) or (h, w, 3)
     radius: int
-        radius of the circular mask
+        radius of the circular mask, in pixels
+    center: (int, int)
+        center of the circular mask, in pixels from top left corner
+        vertical coordinate first
+        optional, will use center of image if not given
+
 
     Returns
     -------
     masked_image:
-        numpy array of shape (h, w, 3) with mask applied
+        numpy array of shape (h,w) or (h, w, 3) with mask applied
     """
-    h, w, _ = image.shape
-    center = (h // 2, w // 2)
+    # Find image shape
+    if len(image.shape) == 3:
+        h, w, _ = image.shape
+    else:
+        h, w = image.shape
+    if center is None:
+        center = (h // 2, w // 2)
 
-    # Create mask
-    mask = np.zeros((h, w), dtype=bool)
+    # Create mask, True for those pixels that will be masked away
+    mask = np.ones((h, w), dtype=bool)
     rr, cc = disk(center, radius, shape=mask.shape)
-    mask[rr, cc] = True
+    mask[rr, cc] = False
 
-    # Expand mask to 3 channels
-    mask_rgb = np.stack([mask] * 3, axis=-1)
-
-    # Apply mask
-    masked_image = image * mask_rgb
+    # Apply mask, this works both for greyscale (h, w) and colour (h, w, 3)
+    masked_image = np.where(mask[:,:,None], 0.0, image)
 
     return masked_image
 
