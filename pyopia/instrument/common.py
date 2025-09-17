@@ -129,14 +129,15 @@ class CircularImageMask:
     The mask_bbox is [[start_row, end_row], [start_col, end_col], [start_colorchan, end_colorchan]]
     """
 
-    def __init__(self, radius):
+    def __init__(self, radius, center=None):
         self.radius = radius
+        self.center = center
 
     def __call__(self, data):
         """
         Create a masked version of imraw, where the area outside a disc
         with given radius centered in the image is set to 0, while the inside is kept.
         """
-        data["im_masked"] = apply_circular_mask(data["imraw"], self.radius)
+        data["im_masked"] = apply_circular_mask(data["imraw"], self.radius, self.center)
 
         return data
