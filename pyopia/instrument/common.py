@@ -70,7 +70,8 @@ class RectangularImageMask:
 
     Example pipeline use:
     ----------------------
-    Put this in your pipeline right after load step to mask out border outside specified pixel coordinates:
+    Put this in your pipeline right after load step to mask out border outside specified pixel coordinates.
+    Remember to update the next step in the pipeline to use 'im_masked' as source.
 
     .. code-block:: toml
 
@@ -111,6 +112,8 @@ class CircularImageMask:
     ----------
     radius : (int)
         Radius in pixel of the circular disc mask (image outside disc is set to 0)
+    center : (list of ints, optional)
+        Center coordinate for masking circle (pixels)
 
     Returns
     -------
@@ -122,15 +125,15 @@ class CircularImageMask:
 
     Example pipeline use:
     ----------------------
-    Put this in your pipeline right after load step to mask out border outside specified pixel coordinates:
+    Put this in your pipeline right after load step to mask out border outside specified pixel coordinates.
+    Remember to update the next step in the pipeline to use 'im_masked' as source.
 
     .. code-block:: toml
 
         [steps.mask]
         pipeline_class = 'pyopia.instrument.common.CircularImageMask'
         radius = 500
-
-    The mask_bbox is [[start_row, end_row], [start_col, end_col], [start_colorchan, end_colorchan]]
+        center = (600, 600) # Optional, is image center by default
     """
 
     def __init__(self, radius, center=None):
