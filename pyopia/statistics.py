@@ -578,14 +578,14 @@ def extract_nth_largest(stats, n=0):
     return stats_extract
 
 
-def extract_oil(stats, proabability_threshold=0.85, solidity_threshold=0.95, feret_threshold=0.3):
+def extract_oil(stats, probability_threshold=0.85, solidity_threshold=0.95, feret_threshold=0.3):
     '''Creates a new stats dataframe containing only oil, based on some thresholds on calculated statistic
 
     Parameters
     ----------
     stats : DataFrame
         particle statistics
-    proabability_threshold : float, optional
+    probability_threshold : float, optional
         Threshold applied to probability_oil (from the classifier), by default 0.85
     solidity_threshold : float, optional
         Threshold applied to the solidity statistic (area of object / convex hull).
@@ -602,15 +602,22 @@ def extract_oil(stats, proabability_threshold=0.85, solidity_threshold=0.95, fer
         .. warning: this returned dataframe will likely have a shorter length than the original,
         so be carefull to include all analysed images when calculating volume concentraitons
     '''
+
+    # Select only particles with limited deformation
+    # (smaller number -> higher deformation)
     ma = stats['minor_axis_length'] / stats['major_axis_length']
-    stats = stats[ma > feret_threshold]  # cannot have a deformation more than 0.3
+    stats = stats[ma > feret_threshold] 
+    # Select only particles with solidity above threshold
     stats = stats[stats['solidity'] > solidity_threshold]
-    ind = np.logical_or((stats['probability_oil'] > stats['probability_bubble']),
+
+    # Select only particles where the probability of oil is larger than
+    # the probabilities of bubble _or oily gas?
+    ind1 = np.logical_or((stats['probability_oil'] > stats['probability_bubble']),
                         (stats['probability_oil'] > stats['probability_oily_gas']))
 
-    ind2 = (stats['probability_oil'] > proabability_threshold)
+    ind2 = (stats['probability_oil'] > probability_threshold)
 
-    ind = np.logical_and(ind, ind2)
+    ind = np.logical_and(ind1, ind2)
 
     oil_stats = stats[ind]
     return oil_stats
