@@ -654,13 +654,12 @@ def extract_oil(
         # and
         # Select only particles where the probability of oil is larger than
         # the probabilities of bubble _and_ oily gas
-        ind1 = oil_stats["probability_oil"] > probability_threshold
-        ind2 = np.logical_and(
-            (oil_stats["probability_oil"] > oil_stats["probability_bubble"]),
-            (oil_stats["probability_oil"] > oil_stats["probability_oily_gas"]),
+        mask = (
+            (oil_stats["probability_oil"] > probability_threshold)
+            & (oil_stats["probability_oil"] > oil_stats["probability_bubble"])
+            & (oil_stats["probability_oil"] > oil_stats["probability_oily_gas"])
         )
-        ind = np.logical_and(ind1, ind2)
-        oil_stats = oil_stats[ind]
+        oil_stats = oil_stats[mask]
 
     return oil_stats
 
