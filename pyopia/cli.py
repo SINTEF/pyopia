@@ -45,6 +45,26 @@ import pyopia.metadata
 app = typer.Typer()
 
 
+# Create a callback function for --version
+def version_callback(value: bool):
+    if value:
+        typer.echo(f"PyOPIA version: {pyopia.__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def main(
+    version: bool = typer.Option(
+        None,
+        "--version",
+        callback=version_callback,
+        is_eager=True,
+        help="Show the application's version and exit.",
+    )
+):
+    pass  # This is needed to allow version to be a global option
+
+
 @app.command()
 def docs():
     """Open browser at PyOPIA's readthedocs page"""
