@@ -1,11 +1,56 @@
-'''
+"""
 Non-instrument-specific functions that operates on the image loading or initial processing level.
-'''
+"""
+
 import numpy as np
+from skimage.draw import disk
 
 
-class RectangularImageMask():
-    '''PyOpia pipline-compatible class for masking out part of the raw image.
+def apply_circular_mask(image, radius, center=None):
+    """
+    Apply a circular mask to an RGB image, zeroing out pixels outside the disc.
+
+    Parameters
+    ----------
+    image: (np.array)
+        numpy array of shape (h,w) or (h, w, 3)
+    radius: int
+        radius of the circular mask, in pixels
+    center: (int, int)
+        center of the circular mask, in pixels from top left corner
+        vertical coordinate first
+        optional, will use center of image if not given
+
+
+    Returns
+    -------
+    masked_image:
+        numpy array of shape (h,w) or (h, w, 3) with mask applied
+    """
+    # Find image shape
+    if len(image.shape) == 3:
+        h, w, _ = image.shape
+    else:
+        h, w = image.shape
+    if center is None:
+        center = (h // 2, w // 2)
+
+    # Create mask, True for those pixels that will be masked away
+    mask = np.ones((h, w), dtype=bool)
+    rr, cc = disk(center, radius, shape=mask.shape)
+    mask[rr, cc] = False
+
+    # Apply mask, handling both greyscale (h, w) and colour (h, w, 3)
+    if len(image.shape) == 3:
+        masked_image = np.where(mask[:, :, None], 0.0, image)
+    else:
+        masked_image = np.where(mask, 0.0, image)
+
+    return masked_image
+
+
+class RectangularImageMask:
+    """PyOpia pipline-compatible class for masking out part of the raw image.
 
         Required keys in :class:`pyopia.pipeline.Data`:
         - :attr:`pyopia.pipeline.Data.imraw`
@@ -25,7 +70,8 @@ class RectangularImageMask():
 
     Example pipeline use:
     ----------------------
-    Put this in your pipeline right after load step to mask out border outside specified pixel coordinates:
+    Put this in your pipeline right after load step to mask out border outside specified pixel coordinates.
+    Remember to update the next step in the pipeline to use 'im_masked' as source.
 
     .. code-block:: toml
 
@@ -34,21 +80,71 @@ class RectangularImageMask():
         mask_bbox = [[200, 1850], [400, 2048], [0, 3]]
 
     The mask_bbox is [[start_row, end_row], [start_col, end_col], [start_colorchan, end_colorchan]]
-    '''
+    """
 
     def __init__(self, mask_bbox=None):
         if mask_bbox is None:
             self.mask_bbox = (slice(None), slice(None), slice(None))
         else:
-            self.mask_bbox = (slice(mask_bbox[0][0], mask_bbox[0][1]),
-                              slice(mask_bbox[1][0], mask_bbox[1][1]),
-                              slice(mask_bbox[2][0], mask_bbox[2][1]))
+            self.mask_bbox = (
+                slice(mask_bbox[0][0], mask_bbox[0][1]),
+                slice(mask_bbox[1][0], mask_bbox[1][1]),
+                slice(mask_bbox[2][0], mask_bbox[2][1]),
+            )
 
     def __call__(self, data):
         # Create a masked version of imraw, where space between defined mask rectangle and border is set to 0,
         # while inside is kept.
-        imraw_masked = np.zeros_like(data['imraw'])
-        imraw_masked[self.mask_bbox] = data['imraw'][self.mask_bbox]
-        data['im_masked'] = imraw_masked
+        imraw_masked = np.ones_like(data["imraw"])
+        imraw_masked[self.mask_bbox] = data["imraw"][self.mask_bbox]
+        data["im_masked"] = imraw_masked
+
+        return data
+
+
+class CircularImageMask:
+    """PyOPIA pipline-compatible class for masking out part of the raw image with a circular centered disc
+
+        Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.imraw`
+
+    Parameters
+    ----------
+    radius : (int)
+        Radius in pixel of the circular disc mask (image outside disc is set to 0)
+    center : (list of ints, optional)
+        Center coordinate for masking circle (pixels)
+
+    Returns
+    -------
+    data : :class:`pyopia.pipeline.Data`
+        containing the new key:
+
+        :attr:`pyopia.pipeline.Data.im_masked`
+
+
+    Example pipeline use:
+    ----------------------
+    Put this in your pipeline right after load step to mask out border outside specified pixel coordinates.
+    Remember to update the next step in the pipeline to use 'im_masked' as source.
+
+    .. code-block:: toml
+
+        [steps.mask]
+        pipeline_class = 'pyopia.instrument.common.CircularImageMask'
+        radius = 500
+        center = (600, 600) # Optional, is image center by default
+    """
+
+    def __init__(self, radius, center=None):
+        self.radius = radius
+        self.center = center
+
+    def __call__(self, data):
+        """
+        Create a masked version of imraw, where the area outside a disc
+        with given radius centered in the image is set to 0, while the inside is kept.
+        """
+        data["im_masked"] = apply_circular_mask(data["imraw"], self.radius, self.center)
 
         return data
