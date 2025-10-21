@@ -446,7 +446,7 @@ def make_montage(
         while counter < 5:
             r = np.random.randint(1, msize - height)
             c = np.random.randint(1, msize - width)
-            test = np.max(immap_test[r : r + height, c : c + width, None] + 1)
+            test = np.max(immap_test[r: r + height, c: c + width, None] + 1)
 
             # if the new particle is overlapping an existing object in the
             # canvas, then try again and increment the counter
@@ -462,10 +462,10 @@ def make_montage(
 
         # if we reach here, then the particle has found a position in the
         # canvas with no overlap, and can then be inserted into the canvas
-        montage[r : r + height, c : c + width, :] = particle_image
+        montage[r: r + height, c: c + width, :] = particle_image
 
-        immap_test[r : r + height, c : c + width, None] = (
-            immap_test[r : r + height, c : c + width, None] + 1
+        immap_test[r: r + height, c: c + width, None] = (
+            immap_test[r: r + height, c: c + width, None] + 1
         )
 
     # now the montage is finished
@@ -630,10 +630,11 @@ def extract_oil(
 
     Returns
     -------
-    oilstats
-        particle statistics for just oil (a new stats dataframe containing only oil).
-        .. warning: this returned dataframe will likely have a shorter length than the original,
-        so be carefull to include all analysed images when calculating volume concentraitons
+    oilstats: DataFrame
+        particle statistics for just oil (a new stats DataFrame containing only oil).
+        .. Warning: this returned DataFrame will likely have a shorter length than the original
+        and can even be empty for single-image DataFrames if no particles satisfy the thresholds,
+        so be carefull to include all analyzed images when calculating volume concentraitons
     """
 
     # Select only particles with limited deformation (smaller number -> higher deformation)
