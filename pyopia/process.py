@@ -376,13 +376,16 @@ def measure_particles(imbw, max_particles=5000):
     return region_properties
 
 
-def segment(img, threshold=0.98, minimum_area=12, fill_holes=True):
+def segment(img, binary_method='fast', threshold=0.98, minimum_area=12, fill_holes=True):
     '''Create a binary image from a background-corrected image.
 
     Parameters
     ----------
     img : np.array
         background-corrected image
+    binary_method : str
+        method used to convert the background-corrected image to a binary image.
+        Options are 'fast' or 'accurate', by default 'fast'
     threshold : float, optional
         segmentation threshold, by default 0.98
     minimum_area : int, optional
@@ -397,7 +400,11 @@ def segment(img, threshold=0.98, minimum_area=12, fill_holes=True):
     '''
     logger.info('segment')
 
-    imbw = image2blackwhite_fast(img, threshold)
+    match binary_method:
+        case 'accurate':
+            imbw = image2blackwhite_accurate(img, threshold)
+        case 'fast':
+            imbw = image2blackwhite_fast(img, threshold)
 
     logger.info('clean')
 
@@ -484,6 +491,9 @@ class Segment():
 
     Parameters
     ----------
+    binary_method : str
+        method used to convert the background-corrected image to a binary image.
+        Options are 'fast' or 'accurate'. Defaults to 'fast'.
     minimum_area : (int, optional)
         minimum number of pixels for particle detection. Defaults to 12.
     threshold : (float, optional)
@@ -503,19 +513,21 @@ class Segment():
     '''
 
     def __init__(self,
+                 binary_method='fast',
                  minimum_area=12,
                  threshold=0.98,
                  fill_holes=True,
                  segment_source='im_corrected'):
 
+        self.binary_method = binary_method
         self.minimum_area = minimum_area
         self.threshold = threshold
         self.fill_holes = fill_holes
         self.segment_source = segment_source
 
     def __call__(self, data):
-        data['imbw'] = segment(data[self.segment_source], threshold=self.threshold, fill_holes=self.fill_holes,
-                               minimum_area=self.minimum_area)
+        data['imbw'] = segment(data[self.segment_source], binary_method=self.binary_method, threshold=self.threshold,
+                               fill_holes=self.fill_holes, minimum_area=self.minimum_area)
         return data
 
 
