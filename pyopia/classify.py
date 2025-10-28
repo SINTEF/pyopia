@@ -3,6 +3,7 @@ Module containing tools for classifying particle ROIs
 """
 
 import os
+import hashlib
 import numpy as np
 import pandas as pd
 import logging
@@ -124,6 +125,11 @@ class Classify:
         # Instantiate Keras model from file
         path, filename = os.path.split(model_path)
         self.model = keras.models.load_model(model_path)
+
+        # Create a hash of the model weights file
+        with open(model_path, "rb") as f:
+            digest = hashlib.file_digest(f, "sha256")
+        self.model_hash = digest.hexdigest()
 
         # Try to create model output class name list from last model layer name
         class_labels = None

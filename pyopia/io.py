@@ -19,6 +19,8 @@ import json
 from pathlib import Path
 
 from pyopia import __version__ as pyopia_version
+from pyopia.auxillarydata import AuxillaryData
+from pyopia.metadata import Metadata
 
 logger = logging.getLogger()
 
@@ -34,6 +36,8 @@ def write_stats(
     dataformat="nc",
     append=True,
     image_stats=None,
+    proj_metadata=None,
+    auxillary_data: AuxillaryData = AuxillaryData(),
 ):
     """
     Writes particle stats into the ouput file.
@@ -44,7 +48,7 @@ def write_stats(
     datafilename : str
         Filame prefix for -STATS.h5 file that may or may not include a path
     stats : DataFrame or xr.Dataset
-        particle statistics
+        Particle statistics
     export_name_len : int
         Max number of chars allowed for col 'export_name'
     append : bool
@@ -56,7 +60,11 @@ def write_stats(
         where appending causes substantial slowdown
         as the dataset gets larger.
     image_stats : xr.Dataset
-        summary statistics of each raw image (including those with no particles)
+        Summary statistics of each raw image (including those with no particles)
+    proj_metadata : pyopia.metadata.Metadata
+        Project metadata, such as license, creator, etc. Added to stats netcdf
+    auxillary_data : AuxillaryData
+        Auxillary data variables, such as depth, temperature, etc. Added to stats netcdf
     """
 
     if len(stats) == 0:  # to avoid issue with wrong time datatypes in xarray
@@ -88,9 +96,7 @@ def write_stats(
         if isinstance(stats, xr.Dataset):
             xstats = stats
         else:
-            xstats = make_xstats(stats, settings)
-
-        xstats = add_cf_attributes(xstats)
+            xstats = make_xstats(stats, settings, proj_metadata, auxillary_data)
 
         if append and os.path.isfile(datafilename + "-STATS.nc"):
             existing_stats = load_stats(datafilename + "-STATS.nc")
@@ -119,10 +125,15 @@ def write_stats(
             else:
                 ximage_stats = image_stats.loc[[image_stats.index[-1]], :].to_xarray()
 
+            # Add auxillary data to ximage_stats
+            ximage_stats = auxillary_data.add_auxillary_data_to_xstats(ximage_stats)
+
+            encoding_imagestats = setup_xstats_encoding(ximage_stats)
             ximage_stats.to_netcdf(
                 datafilename + "-STATS.nc",
                 group="image_stats",
                 mode="a",
+                encoding=encoding_imagestats,
                 engine=NETCDF_ENGINE,
             )
 
@@ -149,10 +160,21 @@ def setup_xstats_encoding(xstats, string_vars=["export_name", "holo_filename"]):
         'encoding' input argument to be given to xstats.to_netcdf()
     """
     encoding = {k: {"dtype": "str"} for k in string_vars if k in xstats.data_vars}
+
+    # Set timestamp encoding to microseconds since smallest datetime in xstats
+    # Avoid resolution issues with int64 dates (days since)
+    encoding["timestamp"] = {
+        "units": f"microseconds since {np.datetime_as_string(xstats.timestamp.min())}"
+    }
     return encoding
 
 
-def make_xstats(stats, toml_steps):
+def make_xstats(
+    stats,
+    toml_steps,
+    proj_metadata=None,
+    auxillary_data: AuxillaryData = AuxillaryData(),
+):
     """Converts a stats dataframe into xarray DataSet, with metadata
 
     Parameters
@@ -161,6 +183,10 @@ def make_xstats(stats, toml_steps):
         particle statistics
     toml_steps : dict
         TOML-based steps dictionary
+    proj_metadata : pyopia.metadata.Metadata
+        Project metadata, such as license, creator, etc. Added to stats netcdf
+    auxillary_data : xr.Dataset
+        Auxillary data varies, such as depth, temperature, etc. Added to stats netcdf
 
     Returns
     -------
@@ -168,10 +194,18 @@ def make_xstats(stats, toml_steps):
         Xarray version of stats dataframe, including metadata
     """
     xstats = stats.to_xarray()
+
+    # Add auxillary data variables, including metadata for each
+    auxillary_data.add_auxillary_data_to_xstats(xstats)
+
     xstats.attrs["steps"] = toml.dumps(toml_steps)
     xstats.attrs["Modified"] = str(datetime.now())
     xstats.attrs["PyOPIA_version"] = pyopia_version
-    xstats = xstats.assign_coords(time=xstats.timestamp)
+    if proj_metadata is not None:
+        for k, v in proj_metadata.model_dump().items():
+            xstats.attrs[k] = v
+    xstats = xstats.assign_coords({"timestamp": xstats.timestamp})
+    xstats = add_cf_attributes(xstats)
     return xstats
 
 
@@ -539,6 +573,10 @@ class StatsToDisc:
         which can be loaded using :func:`pyopia.io.combine_stats_netcdf_files`
         This is useful for larger datasets, where appending causes substantial slowdown
         as the dataset gets larger.
+    project_metadata_file: str,
+        Path to project metadata file, this is added to stats netcdf file global metadata.
+    auxillary_data_file: str
+        Path to auxillary data file, columns in this (csv) file is interpolated and added to stats netcdf file.
 
     Returns
     -------
@@ -555,17 +593,56 @@ class StatsToDisc:
         pipeline_class = 'pyopia.io.StatsToDisc'
         output_datafile = './test' # prefix path for output nc file
         append = true
+        project_metadata_file = 'metadata.json'
+        auxillary_data_file = 'auxillarydata/auxillary_data.csv'
     """
 
     def __init__(
-        self, output_datafile="data", dataformat="nc", export_name_len=40, append=True
+        self,
+        output_datafile="data",
+        dataformat="nc",
+        export_name_len=40,
+        append=True,
+        project_metadata_file=None,
+        auxillary_data_file=None,
     ):
         self.output_datafile = output_datafile
         self.dataformat = dataformat
         self.export_name_len = export_name_len
         self.append = append
+        self.project_metadata_file = project_metadata_file
+        self.auxillary_data_file = auxillary_data_file
+
+    def _load_project_metadata(self):
+        """Load project metadata from json file"""
+        proj_metadata_dict = dict()
+        if self.project_metadata_file is not None:
+            with open(self.project_metadata_file, mode="r") as fh:
+                proj_metadata_dict = json.load(fh)
+
+        return proj_metadata_dict
 
     def __call__(self, data):
+        # If project metadata is is not yet in in the pipeline data, load and add
+        if "project_metadata_dict" not in data:
+            data["project_metadata_dict"] = self._load_project_metadata()
+        project_metadata_dict = data["project_metadata_dict"]
+
+        # Add raw image shape to metadata
+        project_metadata_dict["raw_image_shape"] = data["imraw"].shape
+
+        # Add classifier model weights file hash to metadata
+        if data["cl"] is not None:
+            project_metadata_dict["classifier_weights_file_hash"] = data[
+                "cl"
+            ].model_hash
+
+        project_metadata = Metadata(**project_metadata_dict)
+
+        # If AuxillaryData instance is is not yet in in the pipeline data, initialize and add
+        if "auxillary_data" not in data:
+            data["auxillary_data"] = AuxillaryData(self.auxillary_data_file)
+
         write_stats(
             data["stats"],
             self.output_datafile,
@@ -574,6 +651,8 @@ class StatsToDisc:
             export_name_len=self.export_name_len,
             append=self.append,
             image_stats=data["image_stats"],
+            proj_metadata=project_metadata,
+            auxillary_data=data["auxillary_data"],
         )
 
         return data
@@ -650,7 +729,7 @@ def get_cf_metadata_spec():
 
 def add_cf_attributes(xstats):
     """
-    Adds CF-compliant global attributes and units to the xarray Dataset.
+    Adds CF-compliant attributes and units to the xarray Dataset.
 
     Parameters
     ----------
@@ -660,16 +739,6 @@ def add_cf_attributes(xstats):
 
     # Read in CF Metadata from .json specification file
     cf_metadata = get_cf_metadata_spec()
-
-    # Add CF-compliant global attributes
-    xstats.attrs["Conventions"] = "CF-1.8"
-    xstats.attrs["license"] = "CC-BY-4.0"
-    xstats.attrs["title"] = "PyOPIA Particle Statistics Dataset"
-    xstats.attrs["summary"] = (
-        "This dataset contains particle statistics generated by the PyOPIA pipeline."
-    )
-    xstats.attrs["institution"] = ""
-    xstats.attrs["source"] = "PyOPIA pipeline"
 
     # Apply metadata from CF_METADATA if available
     for var in xstats.data_vars:
