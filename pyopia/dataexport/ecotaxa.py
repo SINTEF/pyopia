@@ -107,7 +107,7 @@ class EcotaxaExporter:
             "sample_stationid": (
                 "sample_stationid",
                 "str",
-            ), # we will make it exist, sintef specific marker
+            ),  # we will make it exist, sintef specific marker
         }
 
         buffer = io.BytesIO()
