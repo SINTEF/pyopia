@@ -20,11 +20,11 @@ uvx --python 3.12 --from pyopia[classification] pyopia process config.toml
 4) Merge the individual processed image STATS files into a single STATS.nc file, then create a montage of the processed STATS.nc
 
 ```bash
-uvx --python 3.12 --from pyopie[classification] pyopia merge-mfdata processed
+uvx --python 3.12 --from pyopia[classification] pyopia merge-mfdata processed
 ```
 
 ```bash
-uvx --python 3.12 --from pyopie[classification] pyopia make-montage processed\pyopiatests-STATS.nc
+uvx --python 3.12 --from pyopia[classification] pyopia make-montage processed\pyopiatests-STATS.nc
 ```
 5) Visualise monatge of singular particle images
 ```bash
