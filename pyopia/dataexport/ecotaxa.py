@@ -65,7 +65,7 @@ _ecotaxa_dict = {
     "sample_stationid": (
         "sample_stationid",
         "str",
-    ),  #  we will make it exist, sintef specific marker
+    ),  # we will make it exist, sintef specific marker
 }
 
 # Some columns requires formatting or transformations
