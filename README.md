@@ -24,7 +24,7 @@ uvx --python 3.12 --from pyopia[classification] pyopia merge-mfdata processed
 ```
 
 ```bash
-uvx --python 3.12 --from pyopia[classification] pyopia make-montage processed\pyopiatests-STATS.nc
+uvx --python 3.12 --from pyopia[classification] pyopia make-montage processed\pyopiatest-STATS.nc
 ```
 5) Visualise the monatge of all processed singular particle images in one
 ```bash
