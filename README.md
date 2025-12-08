@@ -8,11 +8,29 @@ A Python Ocean Particle Image Analysis toolbox
 1) Install [uv](https://docs.astral.sh/uv/getting-started/installation)
 2) Initialize PyOPIA project with a small example image dataset and run processing
 ```bash
-uvx --python 3.12 --from pyopia[classification] pyopia --init-project pyopiatest --example-data
+uvx --python 3.12 --from pyopia[classification] pyopia init-project pyopiatest --example-data
+```
+```bash
 cd pyopiatest
+```
+```bash
 uvx --python 3.12 --from pyopia[classification] pyopia process config.toml
 ```
 3) Inspect the processed particle statistics in the processed/ folder
+4) Merge the individual processed image STATS files into a single STATS.nc file, then create a montage of the processed STATS.nc
+
+```bash
+uvx --python 3.12 --from pyopie[classification] pyopia merge-mfdata processed
+```
+
+```bash
+uvx --python 3.12 --from pyopie[classification] pyopia make-montage processed\pyopiatests-STATS.nc
+```
+5) Visualise monatge of singular particle images
+```bash
+montage.png
+```
+Will show you a montage of all the processed particle images in one.
 
 See the documentation for more information on how to install and use PyOPIA.
 
