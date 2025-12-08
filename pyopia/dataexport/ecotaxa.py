@@ -4,19 +4,97 @@ Create data bundle from PyOPIA stats that can be imported into EcoTaxa.
 EcoTaxa: https://ecotaxa.obs-vlfr.fr/
 """
 
+import numpy as np
+import pyopia
 import pyopia.io
 import pyopia.statistics
 import zipfile
 import io
 import xarray as xr
+import pandas as pd
 import matplotlib.pyplot as plt
 from typing import Optional
 from pathlib import Path
 from tqdm.rich import tqdm
 
+_ecotaxa_dict = {
+    "img_file_name": ("export_name", "str"),  # source: statsrow
+    "img_rank": ("img_rank", "float"),  # source: we will make it exist
+    "object_id": ("export_name", "str"),  # source: statsrow
+    "object_lat": (
+        "latitude",
+        "str",
+    ),  # needs to be in decimal degrees, source: auxillary data
+    "object_lon": (
+        "longitude",
+        "str",
+    ),  # needs to be in decimal degrees, source: auxillary data
+    "object_date": (
+        "timestamp",
+        "float",
+    ),  # UTC, format: YYYYMMDD, source: statsrow timestamp.dt.strftime(%Y%m%d)
+    "object_time": (
+        "timestamp",
+        "float",
+    ),  # UTC, format: HHMMSS, source: statsrow timestamp.dt.strftime(%H%M%S)
+    "object_depth_min": ("depth", "float"),  # source: statsrow
+    "object_depth_max": ("depth", "float"),  # source: statsrow
+    "object_major": ("major_axis_length", "float"),  # source: statsrow
+    "object_minor": ("minor_axis_length", "float"),  # source: statsrow
+    "object_circ.": ("equivalent_diameter", "float"),  # source: statsrow
+    "process_id": (
+        "process_id",
+        "float",
+    ),  # if missing will be added by EcoTaxa
+    "process_img_software_version": ("pyopia.__version__", "str"),
+    "process_img_resolution": ("process_img_resolution", "float"),
+    "particle_pixel_size_µm": (
+        "pixel_size",
+        "float",
+    ),  # needs to be converted from pixels to micrometers
+    "process_date": (
+        "process_date",
+        "float",
+    ),  # we will make it exists, datetime.today().strftime('%Y%m%d'),
+    "process_time": (
+        "process_time",
+        "float",
+    ),  # we will make it exist, datetime.now(timezone.utc).strftime("%H%M%S"),
+    "acq_id": ("acq_id", "float"),  # if missing will be added by EcoTaxa
+    "sample_id": ("sample_id", "float"),  # if missing will be added by EcoTaxa
+    "sample_stationid": (
+        "sample_stationid",
+        "str",
+    ),  #  we will make it exist, sintef specific marker
+}
+
+# Some columns requires formatting or transformations
+_ecotaxa_formatters = {
+    "object_date": lambda x: x.strftime("%Y%m%d"),
+    "object_time": lambda x: x.strftime("%H%M%S"),
+}
+
+_ecotaxa_types = {
+    "float": "[f]",
+    "str": "[t]",
+}
+
 
 class EcotaxaExporter:
     """Export particle statistics (xstats) and images (ROIs) to a zip file for EcoTaxa import"""
+
+    def statsrow_to_ecoataxarow(self, statsrow, xstats_attrs):
+        ecotaxarow = dict()
+        for k, (statsname, statstype) in _ecotaxa_dict.items():
+            formatter = _ecotaxa_formatters.get(k, lambda x: x)
+            if statsname in statsrow.index:
+                ecotaxarow[k] = formatter(statsrow.get(statsname))
+            elif statsname in xstats_attrs:
+                ecotaxarow[k] = formatter(xstats_attrs.get(statsname))
+            else:
+                ecotaxarow[k] = np.nan
+            # type casting
+        return ecotaxarow
 
     def create_bundle(
         self, xstats: xr.Dataset, export_filename: Path, roi_dir: Optional[Path] = None
@@ -57,82 +135,24 @@ class EcotaxaExporter:
             xstats.to_pandas()
         )
 
-        # Create ecotaxa dataframe, which specified (mostly) pyopia name and types
-        # define this as a dict
-        ecotaxa_dict = {
-            "img_statsrow_name": ("export_name", "str"),  # source: statsrow
-            "img_rank": ("img_rank", "float"),  # source: we will make it exist
-            "object_id": ("export_name", "str"),  # source: statsrow
-            "object_lat": (
-                "latitude",
-                "str",
-            ),  # needs to be in decimal degrees, source: auxillary data
-            "object_lon": (
-                "longitude",
-                "str",
-            ),  # needs to be in decimal degrees, source: auxillary data
-            "object_date": (
-                "timestamp",
-                "float",
-            ),  # UTC, format: YYYYMMDD, source: statsrow timestamp.dt.strftime(%Y%m%d)
-            "object_time": (
-                "timestamp",
-                "float",
-            ),  # UTC, format: HHMMSS, source: statsrow timestamp.dt.strftime(%H%M%S)
-            "object_depth_min": ("Depth", "float"),  # source: statsrow
-            "object_depth_max": ("Depth", "float"),  # source: statsrow
-            "object_major": ("major_axis_length", "float"),  # source: statsrow
-            "object_minor": ("minor_axis_length", "float"),  # source: statsrow
-            "object_circ.": ("equivalent_diameter", "float"),  # source: statsrow
-            "process_id": (
-                "process_id",
-                "float",
-            ),  # if missing will be added by EcoTaxa
-            "process_img_software_version": ("pyopia.__version__", "str"),
-            "process_img_resolution": ("process_img_resolution", "float"),
-            "particle_pixel_size_μm": (
-                "pixel_size",
-                "float",
-            ),  # needs to be converted from pixels to micrometers
-            "process_date": (
-                "process_date",
-                "float",
-            ),  # we will make it exists, datetime.today().strftime('%Y%m%d'),
-            "process_time": (
-                "process_time",
-                "float",
-            ),  # we will make it exist, datetime.now(timezone.utc).strftime("%H%M%S"),
-            "acq_id": ("acq_id", "float"),  # if missing will be added by EcoTaxa
-            "sample_id": ("sample_id", "float"),  # if missing will be added by EcoTaxa
-            "sample_stationid": (
-                "sample_stationid",
-                "str",
-            ),  # we will make it exist, sintef specific marker
-        }
-
         buffer = io.BytesIO()
-        with zipfile.ZipFile(self.export_filename, "w") as zip:
+        with zipfile.ZipFile(self.export_filename, mode="w") as zip:
             # Export particle statistics dataframe to buffer as csv
             buffer.seek(0)
             buffer.truncate(0)
             self.df_stats_export.to_csv(buffer)
-
-            # go after the loop, with a ecoataxa df instead of df statsexport
-            def statsrow_to_ecoataxarow(statsrow):
-                ecotaxarow = dict()
-                for k, (statsname, statstype) in ecotaxa_dict.items():
-                    ecotaxarow[k] = statsrow.get(statsname)
-                    # type casting
-                return ecotaxarow
 
             ecotaxarows = []
 
             # Write particle statistics csv to zip file
             buffer.seek(0)
             zip.writestr("particle_statistics.csv", buffer.read())
+
             # create it outside here
-            for _, row in tqdm(
-                self.df_stats_export.iterrows(), total=self.df_stats_export.shape[0]
+            for idx, (_, row) in enumerate(
+                tqdm(
+                    self.df_stats_export.iterrows(), total=self.df_stats_export.shape[0]
+                )
             ):
                 # Get particle image
                 export_name = row["export_name"]
@@ -141,7 +161,7 @@ class EcotaxaExporter:
                 )
 
                 # call it here
-                ecotaxarows.append(statsrow_to_ecoataxarow(row))
+                ecotaxarows.append(self.statsrow_to_ecoataxarow(row, xstats.attrs))
 
                 # Save the particle image to the buffer
                 buffer.seek(0)
@@ -152,3 +172,38 @@ class EcotaxaExporter:
                 label_folder = row["best guess"].replace("probability_", "")
                 buffer.seek(0)
                 zip.writestr(f"{label_folder}/{export_name}.png", buffer.read())
+
+            # Convert export table to Pandas DataFrame
+            df_ecotaxa_export_table = pd.DataFrame(ecotaxarows)
+            df_ecotaxa_types = pd.DataFrame(
+                [
+                    {
+                        k: _ecotaxa_types[ettype]
+                        for k, (_, ettype) in _ecotaxa_dict.items()
+                    }
+                ]
+            )
+
+            # Add some information manually here
+            pixel_size = self.config["general"]["pixel_size"]
+            df_ecotaxa_export_table["process_img_software_version"] = (
+                f"PyOPIA {xstats.attrs['PyOPIA_version']}"
+            )
+            df_ecotaxa_export_table["img_rank"] = 0
+            df_ecotaxa_export_table["particle_pixel_size_µm"] = pixel_size
+
+            for col in ["object_major", "object_minor", "object_circ."]:
+                df_ecotaxa_export_table[col] *= pixel_size
+
+            # Insert type defintion as first row in exported table
+            df_ecotaxa_export_table = pd.concat(
+                [df_ecotaxa_types, df_ecotaxa_export_table],
+                axis=0,
+            )
+
+            # Write to zip archive
+            buffer.seek(0)
+            buffer.truncate(0)
+            df_ecotaxa_export_table.to_csv(buffer, index=False)
+            buffer.seek(0)
+            zip.writestr("particle_statistics_ecotaxa.csv", buffer.read())
