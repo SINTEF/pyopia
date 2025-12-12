@@ -48,10 +48,10 @@ _ecotaxa_dict = {
     ),  # if missing will be added by EcoTaxa
     "process_img_software_version": ("pyopia.__version__", "str"),
     "process_img_resolution": ("process_img_resolution", "float"),
-    "particle_pixel_size_µm": (
+    "process_particle_pixel_size_?m": (
         "pixel_size",
         "float",
-    ),  # needs to be converted from pixels to micrometers
+    ),  # needs to be converted from pixels to micrometers, the ? is a choice of EcoTaxa
     "process_date": (
         "process_date",
         "float",
@@ -72,6 +72,7 @@ _ecotaxa_dict = {
 _ecotaxa_formatters = {
     "object_date": lambda x: x.strftime("%Y%m%d"),
     "object_time": lambda x: x.strftime("%H%M%S"),
+    "img_file_name": lambda x: x + ".png",
 }
 
 _ecotaxa_types = {
@@ -171,7 +172,7 @@ class EcotaxaExporter:
                 # Write the buffer to the zip file with a filename
                 label_folder = row["best guess"].replace("probability_", "")
                 buffer.seek(0)
-                zip.writestr(f"{label_folder}/{export_name}.png", buffer.read())
+                zip.writestr(f"{export_name}.png", buffer.read())
 
             # Convert export table to Pandas DataFrame
             df_ecotaxa_export_table = pd.DataFrame(ecotaxarows)
@@ -190,7 +191,17 @@ class EcotaxaExporter:
                 f"PyOPIA {xstats.attrs['PyOPIA_version']}"
             )
             df_ecotaxa_export_table["img_rank"] = 0
-            df_ecotaxa_export_table["particle_pixel_size_µm"] = pixel_size
+            df_ecotaxa_export_table["process_particle_pixel_size_?m"] = pixel_size
+            df_ecotaxa_export_table["sample_stationid"] = "-".join(
+                ["SINTEF", xstats.attrs["project_name"]]
+            )
+            processing_datetime = pd.to_datetime(xstats.attrs["Modified"])
+            df_ecotaxa_export_table["process_time"] = processing_datetime.strftime(
+                "%H%M%S"
+            )
+            df_ecotaxa_export_table["process_date"] = processing_datetime.strftime(
+                "%Y%m%d"
+            )
 
             for col in ["object_major", "object_minor", "object_circ."]:
                 df_ecotaxa_export_table[col] *= pixel_size
@@ -204,6 +215,6 @@ class EcotaxaExporter:
             # Write to zip archive
             buffer.seek(0)
             buffer.truncate(0)
-            df_ecotaxa_export_table.to_csv(buffer, index=False)
+            df_ecotaxa_export_table.to_csv(buffer, index=False, sep="\t")
             buffer.seek(0)
-            zip.writestr("particle_statistics_ecotaxa.csv", buffer.read())
+            zip.writestr("ecotaxa_particle_statistics.tsv", buffer.read())
