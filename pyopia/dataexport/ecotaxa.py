@@ -170,7 +170,7 @@ class EcotaxaExporter:
                 plt.imsave(buffer, particle_image, format="png")
 
                 # Write the buffer to the zip file with a filename
-                label_folder = row["best guess"].replace("probability_", "")
+                # label_folder = row["best guess"].replace("probability_", "")
                 buffer.seek(0)
                 zip.writestr(f"{export_name}.png", buffer.read())
 
