@@ -84,7 +84,8 @@ _ecotaxa_types = {
 class EcotaxaExporter:
     """Export particle statistics (xstats) and images (ROIs) to a zip file for EcoTaxa import"""
 
-    def statsrow_to_ecoataxarow(self, statsrow, xstats_attrs):
+    def statsrow_to_ecotaxarow(self, statsrow, xstats_attrs):
+        """Create a row in the EcoTaxa import file from PyOPIA stats row"""
         ecotaxarow = dict()
         for k, (statsname, statstype) in _ecotaxa_dict.items():
             formatter = _ecotaxa_formatters.get(k, lambda x: x)
@@ -98,7 +99,11 @@ class EcotaxaExporter:
         return ecotaxarow
 
     def create_bundle(
-        self, xstats: xr.Dataset, export_filename: Path, roi_dir: Optional[Path] = None
+        self,
+        xstats: xr.Dataset,
+        export_filename: Path,
+        roi_dir: Optional[Path] = None,
+        make_label_folders=False,
     ):
         """
         Create an EcoTaxa import bundle file containing particle images and stats csv.
@@ -112,7 +117,9 @@ class EcotaxaExporter:
         roi_dir : pathlib.Path, optional
             Directory containing particle image files to include in the bundle.
             If None, the roi_dir in the xstats steps metadata will be used.
-
+        make_label_folders : bool, optional, default False
+            If True, store particle images in sub-folders with label names.
+            NB: This must be False to create an EcoTaxa compatible zip file.
         Returns
         -------
         None
@@ -145,9 +152,11 @@ class EcotaxaExporter:
 
             ecotaxarows = []
 
-            # Write particle statistics csv to zip file
-            buffer.seek(0)
-            zip.writestr("particle_statistics.csv", buffer.read())
+            # Write particle statistics csv to zip file, only if labelled folders are enabled
+            # This file is not used by EcoTaxa import
+            if make_label_folders:
+                buffer.seek(0)
+                zip.writestr("particle_statistics.csv", buffer.read())
 
             # create it outside here
             for idx, (_, row) in enumerate(
@@ -157,12 +166,14 @@ class EcotaxaExporter:
             ):
                 # Get particle image
                 export_name = row["export_name"]
+                if export_name == "not_exported":
+                    continue
                 particle_image = pyopia.statistics.roi_from_export_name(
                     export_name, self.roi_dir
                 )
 
-                # call it here
-                ecotaxarows.append(self.statsrow_to_ecoataxarow(row, xstats.attrs))
+                # Convert PyOPIA stats row to EcoTaxa import row
+                ecotaxarows.append(self.statsrow_to_ecotaxarow(row, xstats.attrs))
 
                 # Save the particle image to the buffer
                 buffer.seek(0)
@@ -170,9 +181,11 @@ class EcotaxaExporter:
                 plt.imsave(buffer, particle_image, format="png")
 
                 # Write the buffer to the zip file with a filename
-                # label_folder = row["best guess"].replace("probability_", "")
+                label_folder = ""
+                if make_label_folders:
+                    label_folder = row["best guess"].replace("probability_", "") + "/"
                 buffer.seek(0)
-                zip.writestr(f"{export_name}.png", buffer.read())
+                zip.writestr(f"{label_folder}{export_name}.png", buffer.read())
 
             # Convert export table to Pandas DataFrame
             df_ecotaxa_export_table = pd.DataFrame(ecotaxarows)

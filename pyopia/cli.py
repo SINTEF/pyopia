@@ -478,6 +478,7 @@ def make_montage(
 def export_to_ecotaxa(
     stats_filename: pathlib.Path,
     export_filename: pathlib.Path,
+    make_label_folders: bool = False,
     filter_variable: Annotated[Tuple[str, float, float], typer.Option()] = [
         None,
         None,
@@ -492,6 +493,9 @@ def export_to_ecotaxa(
         Config filename
     output_filename: pathlib.Path
         Name of zip file to contain exported particle images and statistics
+    make_label_folders : bool, optional, default False
+        If True, store particle images in sub-folders with label names.
+        NB: This must be False to create an EcoTaxa compatible zip file.
     filter_variable: list
         Variables to filter on (name, min, max), e.g. ['depth', 5, None]
     """
@@ -504,11 +508,13 @@ def export_to_ecotaxa(
         xstats = xstats.where(
             (xstats[filter_variable[0]] <= filter_variable[2])
             & (xstats[filter_variable[0]] >= filter_variable[1])
-        )
+        ).dropna(dim="index")
 
     print("[blue]CREATING ECOTAXA BUNDLE")
     ecotaxa_export = pyopia.dataexport.ecotaxa.EcotaxaExporter()
-    ecotaxa_export.create_bundle(xstats, export_filename)
+    ecotaxa_export.create_bundle(
+        xstats, export_filename, make_label_folders=make_label_folders
+    )
 
 
 def process_file_list(file_list, pipeline_config, c):
