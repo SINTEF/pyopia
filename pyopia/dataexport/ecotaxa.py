@@ -17,6 +17,11 @@ from typing import Optional
 from pathlib import Path
 from tqdm.rich import tqdm
 
+# Define the mapping from EcoTaxa variable names to PyOPIA stats column names.
+# The type expected by EcoTaxa is also defined.
+# Direct mapping from PyOPIA stats row values (statsrows) is possible in many cases.
+# Where no direct mapping from a single PyOPIA stats variable exists, a combination
+# or retrieval of other relevant metadata is used to construct the EcoTaxa value.
 _ecotaxa_dict = {
     "img_file_name": ("export_name", "str"),  # source: statsrow
     "img_rank": ("img_rank", "float"),  # source: we will make it exist
@@ -45,27 +50,27 @@ _ecotaxa_dict = {
     "process_id": (
         "process_id",
         "float",
-    ),  # if missing will be added by EcoTaxa
+    ),  # If missing will be added by EcoTaxa
     "process_img_software_version": ("pyopia.__version__", "str"),
     "process_img_resolution": ("process_img_resolution", "float"),
     "process_particle_pixel_size_?m": (
         "pixel_size",
         "float",
-    ),  # needs to be converted from pixels to micrometers, the ? is a choice of EcoTaxa
+    ),  # Needs to be converted from pixels to micrometers, the ? is a choice of EcoTaxa
     "process_date": (
         "process_date",
         "float",
-    ),  # we will make it exists, datetime.today().strftime('%Y%m%d'),
+    ),  # Added by custom step in create_bundle, from Modified time in PyOPIA netcdf (UTC)
     "process_time": (
         "process_time",
         "float",
-    ),  # we will make it exist, datetime.now(timezone.utc).strftime("%H%M%S"),
-    "acq_id": ("acq_id", "float"),  # if missing will be added by EcoTaxa
-    "sample_id": ("sample_id", "float"),  # if missing will be added by EcoTaxa
+    ),  # Same as process_date. datetime.now(timezone.utc).strftime("%H%M%S").
+    "acq_id": ("acq_id", "float"),  # If missing will be added by EcoTaxa
+    "sample_id": ("sample_id", "float"),  # If missing will be added by EcoTaxa
     "sample_stationid": (
         "sample_stationid",
         "str",
-    ),  # we will make it exist, sintef specific marker
+    ),  # Will be constructed from project name and station (PyOPIA netcdf)
 }
 
 # Some columns requires formatting or transformations
@@ -198,7 +203,8 @@ class EcotaxaExporter:
                 ]
             )
 
-            # Add some information manually here
+            # Add some EcoTaxa required information manually here.
+            # Construct from multiple PyOPIA data values or metadata as needed.
             pixel_size = self.config["general"]["pixel_size"]
             df_ecotaxa_export_table["process_img_software_version"] = (
                 f"PyOPIA {xstats.attrs['PyOPIA_version']}"
@@ -206,7 +212,7 @@ class EcotaxaExporter:
             df_ecotaxa_export_table["img_rank"] = 0
             df_ecotaxa_export_table["process_particle_pixel_size_?m"] = pixel_size
             df_ecotaxa_export_table["sample_stationid"] = "-".join(
-                ["SINTEF", xstats.attrs["project_name"]]
+                [xstats.attrs.get(el, "") for el in ["project_name", "station"]]
             )
             processing_datetime = pd.to_datetime(xstats.attrs["Modified"])
             df_ecotaxa_export_table["process_time"] = processing_datetime.strftime(
