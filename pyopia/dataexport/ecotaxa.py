@@ -28,19 +28,19 @@ _ecotaxa_dict = {
     "object_id": ("export_name", "str"),  # source: statsrow
     "object_lat": (
         "latitude",
-        "str",
+        "float",
     ),  # needs to be in decimal degrees, source: auxillary data
     "object_lon": (
         "longitude",
-        "str",
+        "float",
     ),  # needs to be in decimal degrees, source: auxillary data
     "object_date": (
         "timestamp",
-        "float",
+        "str",
     ),  # UTC, format: YYYYMMDD, source: statsrow timestamp.dt.strftime(%Y%m%d)
     "object_time": (
         "timestamp",
-        "float",
+        "str",
     ),  # UTC, format: HHMMSS, source: statsrow timestamp.dt.strftime(%H%M%S)
     "object_depth_min": ("depth", "float"),  # source: statsrow
     "object_depth_max": ("depth", "float"),  # source: statsrow
@@ -59,11 +59,11 @@ _ecotaxa_dict = {
     ),  # Needs to be converted from pixels to micrometers, the ? is a choice of EcoTaxa
     "process_date": (
         "process_date",
-        "float",
+        "str",
     ),  # Added by custom step in create_bundle, from Modified time in PyOPIA netcdf (UTC)
     "process_time": (
         "process_time",
-        "float",
+        "str",
     ),  # Same as process_date. datetime.now(timezone.utc).strftime("%H%M%S").
     "acq_id": ("acq_id", "float"),  # If missing will be added by EcoTaxa
     "sample_id": ("sample_id", "float"),  # If missing will be added by EcoTaxa
