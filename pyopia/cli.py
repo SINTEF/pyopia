@@ -26,6 +26,9 @@ from typing import Tuple
 from typing_extensions import Annotated
 from operator import methodcaller
 import sys
+import fnmatch
+import threading
+import queue
 
 import pyopia
 import pyopia.background
@@ -348,6 +351,119 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = "block"):
     time_total = pd.to_timedelta(time.time() - t1, "seconds")
     with Progress(transient=True) as progress:
         progress.console.print(f"[blue]PROCESSING COMPLETED IN {time_total}")
+
+
+@app.command()
+def process_realtime(config_filename: str, watch_folder: str = None):
+    """Run a PyOPIA processing pipeline in realtime by watching a folder.
+
+    Parameters
+    ----------
+    config_filename : str
+        Config filename
+
+    watch_folder : str, optional
+        Folder to monitor. If not provided, inferred from `general.raw_files` in config.
+
+    Notes
+    -----
+    - Single-core only: files are processed sequentially by a single worker thread.
+    - Uses `watchdog` to monitor created/moved files and processes matching files.
+    """
+    # Local imports to avoid hard dependency at module import time
+    try:
+        from watchdog.observers import Observer
+        from watchdog.events import FileSystemEventHandler
+    except Exception as e:
+        raise RuntimeError(
+            "The 'watchdog' package is required for realtime processing. "
+            "Install it with 'pip install watchdog' and try again."
+        ) from e
+
+    t1 = time.time()
+
+    # Load config and setup logging
+    pipeline_config = pyopia.io.load_toml(config_filename)
+    setup_logging(pipeline_config)
+    logger = logging.getLogger("rich")
+    logger.info(f"PyOPIA realtime process started {pd.Timestamp.now()}")
+
+    # Determine watch folder and filename pattern
+    raw_files_pattern = pipeline_config["general"].get("raw_files", "*")
+    pattern_name = pathlib.Path(raw_files_pattern).name
+    inferred_watch = pathlib.Path(raw_files_pattern).parent
+    if watch_folder is None:
+        watch_folder = str(inferred_watch) if str(inferred_watch) != "." else "."
+
+    processing_pipeline = pyopia.pipeline.Pipeline(pipeline_config)
+
+    file_queue = queue.Queue()
+    stop_event = threading.Event()
+
+    class NewFileHandler(FileSystemEventHandler):
+        def _handle_path(self, path):
+            try:
+                p = pathlib.Path(path)
+                if not p.exists() or p.is_dir():
+                    return
+                # Match against the basename pattern (e.g. '*.silc')
+                if fnmatch.fnmatch(p.name, pattern_name):
+                    logger.info(f"New file detected: {p}")
+                    file_queue.put(p)
+            except Exception:
+                logger.exception("Error handling filesystem event")
+
+        def on_created(self, event):
+            if getattr(event, "is_directory", False):
+                return
+            self._handle_path(getattr(event, "src_path", None))
+
+        def on_moved(self, event):
+            # Prefer dest_path for moved events
+            dest = getattr(event, "dest_path", None)
+            if dest:
+                self._handle_path(dest)
+
+    # Worker thread that will process files sequentially
+    def worker():
+        while not stop_event.is_set():
+            try:
+                filepath = file_queue.get(timeout=1)
+            except queue.Empty:
+                continue
+            try:
+                start = time.time()
+                logger.info(f"Starting processing: {filepath}")
+                processing_pipeline.run(filepath)
+                elapsed = time.time() - start
+                logger.info(f"Completed {filepath} in {elapsed:.1f}s")
+            except Exception as e:
+                logger.exception(f"Error processing {filepath}: {e}")
+            finally:
+                file_queue.task_done()
+
+    # Start observer and worker
+    observer = Observer()
+    handler = NewFileHandler()
+    observer.schedule(handler, path=watch_folder, recursive=False)
+    observer.start()
+    worker_thread = threading.Thread(target=worker, daemon=True)
+    worker_thread.start()
+
+    print(f"[blue]Watching folder {watch_folder} for new files matching '{pattern_name}'")
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("[blue]Shutdown requested, stopping observer and worker...")
+        stop_event.set()
+        observer.stop()
+        observer.join()
+        worker_thread.join(timeout=5)
+
+    time_total = pd.to_timedelta(time.time() - t1, "seconds")
+    with Progress(transient=True) as progress:
+        progress.console.print(f"[blue]REALTIME PROCESSING STOPPED AFTER {time_total}")
 
 
 @app.command()
