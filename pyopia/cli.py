@@ -26,7 +26,6 @@ from typing import Tuple
 from typing_extensions import Annotated
 from operator import methodcaller
 import sys
-import fnmatch
 import threading
 import queue
 
@@ -390,7 +389,7 @@ def process_realtime(config_filename: str, watch_folder: str = None):
 
     # Determine watch folder and filename pattern
     raw_files_pattern = pipeline_config["general"].get("raw_files", "*")
-    pattern_name = pathlib.Path(raw_files_pattern).name
+    pattern_name = pathlib.Path(raw_files_pattern).suffix
     inferred_watch = pathlib.Path(raw_files_pattern).parent
     if watch_folder is None:
         watch_folder = str(inferred_watch) if str(inferred_watch) != "." else "."
@@ -407,16 +406,12 @@ def process_realtime(config_filename: str, watch_folder: str = None):
                 if not p.exists() or p.is_dir():
                     return
                 # Match against the basename pattern (e.g. '*.silc')
-                if fnmatch.fnmatch(p.name, pattern_name):
+                # if fnmatch.fnmatch(p.name, pattern_name):
+                if p.name.endswith(pattern_name):
                     logger.info(f"New file detected: {p}")
                     file_queue.put(p)
             except Exception:
                 logger.exception("Error handling filesystem event")
-
-        def on_created(self, event):
-            if getattr(event, "is_directory", False):
-                return
-            self._handle_path(getattr(event, "src_path", None))
 
         def on_moved(self, event):
             # Prefer dest_path for moved events
@@ -433,10 +428,12 @@ def process_realtime(config_filename: str, watch_folder: str = None):
                 continue
             try:
                 start = time.time()
-                logger.info(f"Starting processing: {filepath}")
-                processing_pipeline.run(filepath)
+                logger.info(f"Starting processing: {filepath.name}")
+                print(f"Starting processing: {filepath}")
+                processing_pipeline.run(filepath.as_posix())
                 elapsed = time.time() - start
-                logger.info(f"Completed {filepath} in {elapsed:.1f}s")
+                logger.info(f"Completed {filepath.name} in {elapsed:.1f}s")
+                print(f"Completed {filepath} in {elapsed:.1f}s")
             except Exception as e:
                 logger.exception(f"Error processing {filepath}: {e}")
             finally:
@@ -450,7 +447,9 @@ def process_realtime(config_filename: str, watch_folder: str = None):
     worker_thread = threading.Thread(target=worker, daemon=True)
     worker_thread.start()
 
-    print(f"[blue]Watching folder {watch_folder} for new files matching '{pattern_name}'")
+    print(
+        f"[blue]Watching folder {watch_folder} for new files matching '{pattern_name}'"
+    )
     try:
         while True:
             time.sleep(1)
