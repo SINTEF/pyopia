@@ -17,7 +17,7 @@ def get_classifier_database_from_pysilcam_blob(download_directory="./"):
     ----------
     download_directory : string
         directory to download and unzip the silcam_database.zip into. Defaults to "./"
-        
+
     Returns
     -------
     string
@@ -74,12 +74,12 @@ def get_example_silc_image(download_directory="./"):
     ----------
     download_directory : string
         directory to download the file into. Defaults to "./"
-        
+
     Returns
     -------
     string
         filename of the downloaded silcam image
-    
+
     """
     filename = "D20181101T142731.838206.silc"
     if os.path.isfile(filename):
@@ -94,7 +94,7 @@ def get_example_model(download_directory="./"):
 
     Download from the pysilcam blob storage into the working dir.
     If the file exists, skip the download.
-    
+
     Parameters
     ----------
     download_directory : string
