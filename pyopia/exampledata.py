@@ -10,14 +10,18 @@ logger = logging.getLogger()
 
 
 def get_classifier_database_from_pysilcam_blob(download_directory="./"):
-    """Downloads a specified filename from the pysilcam.blob into the working dir. if it doesn't already exist
-
-    only works for known filenames that are on this blob
+    """Downloads and unzips the silcam_database of labelled example images from pysilcam.blob
+    into the working dir. if it doesn't already exist
 
     Parameters
     ----------
-    filename : string
-        known filename on the blob
+    download_directory : string
+        directory to download and unzip the silcam_database.zip into. Defaults to "./"
+
+    Returns
+    -------
+    string
+        download_directory, the directory that the silcam_database.zip was downloaded and unzipped into
 
     """
     if os.path.exists(os.path.join(download_directory)):
@@ -47,6 +51,13 @@ def get_file_from_pysilcam_blob(filename, download_directory="./"):
     ----------
     filename : string
         known filename on the blob
+    download_directory : string
+        directory to download the file into. Defaults to "./"
+
+    Returns
+    -------
+    string
+        filename of the downloaded file
 
     """
     if os.path.exists(os.path.join(download_directory, filename)):
@@ -59,10 +70,16 @@ def get_file_from_pysilcam_blob(filename, download_directory="./"):
 def get_example_silc_image(download_directory="./"):
     """calls `get_file_from_pysilcam_blob` for a silcam iamge
 
+    Parameters
+    ----------
+    download_directory : string
+        directory to download the file into. Defaults to "./"
+
     Returns
     -------
     string
-        filename
+        filename of the downloaded silcam image
+
     """
     filename = "D20181101T142731.838206.silc"
     if os.path.isfile(filename):
@@ -77,6 +94,11 @@ def get_example_model(download_directory="./"):
 
     Download from the pysilcam blob storage into the working dir.
     If the file exists, skip the download.
+
+    Parameters
+    ----------
+    download_directory : string
+        directory to download the file into. Defaults to "./"
 
     Returns
     -------
@@ -96,6 +118,11 @@ def get_example_model(download_directory="./"):
 
 def get_example_hologram_and_background(download_directory="./"):
     """calls `get_file_from_pysilcam_blob` for a raw hologram, and its associated background image.
+
+    Parameters
+    ----------
+    download_directory : string
+        directory to download the file into. Defaults to "./"
 
     Returns
     -------
