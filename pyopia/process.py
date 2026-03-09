@@ -639,7 +639,13 @@ class CalculateImageStats():
 
         path_length = getattr(data['settings']['general'], 'path_length', 40)
         if path_length is not None:
-            nc_vc = pyopia.statistics.nc_vc_from_stats(data['stats'], pixel_size, path_length)
+            # Get image dimensions from the corrected image
+            image = data.get('imraw')
+            if image is not None:
+                imy, imx = image.shape[:2]
+            else:
+                imx, imy = 2048, 2448  # fallback defaults
+            nc_vc = pyopia.statistics.nc_vc_from_stats(data['stats'], pixel_size, path_length, imx=imx, imy=imy)
             for k, v in zip(['nc', 'vc', 'sample_volume', 'junge'], nc_vc):
                 data['image_stats'].loc[data['timestamp'], k] = v
 
