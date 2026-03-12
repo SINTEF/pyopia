@@ -62,4 +62,52 @@
     "standard_name": "timestamp",
     "long_name": "Timestamp of particle observation",
     "calculation_method": "Recorded during particle observation",
-    "pyopia_process_level": 0}}
+    "pyopia_process_level": 0},
+"filename": {
+    "standard_name": "filename",
+    "long_name": "Filename of the raw image",
+    "units": "",
+    "calculation_method": "Recorded during image loading",
+    "pyopia_process_level": 0},
+"particle_count": {
+    "standard_name": "particle_count",
+    "long_name": "Number of particles detected in the image",
+    "units": "1",
+    "calculation_method": "Count of particles from segmentation",
+    "pyopia_process_level": 1},
+"saturation": {
+    "standard_name": "image_saturation",
+    "long_name": "Percentage saturation of the image",
+    "units": "percent",
+    "calculation_method": "Computed as the percentage of the image covered by particles relative to the maximum acceptable coverage",
+    "pyopia_process_level": 1},
+"d50": {
+    "standard_name": "median_particle_diameter",
+    "long_name": "Median particle diameter (D50) from volume distribution",
+    "units": "micrometers",
+    "calculation_method": "Calculated from volume-based particle size distribution",
+    "pyopia_process_level": 2},
+"nc": {
+    "standard_name": "number_concentration",
+    "long_name": "Number concentration of particles",
+    "units": "L^-1",
+    "calculation_method": "Calculated from particle count and sample volume",
+    "pyopia_process_level": 2},
+"vc": {
+    "standard_name": "volume_concentration",
+    "long_name": "Volume concentration of particles",
+    "units": "uL L^-1",
+    "calculation_method": "Calculated from particle volumes and sample volume",
+    "pyopia_process_level": 2},
+"sample_volume": {
+    "standard_name": "sample_volume",
+    "long_name": "Volume of water sampled",
+    "units": "L",
+    "calculation_method": "Calculated from image area, pixel size, and path length",
+    "pyopia_process_level": 2},
+"junge": {
+    "standard_name": "junge_parameter",
+    "long_name": "Junge parameter (slope of particle size number distribution)",
+    "units": "1",
+    "calculation_method": "Fitted slope of particle size number distribution between 150-350 µm",
+    "pyopia_process_level": 2}}
