@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import pytest
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
 from pyopia.io import write_stats, load_stats, get_cf_metadata_spec, ImageToDisc
 from pyopia.instrument.silcam import generate_config
@@ -139,7 +140,6 @@ def test_image_to_disc_scale_factor(tmp_path: Path):
     assert os.path.isfile(out_file)
 
     # Load the saved image and verify it was scaled down
-    import matplotlib.pyplot as plt
     saved_img = plt.imread(out_file)
     assert saved_img.shape[0] == 50
     assert saved_img.shape[1] == 60

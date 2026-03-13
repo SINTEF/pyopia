@@ -733,64 +733,65 @@ class ImageToDisc:
         self.image_format = image_format
 
     def __call__(self, data):
-        import matplotlib.pyplot as plt
-        from skimage.transform import rescale
-
         os.makedirs(self.output_folder, exist_ok=True)
 
         source_filename = data.get('filename', 'unknown')
         base_name = Path(source_filename).stem
 
-        # Collect available images
+        # Collect available images (keep original dtypes for efficiency)
         available_images = []
         for key in self.image_keys:
             if key in data and data[key] is not None:
-                img = np.array(data[key], dtype=np.float64)
-                available_images.append((key, img))
+                available_images.append((key, np.asarray(data[key])))
 
         if not available_images:
             logger.warning('ImageToDisc: No images found in pipeline data for the specified keys.')
             return data
 
         if self.collage:
-            self._save_collage(available_images, base_name, plt)
+            self._save_collage(available_images, base_name)
         else:
-            self._save_separate(available_images, base_name, plt, rescale)
+            self._save_separate(available_images, base_name)
 
         return data
 
-    def _prepare_image(self, img, rescale_func):
+    def _prepare_image(self, img):
         '''Prepare an image for saving: handle scaling and normalisation.
 
         Parameters
         ----------
         img : ndarray
             Image array (2D or 3D, float or bool).
-        rescale_func : callable
-            skimage.transform.rescale function.
 
         Returns
         -------
         img : ndarray
             Prepared image array clipped to [0, 1].
         '''
-        if self.scale_factor != 1.0:
-            multichannel = img.ndim == 3
-            img = rescale_func(img, self.scale_factor,
-                               channel_axis=2 if multichannel else None,
-                               anti_aliasing=True,
-                               preserve_range=True)
+        from skimage.transform import rescale
+
         # Convert boolean (binary) images to float for saving
         if img.dtype == bool:
             img = img.astype(np.float64)
+        else:
+            img = img.astype(np.float64)
+
+        if self.scale_factor != 1.0:
+            multichannel = img.ndim == 3
+            img = rescale(img, self.scale_factor,
+                          channel_axis=2 if multichannel else None,
+                          anti_aliasing=True,
+                          preserve_range=True)
         # Clip to valid range for plt.imsave
         img = np.clip(img, 0, 1)
         return img
 
-    def _save_separate(self, available_images, base_name, plt, rescale_func):
+    def _save_separate(self, available_images, base_name):
         '''Save each image key as a separate file.'''
+        import matplotlib.pyplot as plt
+
         for key, img in available_images:
-            img = self._prepare_image(img, rescale_func)
+            img = self._prepare_image(img)
             out_path = Path(self.output_folder) / f'{base_name}_{key}.{self.image_format}'
             if img.ndim == 2:
                 plt.imsave(str(out_path), img, cmap='gray')
@@ -798,8 +799,9 @@ class ImageToDisc:
                 plt.imsave(str(out_path), img)
             logger.debug(f'ImageToDisc: Saved {key} to {out_path}')
 
-    def _save_collage(self, available_images, base_name, plt):
+    def _save_collage(self, available_images, base_name):
         '''Save all images combined into a single collage image.'''
+        import matplotlib.pyplot as plt
         from skimage.transform import resize
 
         # Determine target width (use first image width, after scale)
