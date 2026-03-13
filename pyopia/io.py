@@ -770,11 +770,8 @@ class ImageToDisc:
         '''
         from skimage.transform import rescale
 
-        # Convert boolean (binary) images to float for saving
-        if img.dtype == bool:
-            img = img.astype(np.float64)
-        else:
-            img = img.astype(np.float64)
+        # Convert to float64 for saving
+        img = img.astype(np.float64)
 
         if self.scale_factor != 1.0:
             multichannel = img.ndim == 3
