@@ -6,7 +6,7 @@ authors = [
     { name = "Emlyn Davies", email = "emlyn.davies@sintef.no" },
     { name = "Alex Nimmo Smith@plymouth.ac.uk", email = "alex.nimmo.smith@plymouth.ac.uk" },
 ]
-requires-python = "~=3.12"
+requires-python = "~=3.12.0"
 readme = "README.md"
 keywords = [
     "Ocean",
@@ -57,6 +57,10 @@ dependencies = [
 classification = [
     "tensorflow>=2.19.0",
     "keras==3.9.1",
+]
+
+classification-torch = [
+    "torch>=2.1.0",
 ]
 
 [project.urls]
