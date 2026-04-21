@@ -42,6 +42,7 @@ import pyopia.auxillarydata
 import pyopia.exampledata
 import pyopia.metadata
 import pyopia.dataexport.ecotaxa
+import pyopia.realtime
 
 app = typer.Typer()
 
@@ -348,6 +349,29 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = "block"):
     time_total = pd.to_timedelta(time.time() - t1, "seconds")
     with Progress(transient=True) as progress:
         progress.console.print(f"[blue]PROCESSING COMPLETED IN {time_total}")
+
+
+@app.command()
+def process_realtime(config_filename: str, watch_folder: str = None):
+    """Run a PyOPIA processing pipeline in realtime by watching a folder.
+
+    Parameters
+    ----------
+    config_filename : str
+        Config filename
+
+    watch_folder : str, optional
+        Folder to monitor. If not provided, inferred from `general.raw_files` in config.
+
+    Notes
+    -----
+    - Single-core only: files are processed sequentially by a single worker thread.
+    - Uses `watchdog` moved events only (rename into place) to avoid half-written files.
+    """
+    # Load config and setup logging
+    pipeline_config = pyopia.io.load_toml(config_filename)
+    setup_logging(pipeline_config)
+    pyopia.realtime.run_realtime(pipeline_config, watch_folder=watch_folder)
 
 
 @app.command()

@@ -6,7 +6,7 @@ authors = [
     { name = "Emlyn Davies", email = "emlyn.davies@sintef.no" },
     { name = "Alex Nimmo Smith@plymouth.ac.uk", email = "alex.nimmo.smith@plymouth.ac.uk" },
 ]
-requires-python = "~=3.12"
+requires-python = "~=3.12.0"
 readme = "README.md"
 keywords = [
     "Ocean",
@@ -50,6 +50,7 @@ dependencies = [
     "click<8.2.0",
     "seaborn>=0.13.2",
     "pydantic>=2.11.7",
+    "watchdog>=6.0.0",
 ]
 
 [project.optional-dependencies]
