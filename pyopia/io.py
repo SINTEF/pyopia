@@ -128,6 +128,9 @@ def write_stats(
             # Add auxillary data to ximage_stats
             ximage_stats = auxillary_data.add_auxillary_data_to_xstats(ximage_stats)
 
+            # Add CF-compliant attributes
+            ximage_stats = add_cf_attributes(ximage_stats)
+
             encoding_imagestats = setup_xstats_encoding(ximage_stats)
             ximage_stats.to_netcdf(
                 datafilename + "-STATS.nc",
