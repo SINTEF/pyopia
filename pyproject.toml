@@ -60,6 +60,10 @@ classification = [
     "keras==3.9.1",
 ]
 
+classification-torch = [
+    "torch>=2.1.0",
+]
+
 [project.urls]
 Repository = "https://github.com/sintef/pyopia"
 Documentation = "https://pyopia.readthedocs.io"

@@ -139,7 +139,6 @@ class Pipeline():
             Name of the step defined in the settings
         '''
         if stepname == 'classifier':
-            import pyopia.classify # noqa: E(F410)
             callobj = self.step_callobj(stepname)
             self.data['cl'] = callobj()
         else:
@@ -160,9 +159,17 @@ class Pipeline():
             callable object for use in run_step()
         '''
 
+        import importlib
+
         pipeline_class = self.settings['steps'][stepname]['pipeline_class']
         classname = pipeline_class.split('.')[-1]
         modulename = pipeline_class.replace(classname, '')[:-1]
+
+        # Import the module on demand rather than relying on sys.modules.
+        # This allows pipeline steps to reference any importable module
+        # (e.g. pyopia.classify_torch) without needing a hardcoded import
+        # in cli.py or run_step().
+        importlib.import_module(modulename)
 
         keys = [k for k in self.settings['steps'][stepname] if k != 'pipeline_class']
 
