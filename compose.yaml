@@ -1,0 +1,68 @@
+# PyOPIA container — minimal docker-compose runner.
+#
+# Quick start
+# -----------
+#   1. cd into a directory containing your config.toml and compose.yaml
+#   2. Run:  docker compose run --rm pyopia
+#      (equivalent to `pyopia process config.toml` inside the container)
+#
+# Or, with the compose file symlinked / copied alongside your config:
+#     docker compose run --rm pyopia
+#
+# The service mounts your current working directory 1:1 inside the
+# container, so the config.toml that worked bare-metal works here
+# unchanged — as long as the data/model paths referenced by the config
+# live under $PWD, or are explicitly added as extra bind mounts below.
+#
+# Overriding the default command
+# ------------------------------
+#     docker compose run --rm pyopia --help                # `pyopia --help`
+#     docker compose run --rm pyopia process other.toml    # different config
+#     PYOPIA_CONFIG=my-run.toml docker compose run --rm pyopia
+#
+# Output ownership
+# ----------------
+# UID/GID default to 1000. If your host user isn't 1000, export them
+# first so generated files aren't root-owned:
+#     export UID=$(id -u) GID=$(id -g)
+# (most Linux shells set UID automatically; GID often needs exporting.)
+
+services:
+  pyopia:
+    image: ghcr.io/sintef/pyopia:latest
+
+    # Match the host user so output files don't end up root-owned.
+    user: "${UID:-1000}:${GID:-1000}"
+
+    # Run inside the user's current directory — keeps relative paths in
+    # the config honest.
+    working_dir: ${PWD}
+
+    volumes:
+      # 1:1 mount of the invoker's current working directory. Any path
+      # referenced by config.toml that lives under $PWD resolves
+      # automatically.
+      - ${PWD}:${PWD}
+
+      # Uncomment and edit the lines below for paths referenced by
+      # config.toml that live OUTSIDE $PWD. The target (right of colon)
+      # MUST equal the source (left) so absolute paths in the config
+      # resolve unchanged — that's what makes bare-metal configs work
+      # inside the container with zero rewriting.
+      #
+      # Classifier weights (most common extra mount):
+      # - /home/you/models:/home/you/models:ro
+      #
+      # Input image archive on a different disk:
+      # - /data/silcam:/data/silcam:ro
+      #
+      # Output directory outside $PWD (writable, no :ro):
+      # - /scratch/pyopia-out:/scratch/pyopia-out
+
+    # Stdin + pseudo-TTY for interactive progress bars / prompts.
+    stdin_open: true
+    tty: true
+
+    # Default invocation: `pyopia process <config>`. PYOPIA_CONFIG lets
+    # you point at a different filename without editing this file.
+    command: ["process", "${PYOPIA_CONFIG:-config.toml}"]
