@@ -1,0 +1,50 @@
+# Keep the build context small so cache invalidations are predictable
+# and network transfer to remote builders stays cheap.
+
+# Version control
+.git
+.gitignore
+
+# CI / build metadata (baked into the image via COPY . . isn't useful)
+.github
+.readthedocs.yaml
+CITATION.cff
+
+# Documentation and notebooks — heavy, not needed at runtime
+docs
+notebooks
+*.ipynb
+
+# Python tooling artefacts
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.tox
+
+# Virtualenvs that might live in the source tree
+.venv
+venv
+env
+
+# OS / editor
+.DS_Store
+.vscode
+.idea
+*.swp
+*.swo
+
+# Local test data / output that should never ship in the image
+*.h5
+*.hdf5
+*.nc
+output/
+outputs/
+
+# Dockerfile artefacts (recursion)
+Dockerfile
+.dockerignore
