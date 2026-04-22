@@ -34,6 +34,74 @@ Will show you a montage of all the processed particle images in one.
 
 See the documentation for more information on how to install and use PyOPIA.
 
+# Running with Docker
+
+A prebuilt container image is published to GitHub Container Registry on every release, for users who prefer not to install PyOPIA's dependencies directly.
+
+## One-off invocation
+
+From any directory that contains a `config.toml`:
+
+```bash
+docker run --rm \
+    --user $(id -u):$(id -g) \
+    -v "$PWD:$PWD" -w "$PWD" \
+    ghcr.io/sintef/pyopia:latest \
+    process config.toml
+```
+
+The 1:1 volume mount (`-v "$PWD:$PWD"`) makes the container see your current directory at the same path as the host, so an existing `config.toml` with absolute paths under `$PWD` works unchanged.
+
+**If your config references paths outside `$PWD`** — most commonly a classifier weights file — add a matching bind mount for each of them.
+The target (right of the colon) must equal the source (left) so the path in the config resolves unchanged. 
+For a config like
+
+```toml
+[steps.classifier]
+pipeline_class = "pyopia.classify_torch.Classify"
+model_path = "/home/you/models/classifier.pt"
+```
+
+the invocation becomes
+
+```bash
+docker run --rm \
+    --user $(id -u):$(id -g) \
+    -v "$PWD:$PWD" -w "$PWD" \
+    -v /home/you/models:/home/you/models:ro \
+    ghcr.io/sintef/pyopia:latest \
+    process config.toml
+```
+
+Any PyOPIA CLI command works, e.g. `docker run --rm ghcr.io/sintef/pyopia:latest --help`.
+
+## Using docker compose
+
+Each GitHub release attaches a `compose.yaml` as an asset. 
+Download it once per project:
+
+```bash
+curl -LO https://github.com/SINTEF/pyopia/releases/latest/download/compose.yaml
+docker compose run --rm pyopia                       # runs `pyopia process config.toml`
+docker compose run --rm pyopia --help                # or any other CLI argument
+```
+
+The compose file has commented-out stubs for paths that live outside `$PWD` — in particular the classifier weights file. 
+Edit `compose.yaml` to uncomment the line and point it at your actual host path, e.g.
+
+```yaml
+    volumes:
+      - ${PWD}:${PWD}
+      - /home/you/models:/home/you/models:ro    # classifier weights
+```
+
+The target must match the source so the config-referenced path resolves unchanged. 
+Override the default config filename with `PYOPIA_CONFIG`:
+
+```bash
+PYOPIA_CONFIG=my_run.toml docker compose run --rm pyopia
+```
+
 # Documentation:
 
 [![Jupyter Book Badge](https://jupyterbook.org/badge.svg)](https://pyopia.readthedocs.io) [![Documentation](https://readthedocs.org/projects/pyopia/badge/?version=latest)](https://pyopia.readthedocs.io/en/latest/?badge=latest)
