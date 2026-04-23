@@ -21,7 +21,7 @@ class ReduceNoise():
         Key in Pipeline.data containing the input image. Defaults to ``'im_corrected'``.
     output_key : str | None, optional
         Key where the filtered image will be stored. If ``None``, the image is updated in place
-        (same key as ``image_source``). Defaults to ``None``.
+        in ``'im_denoised'``. Defaults to ``None``.
     gaussian_sigma : float, optional
         Gaussian sigma when ``method='gaussian'``. Defaults to ``1.0``.
     clahe_clip_limit : float, optional
@@ -43,7 +43,7 @@ class ReduceNoise():
         pipeline_class = 'pyopia.noise.ReduceNoise'
         method = 'gaussian'
         image_source = 'imraw'
-        output_key = 'imraw'
+        output_key = 'im_denoised'
         gaussian_sigma = 1.0
     '''
 
@@ -57,7 +57,7 @@ class ReduceNoise():
 
         self.method = method
         self.image_source = image_source
-        self.output_key = image_source if output_key is None else output_key
+        self.output_key = 'im_denoised' if output_key is None else output_key
         self.gaussian_sigma = gaussian_sigma
         self.clahe_clip_limit = clahe_clip_limit
         self.clahe_nbins = clahe_nbins

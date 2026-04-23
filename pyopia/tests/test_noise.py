@@ -30,10 +30,10 @@ def test_reduce_noise_clahe_returns_contrast_enhanced_float_image():
     reducer = ReduceNoise(method='clahe', image_source='im_corrected')
     out = reducer(data)
 
-    assert out['im_corrected'].shape == data['im_corrected'].shape
-    assert np.issubdtype(out['im_corrected'].dtype, np.floating)
-    assert out['im_corrected'].min() >= 0.0
-    assert out['im_corrected'].max() <= 1.0
+    assert out['im_denoised'].shape == data['im_corrected'].shape
+    assert np.issubdtype(out['im_denoised'].dtype, np.floating)
+    assert out['im_denoised'].min() >= 0.0
+    assert out['im_denoised'].max() <= 1.0
 
 
 def test_reduce_noise_invalid_method_raises_value_error():
@@ -63,4 +63,5 @@ def test_reduce_noise_can_run_as_pipeline_step():
 
     pipeline.run_step('noisereduction')
 
-    assert pipeline.data['im_corrected'][3, 3] < 1.0
+    assert pipeline.data['im_denoised'][3, 3] < 1.0
+    assert pipeline.data['im_corrected'][3, 3] == 1.0
