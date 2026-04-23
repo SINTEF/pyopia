@@ -20,8 +20,8 @@ class ReduceNoise():
     image_source : str, optional
         Key in Pipeline.data containing the input image. Defaults to ``'im_corrected'``.
     output_key : str | None, optional
-        Key where the filtered image will be stored. If ``None``, the image is updated in place
-        in ``'im_denoised'``. Defaults to ``None``.
+        Key where the filtered image will be stored. If ``None``, the filtered image is stored
+        in ``'im_denoised'`` (i.e. not in place). Defaults to ``None``.
     gaussian_sigma : float, optional
         Gaussian sigma when ``method='gaussian'``. Defaults to ``1.0``.
     clahe_clip_limit : float, optional
