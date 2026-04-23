@@ -22,6 +22,7 @@ parts:
   chapters:
   - file: notebooks/pipeline_step_by_step
   - file: notebooks/background_correction
+  - file: notebooks/noise_reduction
   - file: notebooks/exploring_pipeline_data
   - file: notebooks/montaging
 - caption: Code docs
