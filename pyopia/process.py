@@ -376,7 +376,7 @@ def measure_particles(imbw, max_particles=5000):
     return region_properties
 
 
-def segment(img, threshold=0.98, minimum_area=12, fill_holes=True):
+def segment(img, threshold=0.98, minimum_area=12, fill_holes=True, segmentation_method='fast'):
     '''Create a binary image from a background-corrected image.
 
     Parameters
@@ -389,6 +389,9 @@ def segment(img, threshold=0.98, minimum_area=12, fill_holes=True):
         minimum number of pixels to be considered a particle, by default 12
     fill_holes : bool, optional
         runs ndi.binary_fill_holes if True, by default True
+    segmentation_method : str, optional
+        Segmentation function to use. Supports ``'fast'`` and ``'accurate'``.
+        By default ``'fast'``.
 
     Returns
     -------
@@ -397,7 +400,12 @@ def segment(img, threshold=0.98, minimum_area=12, fill_holes=True):
     '''
     logger.info('segment')
 
-    imbw = image2blackwhite_fast(img, threshold)
+    if segmentation_method == 'fast':
+        imbw = image2blackwhite_fast(img, threshold)
+    elif segmentation_method == 'accurate':
+        imbw = image2blackwhite_accurate(img, threshold)
+    else:
+        raise ValueError(f"Unknown segmentation_method '{segmentation_method}'. Supported values are 'fast' and 'accurate'.")
 
     logger.info('clean')
 
@@ -493,6 +501,9 @@ class Segment():
     segment_source: (str, optional)
         The key in Pipeline.data of the image to be segmented.
         Defaults to 'im_corrected'
+    segmentation_method: (str, optional)
+        Segmentation method to use: ``'fast'`` or ``'accurate'``.
+        Defaults to ``'fast'``.
 
     Returns
     -------
@@ -506,16 +517,18 @@ class Segment():
                  minimum_area=12,
                  threshold=0.98,
                  fill_holes=True,
-                 segment_source='im_corrected'):
+                 segment_source='im_corrected',
+                 segmentation_method='fast'):
 
         self.minimum_area = minimum_area
         self.threshold = threshold
         self.fill_holes = fill_holes
         self.segment_source = segment_source
+        self.segmentation_method = segmentation_method
 
     def __call__(self, data):
         data['imbw'] = segment(data[self.segment_source], threshold=self.threshold, fill_holes=self.fill_holes,
-                               minimum_area=self.minimum_area)
+                               minimum_area=self.minimum_area, segmentation_method=self.segmentation_method)
         return data
 
 
