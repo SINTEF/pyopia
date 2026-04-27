@@ -37,6 +37,7 @@ pixel_size = 4.4 # pixel size of imaging system in microns'wavelength = 658, # l
     pipeline_class = 'pyopia.process.Segment'
     threshold = 0.99 # threshold used for segmentation
     segment_source = 'im_focussed'
+    segmentation_method = 'fast' # use 'accurate' to select image2blackwhite_accurate
 
     [steps.statextract]
     pipeline_class = 'pyopia.process.CalculateStats'

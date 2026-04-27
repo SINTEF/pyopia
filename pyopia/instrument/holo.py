@@ -668,7 +668,8 @@ def generate_config(raw_files: str, model_path: str, outfolder: str, output_pref
             'segmentation': {
                 'pipeline_class': 'pyopia.process.Segment',
                 'threshold': 0.9,
-                'segment_source': 'im_focussed'
+                'segment_source': 'im_focussed',
+                'segmentation_method': 'fast'
             },
             'statextract': {
                 'pipeline_class': 'pyopia.process.CalculateStats',
