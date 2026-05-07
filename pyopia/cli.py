@@ -371,6 +371,21 @@ def process_realtime(config_filename: str, watch_folder: str = None):
     # Load config and setup logging
     pipeline_config = pyopia.io.load_toml(config_filename)
     setup_logging(pipeline_config)
+
+    # Create output folders
+    if "output" not in pipeline_config["steps"]:
+        raise RuntimeError(
+            'The given config file is missing an "output" step.\n'
+            + "This is needed to setup how to save data to disc."
+        )
+    if "output_datafile" not in pipeline_config["steps"]["output"]:
+        raise RuntimeError(
+            'The given config file is missing "output_datafile" option in the "output" step.\n'
+            + "This is needed to setup how to save data to disc."
+        )
+    output_datafile = pipeline_config["steps"]["output"]["output_datafile"]
+    os.makedirs(os.path.split(output_datafile)[:-1][0], exist_ok=True)
+
     pyopia.realtime.run_realtime(pipeline_config, watch_folder=watch_folder)
 
 
