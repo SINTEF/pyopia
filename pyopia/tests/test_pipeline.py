@@ -189,6 +189,77 @@ def test_silcam_pipeline():
                                                      ' Something has altered the number of particles detected')
 
 
+def test_per_class_concentration():
+    '''Verifies PerClassConcentration writes timestamp-indexed per-class
+    number concentrations (numbers/L) to CSV across multiple images.
+    '''
+    import pandas as pd
+    from pyopia.statistics import PerClassConcentration, get_sample_volume
+
+    pixel_size = 28.0
+    path_length = 40.0
+    imy, imx = 2048, 2448
+    sample_volume = get_sample_volume(pixel_size, path_length, imx=imx, imy=imy)
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        output_csv = os.path.join(tempdir, 'sub', 'per_class.csv')
+
+        step = PerClassConcentration(
+            output_csv=output_csv,
+            probability_threshold=0.5,
+            overwrite=True,
+        )
+
+        # Image 1: 2 oil, 1 bubble, 1 below-threshold (unclassified)
+        stats_1 = pd.DataFrame({
+            'equivalent_diameter': [10.0, 12.0, 14.0, 9.0],
+            'probability_oil': [0.9, 0.8, 0.1, 0.4],
+            'probability_bubble': [0.05, 0.15, 0.85, 0.35],
+            'probability_other': [0.05, 0.05, 0.05, 0.25],
+        })
+        ts_1 = pd.Timestamp('2026-05-07T12:00:00')
+
+        # Image 2: empty (placeholder NaN row, like pyopia.process.extract_particles)
+        stats_2 = pd.DataFrame({
+            'equivalent_diameter': [np.nan],
+            'probability_oil': [np.nan],
+            'probability_bubble': [np.nan],
+            'probability_other': [np.nan],
+        })
+        ts_2 = pd.Timestamp('2026-05-07T12:00:01')
+
+        data = {
+            'settings': {'general': {'pixel_size': pixel_size, 'path_length': path_length}},
+            'imraw': np.zeros((imy, imx, 3), dtype=np.uint8),
+        }
+
+        data['stats'] = stats_1
+        data['timestamp'] = ts_1
+        step(data)
+
+        data['stats'] = stats_2
+        data['timestamp'] = ts_2
+        step(data)
+
+        result = pd.read_csv(output_csv, index_col='timestamp', parse_dates=True)
+
+        # Expected concentrations (counts / sample_volume in numbers/L)
+        assert result.shape[0] == 2
+        assert list(result.index) == [ts_1, ts_2]
+        np.testing.assert_allclose(result.loc[ts_1, 'oil'], 2.0 / sample_volume)
+        np.testing.assert_allclose(result.loc[ts_1, 'bubble'], 1.0 / sample_volume)
+        np.testing.assert_allclose(result.loc[ts_1, 'other'], 0.0)
+        np.testing.assert_allclose(result.loc[ts_1, 'unclassified'], 1.0 / sample_volume)
+        np.testing.assert_allclose(result.loc[ts_1, 'total'], 4.0 / sample_volume)
+        np.testing.assert_allclose(result.loc[ts_1, 'sample_volume_L'], sample_volume)
+
+        # Empty image: zero concentrations across the board
+        for col in ['oil', 'bubble', 'other', 'unclassified', 'total']:
+            assert result.loc[ts_2, col] == 0.0
+        np.testing.assert_allclose(result.loc[ts_2, 'sample_volume_L'], sample_volume)
+
+
 if __name__ == "__main__":
     test_holo_pipeline()
     test_silcam_pipeline()
+    test_per_class_concentration()
