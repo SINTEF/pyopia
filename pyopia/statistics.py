@@ -1091,6 +1091,125 @@ def vd_to_nd(volume_distribution, dias):
     return number_distribution
 
 
+class PerClassConcentration:
+    """PyOpia pipeline-compatible class for computing per-class number concentrations
+    (in numbers/litre) for each processed image, and appending the result as a
+    timestamp-indexed row to a CSV file.
+
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.stats` (with ``probability_<class>`` columns)
+        - :attr:`pyopia.pipeline.Data.timestamp`
+
+    For every particle in the current image's stats, the most likely class is
+    selected as ``argmax`` over the ``probability_<class>`` columns. Particles
+    whose best-guess probability is below ``probability_threshold`` are counted
+    in an ``unclassified`` column. Counts are divided by the per-image sample
+    volume (computed from pixel size, path length and image dimensions) to give
+    a concentration in numbers/litre.
+
+    A row is appended to ``output_csv`` per image, with the image timestamp as
+    the index. Columns are ``<class_name>`` for each classifier class, plus
+    ``unclassified``, ``total`` and ``sample_volume_L``.
+
+    Both ``pixel_size`` and ``path_length`` are read from the ``general``
+    section of the settings dict (``data['settings']['general']``).
+
+    Parameters
+    ----------
+    output_csv : str
+        Path to the CSV file to write. Parent directory is created if missing.
+    probability_threshold : float, optional
+        Minimum best-guess probability for a particle to count toward its class.
+        Particles below this are counted in the ``unclassified`` column. Default 0.0.
+    overwrite : bool, optional
+        If True, remove any existing ``output_csv`` at construction time so the
+        run starts with a fresh file. Default False (append).
+
+    Returns
+    -------
+    data : :class:`pyopia.pipeline.Data`
+        The pipeline data dict, unchanged.
+
+    Example
+    -------
+    Example config for pipeline usage:
+
+    .. code-block:: toml
+
+        [general]
+        pixel_size = 28
+        path_length = 40
+
+        [steps.classconcentration]
+        pipeline_class = 'pyopia.statistics.PerClassConcentration'
+        output_csv = 'proc/per_class_concentration.csv'
+        probability_threshold = 0.5
+        overwrite = false
+    """
+
+    def __init__(self,
+                 output_csv,
+                 probability_threshold=0.0,
+                 overwrite=False):
+        self.output_csv = output_csv
+        self.probability_threshold = probability_threshold
+
+        outdir = os.path.dirname(self.output_csv)
+        if outdir:
+            os.makedirs(outdir, exist_ok=True)
+
+        if overwrite and os.path.exists(self.output_csv):
+            os.remove(self.output_csv)
+
+    def __call__(self, data):
+        stats = data['stats']
+        timestamp = pd.to_datetime(data['timestamp'])
+        general = data['settings']['general']
+        pixel_size = general['pixel_size']
+        path_length = general['path_length']
+
+        image = data.get('imraw')
+        if image is not None:
+            imy, imx = image.shape[:2]
+        else:
+            imx, imy = 2048, 2448
+
+        sample_volume = get_sample_volume(pixel_size, path_length, imx=imx, imy=imy)
+
+        prob_cols = [c for c in stats.columns if str(c).startswith('probability_')]
+        class_labels = [c[len('probability_'):] for c in prob_cols]
+
+        if len(prob_cols) == 0:
+            logger.warning('PerClassConcentration: no probability_* columns found in stats; '
+                           'writing empty per-class row.')
+
+        counts = {label: 0 for label in class_labels}
+        unclassified = 0
+
+        if not stats.empty and len(prob_cols) > 0:
+            valid = stats.dropna(subset=prob_cols)
+            if len(valid) > 0:
+                probs = valid[prob_cols].to_numpy(dtype=np.float64)
+                best_idx = np.argmax(probs, axis=1)
+                best_value = np.max(probs, axis=1)
+                above = best_value >= self.probability_threshold
+                for i, label in enumerate(class_labels):
+                    counts[label] = int(np.sum((best_idx == i) & above))
+                unclassified = int(np.sum(~above))
+
+        row = {label: counts[label] / sample_volume for label in class_labels}
+        row['unclassified'] = unclassified / sample_volume
+        row['total'] = (sum(counts.values()) + unclassified) / sample_volume
+        row['sample_volume_L'] = sample_volume
+
+        df_row = pd.DataFrame([row], index=pd.DatetimeIndex([timestamp], name='timestamp'))
+
+        write_header = not os.path.exists(self.output_csv)
+        df_row.to_csv(self.output_csv, mode='a', header=write_header)
+
+        return data
+
+
 def vd_to_nc(volume_distribution, dias):
     """calculate number concentration from volume distribution
 
