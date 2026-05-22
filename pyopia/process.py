@@ -204,6 +204,59 @@ def extract_roi(input_image, bbox):
     return roi
 
 
+def expand_bbox(bbox, image_shape, fraction):
+    '''Expand a bounding box by a fraction of its width and height, clamped to image bounds.
+
+    The expansion is split evenly on each side, so a fraction of 0.10 grows the
+    bounding box by 5% on each side (total +10% width, +10% height). Coordinates
+    are clamped to remain inside the image. Useful for adding visual context
+    around exported particle ROIs without altering the underlying regionprops
+    measurements.
+
+    Parameters
+    ----------
+    bbox : array-like of int
+        [min_row, min_col, max_row, max_col], following the skimage regionprops
+        convention where ``max_row`` and ``max_col`` are exclusive.
+    image_shape : tuple
+        Shape of the full image. Only the first two elements (H, W) are used,
+        so passing ``imc.shape`` works for both 2-D and 3-D images.
+    fraction : float
+        Total fractional expansion of width and height. ``0.1`` = +10%.
+        ``0`` (or ``None``) returns the bbox unchanged. Must be non-negative.
+
+    Returns
+    -------
+    expanded : ndarray of int, shape (4,)
+        Expanded and clamped bounding box, integer-valued.
+
+    Raises
+    ------
+    ValueError
+        If ``fraction`` is negative.
+    '''
+    bbox_int = np.asarray(bbox, dtype=int)
+    if fraction is None or fraction == 0:
+        return bbox_int
+    if fraction < 0:
+        raise ValueError(f'bbox_expansion must be non-negative, got {fraction}')
+
+    r1, c1, r2, c2 = bbox_int
+    H, W = image_shape[0], image_shape[1]
+
+    h = r2 - r1
+    w = c2 - c1
+    pad_r = int(round(h * fraction / 2.0))
+    pad_c = int(round(w * fraction / 2.0))
+
+    return np.array([
+        max(0, r1 - pad_r),
+        max(0, c1 - pad_c),
+        min(H, r2 + pad_r),
+        min(W, c2 + pad_c),
+    ], dtype=int)
+
+
 def put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i):
     '''Adds rois to an open hdf file if export_outputpath is not None.
     For use within {func}`pyopia.process.export_particles`
@@ -232,7 +285,8 @@ def put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i):
 
 def extract_particles(imc, timestamp, Classification, region_properties,
                       export_outputpath=None, min_length=0, propnames=['major_axis_length', 'minor_axis_length',
-                                                                       'equivalent_diameter']):
+                                                                       'equivalent_diameter'],
+                      bbox_expansion=0.0):
     '''Extracts the particles to build stats and export particle rois to HDF5 files
 
     Parameters
@@ -253,6 +307,13 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         Specifies list of skimage regionprops to export to the output file.
         Must contain default values that can be appended to,
         by default ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']
+    bbox_expansion : float, optional
+        Fractional expansion of the bounding box used when cropping each ROI for
+        export. ``0.0`` (default) preserves prior behaviour. ``0.1`` grows the
+        crop by 10% in width and height (5% on each side), clamped to image
+        bounds. Only the exported ROI image is affected; the ``minr/minc/maxr/
+        maxc`` columns saved in stats continue to report the un-expanded
+        regionprops bbox so that measurements are unchanged.
 
     Returns
     -------
@@ -304,8 +365,10 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         if ((data[i, 0] > min_length) & (data[i, 1] > 2)):
 
             nb_extractable_part += 1
-            # extract the region of interest from the corrected colour image
-            roi = extract_roi(imc, bboxes[i, :].astype(int))
+            # extract the region of interest from the corrected colour image,
+            # optionally with the bbox expanded by `bbox_expansion` to add context
+            roi_bbox = expand_bbox(bboxes[i, :], imc.shape, bbox_expansion)
+            roi = extract_roi(imc, roi_bbox)
 
             if Classification is not None:
                 # run a prediction on what type of particle this might be
@@ -426,7 +489,8 @@ def statextract(imbw, timestamp, imc,
                 max_particles=5000,
                 export_outputpath=None,
                 min_length=0,
-                propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter']):
+                propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter'],
+                bbox_expansion=0.0):
     '''Extracts statistics of particles in a binary images (imbw)
 
     Parameters
@@ -452,6 +516,9 @@ def statextract(imbw, timestamp, imc,
         Specifies list of skimage regionprops to export to the output file.
         Must contain default values that can be appended to,
         by default ['major_axis_length', 'minor_axis_length', 'equivalent_diameter']
+    bbox_expansion : float, optional
+        Fractional expansion of bounding boxes when cropping ROI images for export.
+        See :func:`extract_particles`. Defaults to 0.0 (no expansion).
 
     Returns
     -------
@@ -479,7 +546,8 @@ def statextract(imbw, timestamp, imc,
 
     stats = extract_particles(imc, timestamp, Classification, region_properties,
                               export_outputpath=export_outputpath, min_length=min_length,
-                              propnames=propnames)
+                              propnames=propnames,
+                              bbox_expansion=bbox_expansion)
 
     return stats, saturation
 
@@ -558,6 +626,19 @@ class CalculateStats():
     roi_source: (str, optional)
         Key of an image in Pipeline.data that is used for outputting ROIs and passing to the classifier.
         Defaults to 'im_corrected'
+    bbox_expansion: (float, optional)
+        Fractional expansion applied to each particle bounding box before the
+        ROI is cropped and exported, e.g. ``0.1`` enlarges the crop by 10% in
+        width and height (5% on each side, clamped to image bounds). The
+        regionprops measurements and the ``minr/minc/maxr/maxc`` columns
+        written into stats are unaffected. Defaults to ``0.0`` (no expansion).
+
+    Configure from a TOML pipeline as::
+
+        [steps.statextract]
+        pipeline_class = "pyopia.process.CalculateStats"
+        export_outputpath = "/path/to/rois"
+        bbox_expansion = 0.1
 
     Returns
     -------
@@ -572,7 +653,8 @@ class CalculateStats():
                  export_outputpath=None,
                  min_length=0,
                  propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter'],
-                 roi_source='im_corrected'):
+                 roi_source='im_corrected',
+                 bbox_expansion=0.0):
 
         self.max_coverage = max_coverage
         self.max_particles = max_particles
@@ -580,6 +662,7 @@ class CalculateStats():
         self.min_length = min_length
         self.propnames = propnames
         self.roi_source = roi_source
+        self.bbox_expansion = bbox_expansion
 
         self.calc_image_stats = CalculateImageStats()
 
@@ -591,7 +674,8 @@ class CalculateStats():
                                         max_particles=self.max_particles,
                                         export_outputpath=self.export_outputpath,
                                         min_length=self.min_length,
-                                        propnames=self.propnames)
+                                        propnames=self.propnames,
+                                        bbox_expansion=self.bbox_expansion)
         stats['timestamp'] = data['timestamp']
         stats['saturation'] = saturation
 
