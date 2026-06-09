@@ -226,7 +226,7 @@ class SilCamLoad():
     ----------
     image_format : str, optional
         Image file format. Can be either 'infer', 'rgb8', 'bayer_rg8' or 'mono8', by default 'infer'.
-    
+
     prefix_chars : int, optional
         Number of characters to ignore at the start of the filename when extracting the timestamp,
         by default 1 (to ignore the leading 'D' in the filename)
