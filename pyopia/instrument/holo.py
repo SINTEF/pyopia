@@ -21,7 +21,7 @@ from skimage.filters import sobel
 from skimage.morphology import disk, erosion, dilation
 import pyopia.process
 import struct
-from datetime import timedelta, datetime
+from datetime import timedelta
 from glob import glob
 
 import logging
