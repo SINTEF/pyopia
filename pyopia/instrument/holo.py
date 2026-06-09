@@ -103,23 +103,27 @@ class Load():
     filename : string
         hologram filename (.pgm)
 
+    prefix_chars : int, optional
+        Number of characters to ignore at the start of the filename when extracting the timestamp,
+        by default 1 (to ignore the leading 'D' in the filename)
+
     Returns
     -------
-    timestamp : timestamp
-        timestamp @todo
-    imraw : np.arraym
+    timestamp : pandas.Timestamp
+        timestamp from filename
+    imraw : np.array
         hologram
     '''
 
-    def __init__(self):
-        pass
+    def __init__(self, prefix_chars=1):
+        self.prefix_chars = prefix_chars
 
     def __call__(self, data):
         logger.info(data['filename'])
         try:
             timestamp = read_lisst_holo_info(data['filename'])
         except ValueError:
-            timestamp = pd.to_datetime(os.path.splitext(os.path.basename(data['filename']))[0][1:])
+            timestamp = pd.to_datetime(os.path.splitext(os.path.basename(data['filename']))[0][self.prefix_chars:])
         logger.info(timestamp)
         im = load_image(data['filename'])
         data['timestamp'] = timestamp
