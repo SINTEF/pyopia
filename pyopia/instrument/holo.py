@@ -64,15 +64,15 @@ class Initial():
         self.stepZ = stepZ
 
     def __call__(self, data):
-        logger.info('Using first raw file from list in general settings to determine image dimensions')
+        logger.debug('Using first raw file from list in general settings to determine image dimensions')
         raw_files = glob(data['settings']['general']['raw_files'])
         self.filename = raw_files[0]
         imtmp = load_image(self.filename)
         self.pixel_size = data['settings']['general']['pixel_size']
-        logger.info('Build kernel with pixel_size = ', self.pixel_size, 'um')
+        logger.info(f'Build kernel with pixel_size = {self.pixel_size} um')
         kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.n, self.offset, self.minZ, self.maxZ, self.stepZ)
         im_stack = np.zeros(np.shape(kern)).astype(np.float64)
-        logger.info('HoloInitial done', datetime.now())
+        logger.info('HoloInitial done')
         data['kern'] = kern
         data['im_stack'] = im_stack
         return data
@@ -124,7 +124,6 @@ class Load():
             timestamp = read_lisst_holo_info(data['filename'])
         except ValueError:
             timestamp = pd.to_datetime(os.path.splitext(os.path.basename(data['filename']))[0][self.prefix_chars:])
-        logger.info(timestamp)
         im = load_image(data['filename'])
         data['timestamp'] = timestamp
         data['imraw'] = im
@@ -607,7 +606,7 @@ def read_lisst_holo_info(filename):
     filenum = int(filenum.rsplit('.', 1)[0])
     timestamp = timestamp + timedelta(microseconds=filenum)
     timestamp = timestamp[0]
-    logger.info(timestamp.strftime('D%Y%m%dT%H%M%S.%f'))
+    logger.debug(timestamp.strftime('D%Y%m%dT%H%M%S.%f'))
     f.close()
 
     return timestamp
