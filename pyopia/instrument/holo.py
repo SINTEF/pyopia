@@ -562,6 +562,16 @@ class MergeStats():
         stack_rp = data['stack_rp']
         stack_ifocus = data['stack_ifocus']
 
+        # If there are no particles in the image, then stats has one row of nans
+        # This means that variables created here just need allocating and returning
+        if len(stack_ifocus) == 0:
+            logger.debug(f'stack_ifocus is empty - allocating nan to ifocus and z. Filename: {data['filename']}')
+            stats['ifocus'] = np.nan
+            stats['z'] = np.nan
+            stats['holo_filename'] = data['filename']
+            data['stats'] = stats
+            return data
+
         bbox = np.empty((0, 4), int)
         for rp in stack_rp:
             bbox = np.append(bbox, [rp.bbox], axis=0)
