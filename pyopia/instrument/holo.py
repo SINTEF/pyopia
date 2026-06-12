@@ -104,8 +104,12 @@ class Load():
         hologram filename (.pgm)
 
     prefix_chars : int, optional
-        Number of characters to ignore at the start of the filename when extracting the timestamp,
-        by default 1 (to ignore the leading 'D' in the filename)
+        number of characters to ignore at start of filename when parsing timestamp,
+        by default 1 (e.g. to ignore 'D' in 'D20221101T120000.pgm')
+
+    datetime_format : string, optional
+        Format string for parsing the timestamp from the filename,
+        by default None (automatic parsing with pandas.to_datetime)
 
     Returns
     -------
@@ -115,15 +119,17 @@ class Load():
         hologram
     '''
 
-    def __init__(self, prefix_chars=1):
+    def __init__(self, prefix_chars=1, datetime_format=None):
         self.prefix_chars = prefix_chars
+        self.datetime_format = datetime_format
 
     def __call__(self, data):
         logger.info(data['filename'])
         try:
             timestamp = read_lisst_holo_info(data['filename'])
         except ValueError:
-            timestamp = pd.to_datetime(os.path.splitext(os.path.basename(data['filename']))[0][self.prefix_chars:])
+            timestamp = pd.to_datetime(os.path.splitext(os.path.basename(data['filename']))[0][self.prefix_chars:],
+                                       format=self.datetime_format)
         im = load_image(data['filename'])
         data['timestamp'] = timestamp
         data['imraw'] = im

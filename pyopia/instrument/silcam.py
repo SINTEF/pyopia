@@ -14,7 +14,7 @@ from skimage.exposure import rescale_intensity
 import skimage.io
 
 
-def timestamp_from_filename(filename, prefix_chars=1):
+def timestamp_from_filename(filename, prefix_chars=1, datetime_format=None):
     '''get a pandas timestamp from a silcam filename
 
     Parameters
@@ -23,8 +23,12 @@ def timestamp_from_filename(filename, prefix_chars=1):
         silcam filename (.silc)
 
     prefix_chars : int, optional
-        Number of characters to ignore at the start of the filename when extracting the timestamp,
-        by default 1 (to ignore the leading 'D' in the filename)
+        number of characters to ignore at start of filename when parsing timestamp,
+        by default 1 (e.g. to ignore 'D' in 'D20221101T120000.silc')
+
+    datetime_format : string, optional
+        Format string for parsing the timestamp from the filename,
+        by default None (automatic parsing with pandas.to_datetime)
 
     Returns
     -------
@@ -33,7 +37,8 @@ def timestamp_from_filename(filename, prefix_chars=1):
     '''
 
     # get the timestamp of the image (in this case from the filename)
-    timestamp = pd.to_datetime(os.path.splitext(os.path.basename(filename))[0][prefix_chars:])
+    timestamp = pd.to_datetime(os.path.splitext(os.path.basename(filename))[0][prefix_chars:],
+                               format=datetime_format)
     return timestamp
 
 
@@ -228,8 +233,12 @@ class SilCamLoad():
         Image file format. Can be either 'infer', 'rgb8', 'bayer_rg8' or 'mono8', by default 'infer'.
 
     prefix_chars : int, optional
-        Number of characters to ignore at the start of the filename when extracting the timestamp,
-        by default 1 (to ignore the leading 'D' in the filename)
+        number of characters to ignore at start of filename when parsing timestamp,
+        by default 1 (e.g. to ignore 'D' in 'D20221101T120000.silc')
+
+    datetime_format : string, optional
+        Format string for parsing the timestamp from the filename,
+        by default None (automatic parsing with pandas.to_datetime)
 
     Note
     ----
@@ -249,8 +258,9 @@ class SilCamLoad():
         :attr:`pyopia.pipeline.Data.img`
     '''
 
-    def __init__(self, image_format='infer', prefix_chars=1):
+    def __init__(self, image_format='infer', prefix_chars=1, datetime_format=None):
         self.prefix_chars = prefix_chars
+        self.datetime_format = datetime_format
         self.image_format = image_format
         self.extension_load = {'.silc': load_rgb8,
                                '.msilc': load_mono8,
@@ -260,7 +270,9 @@ class SilCamLoad():
                             'MONO8': load_mono8, 'BAYER_RG8': load_bayer_rgb8}
 
     def __call__(self, data):
-        data['timestamp'] = timestamp_from_filename(data['filename'], prefix_chars=self.prefix_chars)
+        data['timestamp'] = timestamp_from_filename(data['filename'],
+                                                    prefix_chars=self.prefix_chars,
+                                                    datetime_format=self.datetime_format)
         data['imraw'] = self.load_image(data['filename'])
         return data
 
