@@ -20,8 +20,9 @@ from skimage.io import imread
 from skimage.filters import sobel
 from skimage.morphology import disk, erosion, dilation
 import pyopia.process
-from pyopia.pipeline import FilesToProcess
 import struct
+from datetime import timedelta, datetime
+from glob import glob
 from datetime import timedelta
 
 import logging
@@ -64,9 +65,9 @@ class Initial():
         self.stepZ = stepZ
 
     def __call__(self, data):
-        logger.debug('Using first raw file from list in general settings to determine image dimensions')
-        raw_files = FilesToProcess(data['settings']['general']['raw_files'])
-        self.filename = raw_files.files[0]
+        logger.info('Using first raw file from list in general settings to determine image dimensions')
+        raw_files = glob(data['settings']['general']['raw_files'])
+        self.filename = raw_files[0]
         imtmp = load_image(self.filename)
         self.pixel_size = data['settings']['general']['pixel_size']
         logger.info(f'Build kernel with pixel_size = {self.pixel_size} um')
@@ -616,7 +617,6 @@ def read_lisst_holo_info(filename):
     filenum = int(filenum.rsplit('.', 1)[0])
     timestamp = timestamp + timedelta(microseconds=filenum)
     timestamp = timestamp[0]
-    logger.debug(timestamp.strftime('D%Y%m%dT%H%M%S.%f'))
     f.close()
 
     return timestamp
