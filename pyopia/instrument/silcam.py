@@ -14,7 +14,7 @@ from skimage.exposure import rescale_intensity
 import skimage.io
 
 
-def timestamp_from_filename(filename, prefix_chars=1, datetime_format=None):
+def timestamp_from_filename(filename, prefix_chars=1):
     '''get a pandas timestamp from a silcam filename
 
     Parameters
@@ -26,10 +26,6 @@ def timestamp_from_filename(filename, prefix_chars=1, datetime_format=None):
         number of characters to ignore at start of filename when parsing timestamp,
         by default 1 (e.g. to ignore 'D' in 'D20221101T120000.silc')
 
-    datetime_format : string, optional
-        Format string for parsing the timestamp from the filename,
-        by default None (automatic parsing with pandas.to_datetime)
-
     Returns
     -------
     timestamp : pandas.Timestamp
@@ -37,8 +33,7 @@ def timestamp_from_filename(filename, prefix_chars=1, datetime_format=None):
     '''
 
     # get the timestamp of the image (in this case from the filename)
-    timestamp = pd.to_datetime(os.path.splitext(os.path.basename(filename))[0][prefix_chars:],
-                               format=datetime_format)
+    timestamp = pd.to_datetime(os.path.splitext(os.path.basename(filename))[0][prefix_chars:])
     return timestamp
 
 
@@ -236,10 +231,6 @@ class SilCamLoad():
         number of characters to ignore at start of filename when parsing timestamp,
         by default 1 (e.g. to ignore 'D' in 'D20221101T120000.silc')
 
-    datetime_format : string, optional
-        Format string for parsing the timestamp from the filename,
-        by default None (automatic parsing with pandas.to_datetime)
-
     Note
     ----
         'infer' uses the file extension to determine the image format using the following convention:
@@ -258,9 +249,8 @@ class SilCamLoad():
         :attr:`pyopia.pipeline.Data.img`
     '''
 
-    def __init__(self, image_format='infer', prefix_chars=1, datetime_format=None):
+    def __init__(self, image_format='infer', prefix_chars=1):
         self.prefix_chars = prefix_chars
-        self.datetime_format = datetime_format
         self.image_format = image_format
         self.extension_load = {'.silc': load_rgb8,
                                '.msilc': load_mono8,
@@ -271,8 +261,7 @@ class SilCamLoad():
 
     def __call__(self, data):
         data['timestamp'] = timestamp_from_filename(data['filename'],
-                                                    prefix_chars=self.prefix_chars,
-                                                    datetime_format=self.datetime_format)
+                                                    prefix_chars=self.prefix_chars)
         data['imraw'] = self.load_image(data['filename'])
         return data
 
