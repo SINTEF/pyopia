@@ -127,6 +127,7 @@ def _worker_loop(
                 runtime_state["current_file"] = "idle"
             time.sleep(0.1)
 
+
 def run_realtime(pipeline_config: dict, watch_folder: str | None = None):
     """Run a PyOPIA processing pipeline in realtime by watching a folder.
 
