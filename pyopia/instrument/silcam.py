@@ -14,21 +14,26 @@ from skimage.exposure import rescale_intensity
 import skimage.io
 
 
-def timestamp_from_filename(filename):
+def timestamp_from_filename(filename, prefix_chars=1):
     '''get a pandas timestamp from a silcam filename
 
     Parameters
     ----------
-    filename (string): silcam filename (.silc)
+    filename : string
+        silcam filename (.silc)
+
+    prefix_chars : int, optional
+        number of characters to ignore at start of filename when parsing timestamp,
+        by default 1 (e.g. to ignore 'D' in 'D20221101T120000.silc')
 
     Returns
     -------
-    timestamp: timestamp
+    timestamp : pandas.Timestamp
         timestamp from pandas.to_datetime()
     '''
 
     # get the timestamp of the image (in this case from the filename)
-    timestamp = pd.to_datetime(os.path.splitext(os.path.basename(filename))[0][1:])
+    timestamp = pd.to_datetime(os.path.splitext(os.path.basename(filename))[0][prefix_chars:])
     return timestamp
 
 
@@ -222,6 +227,10 @@ class SilCamLoad():
     image_format : str, optional
         Image file format. Can be either 'infer', 'rgb8', 'bayer_rg8' or 'mono8', by default 'infer'.
 
+    prefix_chars : int, optional
+        number of characters to ignore at start of filename when parsing timestamp,
+        by default 1 (e.g. to ignore 'D' in 'D20221101T120000.silc')
+
     Note
     ----
         'infer' uses the file extension to determine the image format using the following convention:
@@ -240,7 +249,8 @@ class SilCamLoad():
         :attr:`pyopia.pipeline.Data.img`
     '''
 
-    def __init__(self, image_format='infer'):
+    def __init__(self, image_format='infer', prefix_chars=1):
+        self.prefix_chars = prefix_chars
         self.image_format = image_format
         self.extension_load = {'.silc': load_rgb8,
                                '.msilc': load_mono8,
@@ -250,7 +260,8 @@ class SilCamLoad():
                             'MONO8': load_mono8, 'BAYER_RG8': load_bayer_rgb8}
 
     def __call__(self, data):
-        data['timestamp'] = timestamp_from_filename(data['filename'])
+        data['timestamp'] = timestamp_from_filename(data['filename'],
+                                                    prefix_chars=self.prefix_chars)
         data['imraw'] = self.load_image(data['filename'])
         return data
 

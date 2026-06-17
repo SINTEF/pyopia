@@ -21,7 +21,7 @@ from skimage.filters import sobel
 from skimage.morphology import disk, erosion, dilation
 import pyopia.process
 import struct
-from datetime import timedelta, datetime
+from datetime import timedelta
 from glob import glob
 
 import logging
@@ -69,10 +69,10 @@ class Initial():
         self.filename = raw_files[0]
         imtmp = load_image(self.filename)
         self.pixel_size = data['settings']['general']['pixel_size']
-        logger.info('Build kernel with pixel_size = ', self.pixel_size, 'um')
+        logger.info(f'Build kernel with pixel_size = {self.pixel_size} um')
         kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.n, self.offset, self.minZ, self.maxZ, self.stepZ)
         im_stack = np.zeros(np.shape(kern)).astype(np.float64)
-        logger.info('HoloInitial done', datetime.now())
+        logger.info('HoloInitial done')
         data['kern'] = kern
         data['im_stack'] = im_stack
         return data
@@ -103,24 +103,27 @@ class Load():
     filename : string
         hologram filename (.pgm)
 
+    prefix_chars : int, optional
+        number of characters to ignore at start of filename when parsing timestamp,
+        by default 1 (e.g. to ignore 'D' in 'D20221101T120000.pgm')
+
     Returns
     -------
-    timestamp : timestamp
-        timestamp @todo
-    imraw : np.arraym
+    timestamp : pandas.Timestamp
+        timestamp from filename
+    imraw : np.array
         hologram
     '''
 
-    def __init__(self):
-        pass
+    def __init__(self, prefix_chars=1):
+        self.prefix_chars = prefix_chars
 
     def __call__(self, data):
         logger.info(data['filename'])
         try:
             timestamp = read_lisst_holo_info(data['filename'])
         except ValueError:
-            timestamp = pd.to_datetime(os.path.splitext(os.path.basename(data['filename']))[0][1:])
-        logger.info(timestamp)
+            timestamp = pd.to_datetime(os.path.splitext(os.path.basename(data['filename']))[0][self.prefix_chars:])
         im = load_image(data['filename'])
         data['timestamp'] = timestamp
         data['imraw'] = im
@@ -559,6 +562,16 @@ class MergeStats():
         stack_rp = data['stack_rp']
         stack_ifocus = data['stack_ifocus']
 
+        # If there are no particles in the image, then stats has one row of nans
+        # This means that variables created here just need allocating and returning
+        if len(stack_ifocus) == 0:
+            logger.debug(f"stack_ifocus is empty. Allocating nan to ifocus and z. Filename: {data['filename']}")
+            stats['ifocus'] = np.nan
+            stats['z'] = np.nan
+            stats['holo_filename'] = data['filename']
+            data['stats'] = stats
+            return data
+
         bbox = np.empty((0, 4), int)
         for rp in stack_rp:
             bbox = np.append(bbox, [rp.bbox], axis=0)
@@ -603,7 +616,6 @@ def read_lisst_holo_info(filename):
     filenum = int(filenum.rsplit('.', 1)[0])
     timestamp = timestamp + timedelta(microseconds=filenum)
     timestamp = timestamp[0]
-    logger.info(timestamp.strftime('D%Y%m%dT%H%M%S.%f'))
     f.close()
 
     return timestamp
