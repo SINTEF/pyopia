@@ -19,10 +19,10 @@ from scipy import fft
 from skimage.io import imread
 from skimage.filters import sobel
 from skimage.morphology import disk, erosion, dilation
+import pyopia.pipeline
 import pyopia.process
 import struct
 from datetime import timedelta
-from glob import glob
 
 import logging
 logger = logging.getLogger()
@@ -65,8 +65,8 @@ class Initial():
 
     def __call__(self, data):
         logger.info('Using first raw file from list in general settings to determine image dimensions')
-        raw_files = glob(data['settings']['general']['raw_files'])
-        self.filename = raw_files[0]
+        raw_files = pyopia.pipeline.FilesToProcess(data['settings']['general']['raw_files'])
+        self.filename = raw_files.files[0]
         imtmp = load_image(self.filename)
         self.pixel_size = data['settings']['general']['pixel_size']
         logger.info(f'Build kernel with pixel_size = {self.pixel_size} um')
