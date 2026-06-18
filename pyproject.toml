@@ -4,7 +4,7 @@ dynamic = ["version"]
 description = "A Python Ocean Particle Image Analysis toolbox."
 authors = [
     { name = "Emlyn Davies", email = "emlyn.davies@sintef.no" },
-    { name = "Alex Nimmo Smith@plymouth.ac.uk", email = "alex.nimmo.smith@plymouth.ac.uk" },
+    { name = "Alex Nimmo Smith", email = "alex@nimmosmith.co.uk" },
 ]
 requires-python = "~=3.12.0"
 readme = "README.md"
