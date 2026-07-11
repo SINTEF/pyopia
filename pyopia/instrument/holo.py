@@ -9,7 +9,7 @@ Journal of Atmospheric and Oceanic Technology 32, (6) 1241-1256,
 https://doi.org/10.1175/JTECH-D-14-00157.1
 https://journals.ametsoc.org/view/journals/atot/32/6/jtech-d-14-00157_1.xml
 
-2022-11-01 Alex Nimmo-Smith alex.nimmo.smith@plymouth.ac.uk
+2022-11-01 Alex Nimmo-Smith alex@nimmosmith.co.uk
 '''
 
 import os
