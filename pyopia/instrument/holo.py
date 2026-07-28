@@ -22,7 +22,6 @@ from skimage.morphology import disk, erosion, dilation
 import pyopia.process
 import struct
 from datetime import timedelta
-from glob import glob
 
 import logging
 logger = logging.getLogger()
@@ -30,6 +29,11 @@ logger = logging.getLogger()
 
 class Initial():
     '''PyOpia pipline-compatible class for one-time setup of holograhic reconstruction
+
+    Stores the reconstruction parameters needed to build the reconstruction kernel.
+    The kernel itself is built lazily on the first call to :class:`Reconstruct`, using the
+    dimensions of the first hologram actually loaded by the pipeline. This avoids needing to
+    glob or otherwise list the raw files here just to peek at one for its dimensions.
 
     Parameters
     ----------
@@ -48,11 +52,10 @@ class Initial():
 
     Returns
     -------
-    kern : np.arry
-        reconstruction kernel
-    im_stack : np.array
-        pre-allocated array to receive reconstruction
+    data : :class:`pyopia.pipeline.Data`
+        containing the following new keys:
 
+        :attr:`pyopia.pipeline.Data.holo_recon_params`
     '''
 
     def __init__(self, wavelength, n, offset, minZ, maxZ, stepZ):
@@ -64,17 +67,15 @@ class Initial():
         self.stepZ = stepZ
 
     def __call__(self, data):
-        logger.info('Using first raw file from list in general settings to determine image dimensions')
-        raw_files = glob(data['settings']['general']['raw_files'])
-        self.filename = raw_files[0]
-        imtmp = load_image(self.filename)
-        self.pixel_size = data['settings']['general']['pixel_size']
-        logger.info(f'Build kernel with pixel_size = {self.pixel_size} um')
-        kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.n, self.offset, self.minZ, self.maxZ, self.stepZ)
-        im_stack = np.zeros(np.shape(kern)).astype(np.float64)
-        logger.info('HoloInitial done')
-        data['kern'] = kern
-        data['im_stack'] = im_stack
+        data['holo_recon_params'] = {
+            'wavelength': self.wavelength,
+            'n': self.n,
+            'offset': self.offset,
+            'minZ': self.minZ,
+            'maxZ': self.maxZ,
+            'stepZ': self.stepZ,
+        }
+        logger.info('HoloInitial done. Kernel will be built on first call to Reconstruct.')
         return data
 
 
@@ -135,6 +136,11 @@ class Reconstruct():
 
     Required keys in :class:`pyopia.pipeline.Data`:
         - :attr:`pyopia.pipeline.Data.im_corrected`
+        - :attr:`pyopia.pipeline.Data.holo_recon_params` (set by :class:`Initial`)
+
+    On the first call, builds the reconstruction kernel and image stack from the dimensions
+    of `im_corrected` and stores them on `data['kern']` / `data['im_stack']` for reuse on
+    subsequent calls.
 
     Parameters
     ----------
@@ -160,6 +166,14 @@ class Reconstruct():
 
     def __call__(self, data):
         imc = data['im_corrected']
+
+        if 'kern' not in data:
+            pixel_size = data['settings']['general']['pixel_size']
+            logger.info(f'Build kernel with pixel_size = {pixel_size} um')
+            kern = create_kernel(imc, pixel_size, **data['holo_recon_params'])
+            data['kern'] = kern
+            data['im_stack'] = np.zeros(np.shape(kern)).astype(np.float64)
+
         kern = data['kern']
         im_stack = data['im_stack']
 
