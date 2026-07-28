@@ -9,7 +9,7 @@ Journal of Atmospheric and Oceanic Technology 32, (6) 1241-1256,
 https://doi.org/10.1175/JTECH-D-14-00157.1
 https://journals.ametsoc.org/view/journals/atot/32/6/jtech-d-14-00157_1.xml
 
-2022-11-01 Alex Nimmo-Smith alex.nimmo.smith@plymouth.ac.uk
+2022-11-01 Alex Nimmo-Smith alex@nimmosmith.co.uk
 '''
 
 import os
@@ -21,8 +21,7 @@ from skimage.filters import sobel
 from skimage.morphology import disk, erosion, dilation
 import pyopia.process
 import struct
-from datetime import timedelta, datetime
-from glob import glob
+from datetime import timedelta
 
 import logging
 logger = logging.getLogger()
@@ -30,6 +29,11 @@ logger = logging.getLogger()
 
 class Initial():
     '''PyOpia pipline-compatible class for one-time setup of holograhic reconstruction
+
+    Stores the reconstruction parameters needed to build the reconstruction kernel.
+    The kernel itself is built lazily on the first call to :class:`Reconstruct`, using the
+    dimensions of the first hologram actually loaded by the pipeline. This avoids needing to
+    glob or otherwise list the raw files here just to peek at one for its dimensions.
 
     Parameters
     ----------
@@ -48,11 +52,10 @@ class Initial():
 
     Returns
     -------
-    kern : np.arry
-        reconstruction kernel
-    im_stack : np.array
-        pre-allocated array to receive reconstruction
+    data : :class:`pyopia.pipeline.Data`
+        containing the following new keys:
 
+        :attr:`pyopia.pipeline.Data.holo_recon_params`
     '''
 
     def __init__(self, wavelength, n, offset, minZ, maxZ, stepZ):
@@ -64,17 +67,15 @@ class Initial():
         self.stepZ = stepZ
 
     def __call__(self, data):
-        logger.info('Using first raw file from list in general settings to determine image dimensions')
-        raw_files = glob(data['settings']['general']['raw_files'])
-        self.filename = raw_files[0]
-        imtmp = load_image(self.filename)
-        self.pixel_size = data['settings']['general']['pixel_size']
-        logger.info('Build kernel with pixel_size = ', self.pixel_size, 'um')
-        kern = create_kernel(imtmp, self.pixel_size, self.wavelength, self.n, self.offset, self.minZ, self.maxZ, self.stepZ)
-        im_stack = np.zeros(np.shape(kern)).astype(np.float64)
-        logger.info('HoloInitial done', datetime.now())
-        data['kern'] = kern
-        data['im_stack'] = im_stack
+        data['holo_recon_params'] = {
+            'wavelength': self.wavelength,
+            'n': self.n,
+            'offset': self.offset,
+            'minZ': self.minZ,
+            'maxZ': self.maxZ,
+            'stepZ': self.stepZ,
+        }
+        logger.info('HoloInitial done. Kernel will be built on first call to Reconstruct.')
         return data
 
 
@@ -103,24 +104,27 @@ class Load():
     filename : string
         hologram filename (.pgm)
 
+    prefix_chars : int, optional
+        number of characters to ignore at start of filename when parsing timestamp,
+        by default 1 (e.g. to ignore 'D' in 'D20221101T120000.pgm')
+
     Returns
     -------
-    timestamp : timestamp
-        timestamp @todo
-    imraw : np.arraym
+    timestamp : pandas.Timestamp
+        timestamp from filename
+    imraw : np.array
         hologram
     '''
 
-    def __init__(self):
-        pass
+    def __init__(self, prefix_chars=1):
+        self.prefix_chars = prefix_chars
 
     def __call__(self, data):
         logger.info(data['filename'])
         try:
             timestamp = read_lisst_holo_info(data['filename'])
         except ValueError:
-            timestamp = pd.to_datetime(os.path.splitext(os.path.basename(data['filename']))[0][1:])
-        logger.info(timestamp)
+            timestamp = pd.to_datetime(os.path.splitext(os.path.basename(data['filename']))[0][self.prefix_chars:])
         im = load_image(data['filename'])
         data['timestamp'] = timestamp
         data['imraw'] = im
@@ -132,6 +136,11 @@ class Reconstruct():
 
     Required keys in :class:`pyopia.pipeline.Data`:
         - :attr:`pyopia.pipeline.Data.im_corrected`
+        - :attr:`pyopia.pipeline.Data.holo_recon_params` (set by :class:`Initial`)
+
+    On the first call, builds the reconstruction kernel and image stack from the dimensions
+    of `im_corrected` and stores them on `data['kern']` / `data['im_stack']` for reuse on
+    subsequent calls.
 
     Parameters
     ----------
@@ -157,6 +166,14 @@ class Reconstruct():
 
     def __call__(self, data):
         imc = data['im_corrected']
+
+        if 'kern' not in data:
+            pixel_size = data['settings']['general']['pixel_size']
+            logger.info(f'Build kernel with pixel_size = {pixel_size} um')
+            kern = create_kernel(imc, pixel_size, **data['holo_recon_params'])
+            data['kern'] = kern
+            data['im_stack'] = np.zeros(np.shape(kern)).astype(np.float64)
+
         kern = data['kern']
         im_stack = data['im_stack']
 
@@ -559,6 +576,16 @@ class MergeStats():
         stack_rp = data['stack_rp']
         stack_ifocus = data['stack_ifocus']
 
+        # If there are no particles in the image, then stats has one row of nans
+        # This means that variables created here just need allocating and returning
+        if len(stack_ifocus) == 0:
+            logger.debug(f"stack_ifocus is empty. Allocating nan to ifocus and z. Filename: {data['filename']}")
+            stats['ifocus'] = np.nan
+            stats['z'] = np.nan
+            stats['holo_filename'] = data['filename']
+            data['stats'] = stats
+            return data
+
         bbox = np.empty((0, 4), int)
         for rp in stack_rp:
             bbox = np.append(bbox, [rp.bbox], axis=0)
@@ -603,7 +630,6 @@ def read_lisst_holo_info(filename):
     filenum = int(filenum.rsplit('.', 1)[0])
     timestamp = timestamp + timedelta(microseconds=filenum)
     timestamp = timestamp[0]
-    logger.info(timestamp.strftime('D%Y%m%dT%H%M%S.%f'))
     f.close()
 
     return timestamp
