@@ -54,6 +54,22 @@ def docs():
     typer.launch("https://pyopia.readthedocs.io")
 
 
+def version_callback(value: bool):
+    if value:
+        print(f"PyOPIA version: {pyopia.__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def main(
+    version: Annotated[
+        bool,
+        typer.Option("--version", callback=version_callback, is_eager=True, help="Show version and exit.")
+    ] = False
+):
+    pass
+
+
 @app.command()
 def modify_config(
     existing_filename: str,
