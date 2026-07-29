@@ -7,12 +7,13 @@ from glob import glob
 import tempfile
 import os
 import numpy as np
+import pytest
 import skimage.io
 
 import pyopia.exampledata as testdata
 import pyopia.io
 import pyopia.classify
-from pyopia.pipeline import Pipeline
+from pyopia.pipeline import FilesToProcess, Pipeline
 import pyopia.process
 import pyopia.statistics
 import pyopia.background  # noqa: F401
@@ -259,7 +260,23 @@ def test_per_class_concentration():
         np.testing.assert_allclose(result.loc[ts_2, 'sample_volume_L'], sample_volume)
 
 
+def test_files_to_process_raises_clear_error_for_no_matching_files(tmp_path):
+    '''Regression test for #279: an empty/non-matching raw_files pattern used to surface
+    as a misleading "Number of chunks exceeds..." RuntimeError instead of a clear
+    "no files found" error.
+    '''
+    empty_dir = tmp_path / 'empty'
+    empty_dir.mkdir()
+    glob_pattern = str(empty_dir / '*.silc')
+
+    raw_files = FilesToProcess(glob_pattern)
+
+    with pytest.raises(RuntimeError, match='No raw files found'):
+        raw_files.prepare_chunking(num_chunks=1, average_window=0, bgshift_function='pass')
+
+
 if __name__ == "__main__":
     test_holo_pipeline()
     test_silcam_pipeline()
     test_per_class_concentration()
+    test_files_to_process_raises_clear_error_for_no_matching_files()
