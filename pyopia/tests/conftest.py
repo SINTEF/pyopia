@@ -1,5 +1,12 @@
 '''
-Shared pytest fixtures for pyopia.cli integration tests.
+Shared pytest fixtures for the pyopia test suite.
+
+The fixtures below that download real example data (images, models, the classifier
+training database) are session-scoped: pytest creates each one at most once per test
+run and hands the same object to every test that asks for it, regardless of which
+test file it's in. This is what lets pyopia.tests.test_classify, test_pipeline, and
+test_cli share a single real network download instead of each fetching their own copy.
+See issue #403 for the motivation.
 '''
 
 import os
@@ -28,28 +35,68 @@ def invoke_in(directory, args):
 
 
 @pytest.fixture(scope='session')
-def silcam_example_files(tmp_path_factory):
-    '''Download the real SilCam example image and classifier model once per test session.
+def silcam_example_image_dir(tmp_path_factory):
+    '''Download the real SilCam example image once per test session.
+
+    Returns the directory it was downloaded into, so a glob pattern like
+    ``f'{silcam_example_image_dir}/*.silc'`` finds it.
+    '''
+    download_dir = tmp_path_factory.mktemp('silcam_example_image')
+    pyopia.exampledata.get_example_silc_image(str(download_dir))
+    return download_dir
+
+
+@pytest.fixture(scope='session')
+def example_model_path(tmp_path_factory):
+    '''Download the real PyOPIA example classifier model once per test session.'''
+    download_dir = tmp_path_factory.mktemp('example_model')
+    return pyopia.exampledata.get_example_model(str(download_dir))
+
+
+@pytest.fixture(scope='session')
+def holo_example_files(tmp_path_factory):
+    '''Download the real LISST-HOLO example hologram and its background image
+    once per test session. Returns (holo_filename, holo_background_filename).
+    '''
+    download_dir = tmp_path_factory.mktemp('holo_example_files')
+    return pyopia.exampledata.get_example_hologram_and_background(str(download_dir))
+
+
+@pytest.fixture(scope='session')
+def classifier_training_database(tmp_path_factory):
+    '''Download the real SilCam classifier training/labelled database once per
+    test session. Returns the path to the downloaded database folder.
+    '''
+    download_dir = tmp_path_factory.mktemp('classifier_training_database')
+    database_path = os.path.join(str(download_dir), 'silcam_classification_database')
+    pyopia.exampledata.get_classifier_database_from_pysilcam_blob(database_path)
+    return database_path
+
+
+@pytest.fixture(scope='session')
+def silcam_example_files(tmp_path_factory, silcam_example_image_dir, example_model_path):
+    '''Real SilCam example image and classifier model, for CLI integration tests.
 
     pyopia.pipeline.FilesToProcess.prepare_chunking() refuses to process a raw file
     list with fewer than 2 entries (`num_chunks > len(files) // 2`), even for the
     default single-chunk case. Only one distinct real raw frame is available via
-    pyopia.exampledata, so the downloaded image is duplicated under a second,
-    differently-timestamped filename to satisfy that minimum. The image content
-    processed by the pipeline is still the real downloaded photo, just used twice;
-    no pipeline/classification logic is faked.
-    '''
-    download_dir = tmp_path_factory.mktemp('silcam_example_data')
-    image_filename = pyopia.exampledata.get_example_silc_image(str(download_dir))
-    model_path = pyopia.exampledata.get_example_model(str(download_dir))
+    pyopia.exampledata, so it's copied into its own directory and duplicated under a
+    second, differently-timestamped filename there to satisfy that minimum. The image
+    content processed by the pipeline is still the real downloaded photo, just used
+    twice; no pipeline/classification logic is faked.
 
-    original_path = download_dir / image_filename
-    duplicate_path = download_dir / 'D20181101T142732.838206.silc'
-    shutil.copy(original_path, duplicate_path)
+    This copies into a private directory rather than duplicating the file directly in
+    `silcam_example_image_dir`, so that other tests sharing that fixture always see
+    exactly one real file regardless of test execution order.
+    '''
+    cli_download_dir = tmp_path_factory.mktemp('silcam_cli_download')
+    original_path = sorted(silcam_example_image_dir.glob('*.silc'))[0]
+    shutil.copy(original_path, cli_download_dir / original_path.name)
+    shutil.copy(original_path, cli_download_dir / 'D20181101T142732.838206.silc')
 
     return {
-        'download_dir': download_dir,
-        'model_path': model_path,
+        'download_dir': cli_download_dir,
+        'model_path': example_model_path,
     }
 
 
