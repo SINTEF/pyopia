@@ -69,6 +69,15 @@ NOTEBOOK_PARAMS = (
     + [pytest.param(nb, id=nb.name, marks=[pytest.mark.slow, pytest.mark.training]) for nb in TRAINING_NOTEBOOKS]
 )
 
+# Overrides pyproject.toml's 600s default for every test in this module. Confirmed on a
+# real CI run (SINTEF/pyopia PR #404): pipeline-holo.ipynb - an ordinary, non-training
+# notebook - completed in ~2 minutes on Ubuntu and Windows, but exceeded 600s on macOS.
+# The traceback showed it stuck waiting on the Jupyter kernel's socket, which points to
+# nbconvert/Jupyter-kernel execution being disproportionately slow on macOS CI runners
+# specifically, not the underlying computation actually taking longer. Applies to all
+# notebook tests here, not just the training one, since any of them could hit it.
+pytestmark = pytest.mark.timeout(1800)
+
 
 @pytest.mark.parametrize('notebook_path', NOTEBOOK_PARAMS)
 def test_notebook(notebook_path):
