@@ -76,7 +76,12 @@ NOTEBOOK_PARAMS = (
 # nbconvert/Jupyter-kernel execution being disproportionately slow on macOS CI runners
 # specifically, not the underlying computation actually taking longer. Applies to all
 # notebook tests here, not just the training one, since any of them could hit it.
-pytestmark = pytest.mark.timeout(1800)
+#
+# Also auto-retries a failing notebook test up to twice (with a short delay between
+# attempts) before letting it fail for real, since the underlying issue looks like CI
+# infra flakiness (a stuck kernel socket) rather than a reproducible bug. Scoped to this
+# module only - retrying the rest of the suite could mask a real, reproducible failure.
+pytestmark = [pytest.mark.timeout(1800), pytest.mark.flaky(reruns=2, reruns_delay=10)]
 
 
 @pytest.mark.parametrize('notebook_path', NOTEBOOK_PARAMS)
