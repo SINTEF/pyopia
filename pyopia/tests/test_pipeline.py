@@ -299,6 +299,36 @@ def test_per_class_concentration(tmp_path):
     np.testing.assert_allclose(result.loc[ts_2, 'sample_volume_L'], sample_volume)
 
 
+def test_get_j_excludes_non_positive_bins_from_fit():
+    '''Regression test for #405: get_j() used np.log's `where=` to skip non-positive
+    number_distribution bins, but without a matching `out=`, those skipped positions
+    were left as uninitialized memory and fed straight into the polyfit call. Verifies
+    the result matches a fit computed by excluding those bins outright.
+    '''
+    dias = np.array([100.0, 160.0, 200.0, 250.0, 280.0, 350.0])
+    number_distribution = np.array([10.0, 5.0, 0.0, 3.0, 2.0, 1.0])  # zero bin at 200um
+
+    result = pyopia.statistics.get_j(dias, number_distribution)
+
+    valid = (dias > 150) & (dias < 300) & (number_distribution > 0)
+    expected = np.polyfit(np.log(dias[valid]), np.log(number_distribution[valid]), 1)[0]
+
+    np.testing.assert_allclose(result, expected)
+
+
+def test_get_j_returns_nan_when_no_particles_in_fitting_range():
+    '''An image with no particles between 150 and 300um (e.g. a single small particle,
+    as in test_calculate_image_stats_uses_configured_path_length) has an undefined
+    Junge slope - get_j() should return NaN rather than raising or fitting garbage.
+    '''
+    dias = np.array([9.0])
+    number_distribution = np.array([1.0])
+
+    result = pyopia.statistics.get_j(dias, number_distribution)
+
+    assert np.isnan(result)
+
+
 def test_files_to_process_raises_clear_error_for_no_matching_files(tmp_path):
     '''Regression test for #279: an empty/non-matching raw_files pattern used to surface
     as a misleading "Number of chunks exceeds..." RuntimeError instead of a clear

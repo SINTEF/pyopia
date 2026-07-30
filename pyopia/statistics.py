@@ -549,19 +549,28 @@ def get_j(dias, number_distribution):
         Junge slope from fitting of psd between 150 and 300um
     """
     # conduct this calculation only on the part of the size distribution where
-    # LISST-100 and SilCam data overlap
+    # LISST-100 and SilCam data overlap. Bins with a non-positive count are excluded
+    # entirely (rather than masked via np.log's `where=`), since `where=` without a
+    # matching `out=` leaves uninitialized memory in the skipped positions, which would
+    # otherwise be fed straight into the fit below.
     ind = (
         np.isfinite(dias)
         & np.isfinite(number_distribution)
         & (dias < 300)
         & (dias > 150)
+        & (number_distribution > 0)
     )
+
+    # A linear fit needs at least two points. With fewer than that in range - e.g. an
+    # image with no particles between 150 and 300um - the slope is undefined.
+    if np.sum(ind) < 2:
+        return np.nan
 
     # use polyfit to obtain the slope of the ditriubtion in log-space (which is
     # assumed near-linear in most parts of the ocean)
     p = np.polyfit(
         np.log(dias[ind]),
-        np.log(number_distribution[ind], where=number_distribution[ind] > 0),
+        np.log(number_distribution[ind]),
         1,
     )
     junge_slope = p[0]
