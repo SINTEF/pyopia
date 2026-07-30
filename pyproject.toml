@@ -4,7 +4,7 @@ dynamic = ["version"]
 description = "A Python Ocean Particle Image Analysis toolbox."
 authors = [
     { name = "Emlyn Davies", email = "emlyn.davies@sintef.no" },
-    { name = "Alex Nimmo Smith@plymouth.ac.uk", email = "alex.nimmo.smith@plymouth.ac.uk" },
+    { name = "Alex Nimmo Smith", email = "alex@nimmosmith.co.uk" },
 ]
 requires-python = "~=3.12.0"
 readme = "README.md"
@@ -34,8 +34,8 @@ dependencies = [
     "myst-nb>=0.17.2,<0.18",
     "jupyter-book>=0.15.1,<0.16",
     "ipykernel>=6.19.4",
-    "urllib3<2.0",
-    "gdown>=4.7.1,<5",
+    "urllib3>=2.5.0,<3",
+    "gdown>=5.2.2,<7",
     "cmocean>=3.0.3,<4",
     "toml>=0.10.2,<0.11",
     "xarray>=2023.12.0,<2024",
@@ -57,7 +57,7 @@ dependencies = [
 
 classification = [
     "tensorflow>=2.19.0",
-    "keras==3.9.1",
+    "keras>=3.13.2,<4",
 ]
 
 classification-torch = [

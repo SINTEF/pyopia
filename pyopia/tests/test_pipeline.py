@@ -7,12 +7,13 @@ from glob import glob
 import tempfile
 import os
 import numpy as np
+import pytest
 import skimage.io
 
 import pyopia.exampledata as testdata
 import pyopia.io
 import pyopia.classify
-from pyopia.pipeline import Pipeline
+from pyopia.pipeline import FilesToProcess, Pipeline
 import pyopia.process
 import pyopia.statistics
 import pyopia.background  # noqa: F401
@@ -189,6 +190,54 @@ def test_silcam_pipeline():
                                                      ' Something has altered the number of particles detected')
 
 
+def test_calculate_image_stats_uses_configured_path_length():
+    '''Verifies CalculateImageStats uses the path_length configured in general settings,
+    rather than silently falling back to the default of 40mm.
+
+    Regression test: data['settings']['general'] is a plain dict, so a previous
+    implementation using getattr(general, 'path_length', 40) always returned the
+    default, silently ignoring any configured path_length.
+    '''
+    import pandas as pd
+    from pyopia.statistics import nc_vc_from_stats
+
+    pixel_size = 28.0
+    path_length = 123.0  # deliberately not the default of 40, to catch silent fallback
+    imy, imx = 100, 200
+
+    timestamp = pd.Timestamp('2026-01-01T00:00:00')
+    stats = pd.DataFrame({
+        'major_axis_length': [10.0],
+        'minor_axis_length': [8.0],
+        'equivalent_diameter': [9.0],
+        'saturation': [1.0],
+        'export_name': ['D20260101T000000.000000-PN0'],
+        'timestamp': [timestamp],
+    })
+
+    data = {
+        'settings': {'general': {'pixel_size': pixel_size, 'path_length': path_length}},
+        'imraw': np.zeros((imy, imx, 3), dtype=np.uint8),
+        'stats': stats,
+        'timestamp': timestamp,
+    }
+
+    step = pyopia.process.CalculateImageStats()
+    data = step(data)
+
+    expected_nc, expected_vc, expected_sample_volume, expected_junge = nc_vc_from_stats(
+        stats, pixel_size, path_length, imx=imx, imy=imy)
+
+    result = data['image_stats'].loc[data['timestamp']]
+    np.testing.assert_allclose(result['vc'], expected_vc)
+    np.testing.assert_allclose(result['sample_volume'], expected_sample_volume)
+
+    # Sanity check that this isn't coincidentally matching the old (broken) default of 40mm
+    wrong_nc, wrong_vc, wrong_sample_volume, wrong_junge = nc_vc_from_stats(
+        stats, pixel_size, 40, imx=imx, imy=imy)
+    assert not np.isclose(result['vc'], wrong_vc)
+
+
 def test_per_class_concentration():
     '''Verifies PerClassConcentration writes timestamp-indexed per-class
     number concentrations (numbers/L) to CSV across multiple images.
@@ -259,7 +308,23 @@ def test_per_class_concentration():
         np.testing.assert_allclose(result.loc[ts_2, 'sample_volume_L'], sample_volume)
 
 
+def test_files_to_process_raises_clear_error_for_no_matching_files(tmp_path):
+    '''Regression test for #279: an empty/non-matching raw_files pattern used to surface
+    as a misleading "Number of chunks exceeds..." RuntimeError instead of a clear
+    "no files found" error.
+    '''
+    empty_dir = tmp_path / 'empty'
+    empty_dir.mkdir()
+    glob_pattern = str(empty_dir / '*.silc')
+
+    raw_files = FilesToProcess(glob_pattern)
+
+    with pytest.raises(RuntimeError, match='No raw files found'):
+        raw_files.prepare_chunking(num_chunks=1, average_window=0, bgshift_function='pass')
+
+
 if __name__ == "__main__":
     test_holo_pipeline()
     test_silcam_pipeline()
     test_per_class_concentration()
+    test_files_to_process_raises_clear_error_for_no_matching_files()
