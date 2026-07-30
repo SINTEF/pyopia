@@ -351,6 +351,7 @@ class FilesToProcess:
     '''
     def __init__(self, glob_pattern=None):
         self.files = None
+        self.glob_pattern = glob_pattern
         self.background_files = []
         self.chunked_files = []
         if glob_pattern is not None:
@@ -399,6 +400,11 @@ class FilesToProcess:
         strategy : str, optional
             Strategy to use for chunking dataset, either `block` or `interleave`. Defult: `block`
         '''
+        if len(self.files) == 0:
+            raise RuntimeError(
+                f'No raw files found for "{self.glob_pattern}". '
+                'Check the general.raw_files setting in your config file.'
+            )
         if num_chunks > len(self.files) // 2:
             raise RuntimeError('Number of chunks exceeds more than half the number of files to process. Use less chunks.')
         self.chunk_files(num_chunks, strategy)
