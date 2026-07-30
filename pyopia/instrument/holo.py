@@ -247,7 +247,7 @@ def create_kernel(im, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
 
     x = (np.arange(0, im.shape[1]) - cx) / cx
     y = (np.arange(0, im.shape[0]) - cy) / cy
-    y.shape = (im.shape[0], 1)
+    y = y.reshape(im.shape[0], 1)
 
     f1 = np.tile(x, (im.shape[0], 1))
     f2 = np.tile(y, (1, im.shape[1]))
