@@ -4,6 +4,7 @@ import fnmatch
 import logging
 import pathlib
 import queue
+from collections import deque
 import threading
 import time
 
@@ -46,7 +47,7 @@ def _enqueue_file_if_new(
             return False
         seen_files.add(file_key)
 
-    file_queue.put(file_path)
+    file_queue.append(file_path)
     return True
 
 
@@ -103,8 +104,9 @@ def _worker_loop(
 ):
     while not stop_event.is_set():
         try:
-            filepath = file_queue.get(timeout=1)
-        except queue.Empty:
+            filepath = file_queue.pop()
+        except IndexError:
+            time.sleep(0.1)
             continue
 
         try:
@@ -123,7 +125,7 @@ def _worker_loop(
         finally:
             with state_lock:
                 runtime_state["current_file"] = "idle"
-            file_queue.task_done()
+            time.sleep(0.1)
 
 
 def run_realtime(pipeline_config: dict, watch_folder: str | None = None):
@@ -145,7 +147,7 @@ def run_realtime(pipeline_config: dict, watch_folder: str | None = None):
 
     processing_pipeline = pyopia.pipeline.Pipeline(pipeline_config)
 
-    file_queue = queue.Queue()
+    file_queue = deque(maxlen=10)
     stop_event = threading.Event()
     seen_files: set[str] = set()
     seen_lock = threading.Lock()
@@ -212,7 +214,6 @@ def run_realtime(pipeline_config: dict, watch_folder: str | None = None):
                     description=(
                         "[blue]Realtime active"
                         f" | processed: {processed_count}"
-                        f" | queued: {file_queue.qsize()}"
                         f" | current: {current_file}"
                     ),
                 )
