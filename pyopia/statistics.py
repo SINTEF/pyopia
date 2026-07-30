@@ -5,7 +5,9 @@ Module containing tools for handling particle image statistics after processing
 import os
 import pandas as pd
 import numpy as np
+from skimage.draw import disk
 from skimage.exposure import rescale_intensity
+from skimage.morphology import binary_dilation
 import h5py
 from tqdm import tqdm
 from pyopia.io import write_stats, load_stats_as_dataframe
@@ -476,6 +478,161 @@ def make_montage(
     logger.info("montage complete")
 
     return montage_image
+
+
+def make_montage_scaled(
+    stats_file_or_df,
+    pixel_size,
+    roidir,
+    msize=1024,
+    rel_scale=1.0,
+    gap=2,
+    max_attempts=500,
+    max_particles=500,
+    maxlength=100000,
+    crop_region=None,
+    brightness=1,
+    eyecandy=True,
+):
+    """Makes a montage of particles packed within a circular boundary, largest first
+
+    This is an alternative to :func:`make_montage` for instruments (e.g. holographic
+    imaging) where particles are naturally monochrome: the montage is a single-channel
+    grayscale image rather than RGB, so it can be plotted directly with
+    :func:`pyopia.plotting.montage_plot`, including its 1mm scale reference.
+
+    The key difference from :func:`make_montage` is `rel_scale`: rather than always
+    filling the same fixed canvas regardless of how much data went into it,
+    `rel_scale` controls the *area* of the circular region available for packing, as a
+    fraction of the full canvas area. This makes it possible to visually compare
+    particle number density across datasets with different sample sizes - e.g. several
+    depth bins with different numbers of raw images - fairly: set `rel_scale`
+    proportional to each dataset's relative sample size (e.g. number of raw images, or
+    total sample volume) against a shared reference, generate one montage per dataset,
+    and place them side by side. A bin with half the raw images of another gets half
+    the circle area to fill, so the resulting packed density is directly comparable
+    between montages, rather than every montage always looking equally "full"
+    regardless of how much data it actually represents.
+
+    Particles are placed largest-first, since bigger particles are harder to
+    accommodate once the canvas starts filling up. Each particle is given a `gap`-pixel
+    buffer against its neighbours (via binary dilation of its silhouette) so that
+    packed particles don't visually touch. A particle that can't find a free spot
+    within `max_attempts` random placements is skipped rather than resized or forced in.
+
+    Parameters
+    ----------
+    stats_file_or_df : DataFrame or str
+        either a str specifying the location of the STATS.nc file that comes from processing, or a stats dataframe
+    pixel_size : float
+        pixel size of system in microns
+    roidir : str
+        location of roifiles
+    msize : int, optional
+        size of the (square) canvas in pixels, by default 1024
+    rel_scale : float, optional
+        fraction (0-1) of the full canvas *area* used as the circular placement
+        boundary. Set this proportional to relative sample size when comparing several
+        montages side by side (see above); use 1.0 for a single montage that isn't
+        being compared against others, by default 1.0
+    gap : int, optional
+        minimum gap in pixels enforced between packed particles, by default 2
+    max_attempts : int, optional
+        number of random placement attempts per particle before giving up on it, by default 500
+    max_particles : int, optional
+        maximum number of (largest) particles to attempt to place, by default 500
+    maxlength : int, optional
+        maximum length in microns of particles to be included in montage, by default 100000
+    crop_region : tuple, optional
+        None or 4-tuple of lower-left then upper-right coord of crop, passed to :func:`crop_stats`, by default None
+    brightness : int, optional
+        brightness of packaged particles used with eyecandy option, by default 1
+    eyecandy : bool, optional
+        boolean which if True will explode the contrast of packed particles
+        (nice for natural particles, but not so good for oil and gas), by default True
+
+    Returns
+    -------
+    montage_image : array
+        grayscale montage image (values 0-1, dark particles on a light background,
+        with the region outside the circular boundary shown slightly darker than the
+        background so the boundary is visible) that can be plotted with
+        :func:`pyopia.plotting.montage_plot`
+    """
+    if isinstance(stats_file_or_df, str):
+        stats = load_stats_as_dataframe(stats_file_or_df)
+    else:
+        stats = stats_file_or_df
+
+    if crop_region is not None:
+        stats = crop_stats(stats, crop_region)
+
+    # remove nans because concentrations are not important here
+    stats = stats[~np.isnan(stats["major_axis_length"])]
+    stats = stats[(stats["major_axis_length"] * pixel_size) < maxlength]
+
+    # pack largest particles first, since they're the hardest to fit later on
+    stats = stats.sort_values(by=["major_axis_length"], ascending=False)
+
+    roifiles = stats["export_name"][stats["export_name"] != "not_exported"].values
+    roifiles = roifiles[:max_particles]
+
+    # background = 1 (white); slightly darker outside the circular boundary so it's
+    # visible; particles are painted in as they're placed (values < 1)
+    montage = np.ones((msize, msize), dtype=np.float64)
+    # radius scales with sqrt(rel_scale) so that *area* (not radius) is proportional
+    # to rel_scale - see the rel_scale explanation above
+    radius = np.sqrt(rel_scale) * msize / 2
+    rr, cc = disk((msize / 2, msize / 2), radius, shape=montage.shape)
+    within_boundary = np.zeros(montage.shape, dtype=bool)
+    within_boundary[rr, cc] = True
+    montage[~within_boundary] = 0.9
+
+    # available[i, j] is True while position (i, j) is free to place a particle in
+    available = within_boundary.copy()
+
+    logger.info("making a scaled montage - this might take some time....")
+    n_placed = 0
+    for roi_name in tqdm(roifiles):
+        particle_image = roi_from_export_name(roi_name, roidir)
+        if particle_image.ndim == 3:
+            particle_image = particle_image.mean(axis=2)
+
+        if eyecandy:
+            particle_image = explode_contrast(particle_image)
+            particle_image = bright_norm(particle_image, brightness)
+        particle_image = np.clip(particle_image, 0, 1)
+
+        height, width = particle_image.shape
+        if height >= msize or width >= msize:
+            continue
+
+        # silhouette of the particle (darker-than-background pixels), padded out by
+        # `gap` so placed particles keep a visual buffer from their neighbours
+        silhouette = binary_dilation(particle_image < 0.9, footprint=np.ones((gap * 2 + 1, gap * 2 + 1)))
+
+        placed = False
+        for _ in range(max_attempts):
+            r = np.random.randint(0, msize - height)
+            c = np.random.randint(0, msize - width)
+
+            footprint = available[r:r + height, c:c + width]
+            if np.all(footprint[silhouette]):
+                canvas_region = montage[r:r + height, c:c + width]
+                particle_pixels = particle_image < 0.9
+                canvas_region[particle_pixels] = particle_image[particle_pixels]
+
+                available[r:r + height, c:c + width][silhouette] = False
+                placed = True
+                n_placed += 1
+                break
+
+        if not placed:
+            logger.debug(f"Could not find a free spot for particle: {roi_name}")
+
+    logger.info(f"scaled montage complete: placed {n_placed} of {len(roifiles)} particles")
+
+    return montage
 
 
 def gen_roifiles(stats, auto_scaler=500):
