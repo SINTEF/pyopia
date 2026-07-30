@@ -734,7 +734,7 @@ class CalculateImageStats():
         d50 = pyopia.statistics.d50_from_stats(data['stats'], pixel_size)
         data['image_stats'].loc[data['timestamp'], 'd50'] = d50
 
-        path_length = getattr(data['settings']['general'], 'path_length', 40)
+        path_length = data['settings']['general'].get('path_length', 40)
         if path_length is not None:
             # Get image dimensions from the corrected image
             image = data.get('imraw')
