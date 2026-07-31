@@ -302,71 +302,71 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = "block"):
     """
     t1 = time.time()
 
-    with Progress(transient=True) as progress:
-        progress.console.print(f"[blue]PYOPIA VERSION {pyopia.__version__}")
+    pipeline_config = pyopia.io.load_toml(config_filename)
+    log_queue = multiprocessing.Queue(-1)
+    listener = setup_queue_log_listener(pipeline_config, log_queue)
+    route_logging_through_queue(pipeline_config, log_queue)
+    logger = logging.getLogger("rich")
 
-        progress.console.print("[blue]LOAD CONFIG")
-        pipeline_config = pyopia.io.load_toml(config_filename)
+    try:
+        with Progress(transient=True) as progress:
+            progress.console.print(f"[blue]PYOPIA VERSION {pyopia.__version__}")
+            progress.console.print("[blue]LOAD CONFIG")
+            logger.info(f"PyOPIA process started {pd.Timestamp.now()}")
 
-        log_queue = multiprocessing.Queue(-1)
-        listener = setup_queue_log_listener(pipeline_config, log_queue)
-        route_logging_through_queue(pipeline_config, log_queue)
-        logger = logging.getLogger("rich")
-        logger.info(f"PyOPIA process started {pd.Timestamp.now()}")
+            check_chunks(num_chunks, pipeline_config)
 
-        check_chunks(num_chunks, pipeline_config)
-
-        progress.console.print("[blue]OBTAIN IMAGE LIST")
-        conf_corrbg = pipeline_config["steps"].get("correctbackground", dict())
-        average_window = conf_corrbg.get("average_window", 0)
-        bgshift_function = conf_corrbg.get("bgshift_function", "pass")
-        raw_files = pyopia.pipeline.FilesToProcess(
-            pipeline_config["general"]["raw_files"]
-        )
-        raw_files.prepare_chunking(
-            num_chunks, average_window, bgshift_function, strategy=strategy
-        )
-
-        # Write the dataset list of images to a text file
-        raw_files.to_filelist_file("filelist.txt")
-
-        progress.console.print("[blue]PREPARE FOLDERS")
-        if "output" not in pipeline_config["steps"]:
-            raise Exception(
-                'The given config file is missing an "output" step.\n'
-                + "This is needed to setup how to save data to disc."
+            progress.console.print("[blue]OBTAIN IMAGE LIST")
+            conf_corrbg = pipeline_config["steps"].get("correctbackground", dict())
+            average_window = conf_corrbg.get("average_window", 0)
+            bgshift_function = conf_corrbg.get("bgshift_function", "pass")
+            raw_files = pyopia.pipeline.FilesToProcess(
+                pipeline_config["general"]["raw_files"]
             )
-        output_datafile = pipeline_config["steps"]["output"]["output_datafile"]
-        os.makedirs(os.path.split(output_datafile)[:-1][0], exist_ok=True)
-
-        if os.path.isfile(output_datafile + "-STATS.nc"):
-            dt_now = datetime.datetime.now().strftime("D%Y%m%dT%H%M%S")
-            newname = output_datafile + "-conflict-" + str(dt_now) + "-STATS.nc"
-            logger.warning(f"Renaming conflicting file to: {newname}")
-            os.rename(output_datafile + "-STATS.nc", newname)
-
-        progress.console.print("[blue]INITIALISE PIPELINE")
-
-    # With one chunk we keep the non-multiprocess functionality to ensure backwards compatibility
-    job_list = []
-    if num_chunks == 1:
-        process_file_list(raw_files, pipeline_config, 0, log_queue)
-    else:
-        for c, chunk in enumerate(raw_files.chunked_files):
-            job = multiprocessing.Process(
-                target=process_file_list,
-                args=(chunk, pipeline_config, c, log_queue),
-                name=f"chunk-{c}",
+            raw_files.prepare_chunking(
+                num_chunks, average_window, bgshift_function, strategy=strategy
             )
-            job_list.append(job)
 
-    # Start all the jobs
-    [job.start() for job in job_list]
+            # Write the dataset list of images to a text file
+            raw_files.to_filelist_file("filelist.txt")
 
-    # If we are using multiprocessing, make sure all jobs have finished
-    [job.join() for job in job_list]
+            progress.console.print("[blue]PREPARE FOLDERS")
+            if "output" not in pipeline_config["steps"]:
+                raise Exception(
+                    'The given config file is missing an "output" step.\n'
+                    + "This is needed to setup how to save data to disc."
+                )
+            output_datafile = pipeline_config["steps"]["output"]["output_datafile"]
+            os.makedirs(os.path.split(output_datafile)[:-1][0], exist_ok=True)
 
-    listener.stop()
+            if os.path.isfile(output_datafile + "-STATS.nc"):
+                dt_now = datetime.datetime.now().strftime("D%Y%m%dT%H%M%S")
+                newname = output_datafile + "-conflict-" + str(dt_now) + "-STATS.nc"
+                logger.warning(f"Renaming conflicting file to: {newname}")
+                os.rename(output_datafile + "-STATS.nc", newname)
+
+            progress.console.print("[blue]INITIALISE PIPELINE")
+
+        # With one chunk we keep the non-multiprocess functionality to ensure backwards compatibility
+        job_list = []
+        if num_chunks == 1:
+            process_file_list(raw_files, pipeline_config, 0, log_queue)
+        else:
+            for c, chunk in enumerate(raw_files.chunked_files):
+                job = multiprocessing.Process(
+                    target=process_file_list,
+                    args=(chunk, pipeline_config, c, log_queue),
+                    name=f"chunk-{c}",
+                )
+                job_list.append(job)
+
+        # Start all the jobs
+        [job.start() for job in job_list]
+
+        # If we are using multiprocessing, make sure all jobs have finished
+        [job.join() for job in job_list]
+    finally:
+        listener.stop()
 
     # Calculate and print total processing time
     time_total = pd.to_timedelta(time.time() - t1, "seconds")
@@ -397,21 +397,21 @@ def process_realtime(config_filename: str, watch_folder: str = None):
     listener = setup_queue_log_listener(pipeline_config, log_queue)
     route_logging_through_queue(pipeline_config, log_queue)
 
-    # Create output folders
-    if "output" not in pipeline_config["steps"]:
-        raise RuntimeError(
-            'The given config file is missing an "output" step.\n'
-            + "This is needed to setup how to save data to disc."
-        )
-    if "output_datafile" not in pipeline_config["steps"]["output"]:
-        raise RuntimeError(
-            'The given config file is missing "output_datafile" option in the "output" step.\n'
-            + "This is needed to setup how to save data to disc."
-        )
-    output_datafile = pipeline_config["steps"]["output"]["output_datafile"]
-    os.makedirs(os.path.split(output_datafile)[:-1][0], exist_ok=True)
-
     try:
+        # Create output folders
+        if "output" not in pipeline_config["steps"]:
+            raise RuntimeError(
+                'The given config file is missing an "output" step.\n'
+                + "This is needed to setup how to save data to disc."
+            )
+        if "output_datafile" not in pipeline_config["steps"]["output"]:
+            raise RuntimeError(
+                'The given config file is missing "output_datafile" option in the "output" step.\n'
+                + "This is needed to setup how to save data to disc."
+            )
+        output_datafile = pipeline_config["steps"]["output"]["output_datafile"]
+        os.makedirs(os.path.split(output_datafile)[:-1][0], exist_ok=True)
+
         pyopia.realtime.run_realtime(pipeline_config, watch_folder=watch_folder)
     finally:
         listener.stop()
