@@ -23,8 +23,12 @@ sphinx:
 # Optionally set the version of Python and requirements required to build your docs
 python:
    install:
-   - requirements: docs/requirements.txt
-   - path: .
+   - method: uv
+     command: sync
+     extras:
+        - classification
+     groups:
+        - docs
 
 # By default readthedocs does not checkout git submodules
 submodules:                                                                                                                          

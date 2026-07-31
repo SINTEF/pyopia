@@ -66,6 +66,15 @@ classification-torch = [
     "torch>=2.1.0",
 ]
 
+[dependency-groups]
+# Packages needed to build the docs that aren't already part of the base install or
+# the classification extra (which the docs build also installs, since example
+# notebooks exercise real classification).
+docs = [
+    "docopt",
+    "setuptools",
+]
+
 [project.urls]
 Repository = "https://github.com/sintef/pyopia"
 Documentation = "https://pyopia.readthedocs.io"
