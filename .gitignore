@@ -275,3 +275,4 @@ notebooks/model/*
 *.png
 *-summary.txt
 /dev/*
+*.lock
