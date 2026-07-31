@@ -3,10 +3,12 @@ PyOPIA
 
 A Python Ocean Particle Image Analysis toolbox
 
+PyOPIA processes images of particles suspended in water (e.g. from SilCam, holographic, or UVP imaging systems) into particle size, shape, and concentration statistics.
+
 # Quick tryout of PyOPIA
 
 1) Install [uv](https://docs.astral.sh/uv/getting-started/installation)
-2) Initialize PyOPIA project with a small example image dataset and run processing
+2) Initialize a PyOPIA project with example data (`--example-data` downloads a small example image dataset and generates a matching `config.toml`), then run processing:
 ```bash
 uvx --python 3.12 --from pyopia[classification] pyopia init-project pyopiatest --example-data
 ```
@@ -24,19 +26,15 @@ uvx --python 3.12 --from pyopia[classification] pyopia merge-mfdata processed
 ```
 
 ```bash
-uvx --python 3.12 --from pyopia[classification] pyopia make-montage processed\pyopiatest-STATS.nc
+uvx --python 3.12 --from pyopia[classification] pyopia make-montage processed/pyopiatest-STATS.nc
 ```
-5) Visualise the monatge of all processed singular particle images in one
-```bash
-montage.png
-```
-Will show you a montage of all the processed particle images in one.
+5) This creates `montage.png` in the current folder - open it to see a single image made up of all the processed particle images.
 
 See the documentation for more information on how to install and use PyOPIA.
 
 # Running with Docker
 
-A prebuilt container image is published to GitHub Container Registry on every release, for users who prefer not to install PyOPIA's dependencies directly.
+A prebuilt container image is published to GitHub Container Registry on every release. Docker is worth reaching for if you'd rather not install PyOPIA's dependencies directly: it avoids the install overhead of heavier optional dependencies (e.g. TensorFlow/PyTorch for classification), guarantees a consistent, reproducible environment regardless of your host OS, and is well suited to running on servers or HPC systems.
 
 ## One-off invocation
 
@@ -109,35 +107,24 @@ PYOPIA_CONFIG=my_run.toml docker compose run --rm pyopia
 [pyopia.readthedocs.io](https://pyopia.readthedocs.io)
 # Current status:
 
-- Under development. See/regester issues, [here](https://github.com/SINTEF/pyopia/issues)
+- Under development. See/register issues, [here](https://github.com/SINTEF/pyopia/issues)
 
 ----
-# Development targets for PyOpia:
+# Design principles
 
-1) Allow nonfamiliar users to install and use PyOpia, and to contribute & commit code changes
-2) Not hardware specific
-3) Smaller dependency list than PySilCam -Eventual optional dependencies (e.g. for classification)
-4) Can be imported by pysilcam or other hardware-specific tools
-5) Work on a single-image basis (...primarily, with options for multiprocess to be considered later)
-6) No use of settings/config files within the core code - pass arguments directly. Eventual use of settings/config files should be handled by high-level wrappers that provide arguments to functions.
-7) Github workflows
-8) Tests
-
-Normal functions within PyOpia should:
-
-1) take inputs
-2) return new outputs
-3) don't modify state of input
-4) minimum possible disc IO during processing
+- PyOPIA is instrument-agnostic at its core: SilCam, holographic, and UVP support are all built as pluggable instrument modules on top of a shared `Pipeline`.
+- Processing is config-driven: a `Pipeline` is built from a TOML/dict `settings` object describing an ordered list of steps, each mapping to a Python class. Steps update a shared `data` dict as the pipeline runs.
+- Heavy, optional dependencies (e.g. TensorFlow/PyTorch for classification) are kept out of the core install and available via extras (`pyopia[classification]`, `pyopia[classification-torch]`).
+- Multi-file, multi-core processing is supported via chunked/parallel processing (`pyopia process --num-chunks`).
 
 ## Contributions
 
 We welcome additions and improvements to the code! We request that you follow a few guidelines. These are in place to make sure the code improves over time.
 
 1. All code changes must be submitted as pull requests, either from a branch or a fork.
-2. Good documentation of the code is needed for PyOpia to succeed and so please include up-to-date docstrings as you make changes, so that the auto-build on readthedocs is complete and useful for users. (A version of the new docs will complie when you make a pull request and a link to this can be found in the pull request checks)
+2. Good documentation of the code is needed for PyOPIA to succeed and so please include up-to-date docstrings as you make changes, so that the auto-build on readthedocs is complete and useful for users. (A version of the new docs will compile when you make a pull request and a link to this can be found in the pull request checks)
 3. All pull requests are required to pass all tests before merging. Please do not disable or remove tests just to make your branch pass the pull request.
-4. All pull requests must be reviewed by a person. The benefits from code review are plenty, but we like to emphasise that code reviews help spreading the awarenes of code changes. Please note that code reviews should be a pleasant experience, so be plesant, polite and remember that there is a human being with good intentions on the other side of the screen.
+4. All pull requests must be reviewed by a person. The benefits from code review are plenty, but we like to emphasise that code reviews help spreading the awareness of code changes. Please note that code reviews should be a pleasant experience, so be pleasant, polite and remember that there is a human being with good intentions on the other side of the screen.
 5. All contributions are linted with flake8. We recommend that you run flake8 on your code while developing to fix any issues as you go. We recommend using autopep8 to autoformat your Python code (but please check the code behaviour is not affected by autoformatting before pushing). This makes flake8 happy, and makes it easier for us all to maintain a consistent and readable code base.
 
 ## Docstrings
@@ -176,7 +163,7 @@ Users are expected to be familiar with Python. Please refer to the recommended i
 ## For developers from source
 
 
-Install (uv)[https://docs.astral.sh/uv/getting-started/installation/]
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/)
 
 1. Navigate to the folder where you want to install pyopia using the 'cd' command.
 
@@ -193,7 +180,7 @@ For the next steps, you need to be located in the PyOPIA root directory that con
 2. Install all requirements with
 
 ```bash
-uv sync --all-extras
+uv sync --all-extras --dev
 ```
 
 3. (optional) Run local tests (see the Testing section above for markers and how to run a fast subset):
@@ -212,13 +199,11 @@ The version number of PyOPIA is split into three sections: MAJOR.MINOR.PATCH
 
 ## Build docs locally
 
-```
-sphinx-apidoc -f -o docs/source docs/build --separate
-
-sphinx-build -b html ./docs/ ./docs/build
+```bash
+sphinx-build -b html docs/ docs/_build/html
 ```
 
 ----
 # License
 
-PyOpia is licensed under the BSD3 license. See LICENSE. All contributors should be recognised & aknowledged.
+PyOPIA is licensed under the BSD3 license. See LICENSE. All contributors should be recognised & acknowledged.
