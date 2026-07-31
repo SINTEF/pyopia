@@ -4,6 +4,11 @@ import xarray as xr
 
 logger = logging.getLogger()
 
+
+class AuxillaryDataError(Exception):
+    """Raised when an auxiliary data file exists but cannot be parsed into the expected format."""
+
+
 AUXILLARY_DATA_FILE_TEMPLATE = """% COMMENT LINE: PLEASE UPDATE THIS FILE WITH PROJECT RELEVANT DATA. EACH COLUMN WILL BECOME A NETCDF VARIABLE.
 % COMMENT LINE: ONE LINE PER MEASUREMENT, TIME IS INTERPOLATED TO IMAGE DATA TIMES IN PYOPIA. FOLLOWING LINES ARE UNITS, DESCRIPTION AND VARIABLE NAME.
 ,metres,degC
@@ -50,17 +55,19 @@ class AuxillaryData:
     def __init__(self, auxillary_data_path=None):
         self.auxillary_data_path = auxillary_data_path
 
-        # Create empty dataframe for cases where no file was specified, or an error occured reading it
+        # Create empty dataframe for cases where no file was specified
         self.auxillary_data = pd.DataFrame(index=pd.Index([], name="time")).to_xarray()
         if auxillary_data_path is not None:
             try:
                 self.auxillary_data = self.load_auxillary_data(auxillary_data_path)
-            except RuntimeError as e:
-                print(f"Failed to load auxillary data from file: {self.auxillary_data}")
-                logging.error(
-                    f"Failed to load auxillary data from file: {self.auxillary_data}"
-                )
-                logging.error(e)
+            except Exception as e:
+                # Re-raise as a single, specific error type that names the file and the
+                # underlying cause, so callers can recognise this failure mode (the same
+                # auxiliary data file applies to every image, so it is not worth retrying)
+                # and report something more useful than a bare KeyError/ValueError.
+                raise AuxillaryDataError(
+                    f"Failed to load auxiliary data from '{auxillary_data_path}': {e}"
+                ) from e
 
     def load_auxillary_data(self, auxillary_data_path):
         """Load and format uxillary data from .csv file"""
