@@ -1,0 +1,33 @@
+name: Scheduled training notebook check
+
+on:
+  schedule:
+    # Every Monday at 06:00 UTC. This is deliberately infrequent and separate from the
+    # per-PR build-and-test.yml workflow: it exercises the model-training notebook(s)
+    # tagged `@pytest.mark.training` (currently the DINOv2 classifier training
+    # notebook), which involve a real, uncapped multi-epoch training run and are
+    # excluded from routine CI for that reason. Running this on a schedule catches
+    # drift (e.g. an upstream torch/timm release breaking the backbone) between PRs,
+    # rather than waiting for a user to report it - see the discussion on #403.
+    - cron: '0 6 * * 1'
+  workflow_dispatch: {}
+
+jobs:
+  training-notebooks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.6.10"
+
+      - name: Install PyOPIA
+        run: uv sync --all-extras --dev
+
+      - name: Run training-marked tests
+        run: uv run pytest -v -m training

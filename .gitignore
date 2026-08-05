@@ -267,7 +267,7 @@ poetry.lock
 /notebooks/oil_silcam_images
 header.tfl.txt
 *.tiff
-notebooks/__MACOSX/*
+**/__MACOSX/*
 notebooks/silcam240822.keras
 model/*
 notebooks/model/*
