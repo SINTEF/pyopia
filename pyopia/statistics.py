@@ -488,7 +488,6 @@ def make_montage_scaled(
     rel_scale=1.0,
     gap=2,
     max_attempts=500,
-    max_particles=500,
     maxlength=100000,
     crop_region=None,
     brightness=1,
@@ -514,11 +513,19 @@ def make_montage_scaled(
     between montages, rather than every montage always looking equally "full"
     regardless of how much data it actually represents.
 
-    Particles are placed largest-first, since bigger particles are harder to
-    accommodate once the canvas starts filling up. Each particle is given a `gap`-pixel
-    buffer against its neighbours (via binary dilation of its silhouette) so that
-    packed particles don't visually touch. A particle that can't find a free spot
-    within `max_attempts` random placements is skipped rather than resized or forced in.
+    Every exported particle is attempted, largest first, since bigger particles are
+    harder to accommodate once the canvas starts filling up - there is no upfront
+    subsampling or truncation, since either would misrepresent the true relative
+    abundance of particle sizes. Each particle is given a `gap`-pixel buffer against
+    its neighbours (via binary dilation of its silhouette) so that packed particles
+    don't visually touch. A particle that can't find a free spot within `max_attempts`
+    random placements is skipped rather than resized or forced in; if any particles are
+    skipped this way, a warning is logged summarising how many, once the montage is
+    complete. This means `msize` is too small to fit everything - increase it (and, if
+    this montage is one of several being compared via `rel_scale`, increase `msize` the
+    same way for all of them, to keep the relative comparison valid; don't compensate
+    by changing `rel_scale` itself, since that would distort the comparison it exists
+    to preserve).
 
     Parameters
     ----------
@@ -539,8 +546,6 @@ def make_montage_scaled(
         minimum gap in pixels enforced between packed particles, by default 2
     max_attempts : int, optional
         number of random placement attempts per particle before giving up on it, by default 500
-    max_particles : int, optional
-        maximum number of (largest) particles to attempt to place, by default 500
     maxlength : int, optional
         maximum length in microns of particles to be included in montage, by default 100000
     crop_region : tuple, optional
@@ -574,8 +579,8 @@ def make_montage_scaled(
     # pack largest particles first, since they're the hardest to fit later on
     stats = stats.sort_values(by=["major_axis_length"], ascending=False)
 
+    # every exported particle is attempted - see docstring for why this isn't subsampled
     roifiles = stats["export_name"][stats["export_name"] != "not_exported"].values
-    roifiles = roifiles[:max_particles]
 
     # background = 1 (white); slightly darker outside the circular boundary so it's
     # visible; particles are painted in as they're placed (values < 1)
@@ -630,9 +635,21 @@ def make_montage_scaled(
         if not placed:
             logger.debug(f"Could not find a free spot for particle: {roi_name}")
 
-    logger.info(f"scaled montage complete: placed {n_placed} of {len(roifiles)} particles")
+    _log_montage_placement_summary(n_placed, len(roifiles))
 
     return montage
+
+
+def _log_montage_placement_summary(n_placed, n_total):
+    """Log how many particles a scaled montage placed, warning if any were skipped"""
+    n_skipped = n_total - n_placed
+    if n_skipped > 0:
+        logger.warning(
+            f"{n_skipped} of {n_total} particles could not be placed and were skipped - "
+            "consider increasing msize to fit all particles (and, if comparing this montage "
+            "against others via rel_scale, increase msize consistently for all of them)."
+        )
+    logger.info(f"scaled montage complete: placed {n_placed} of {n_total} particles")
 
 
 def gen_roifiles(stats, auto_scaler=500):
