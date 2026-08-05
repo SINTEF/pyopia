@@ -6,6 +6,8 @@ authors = [
     { name = "Emlyn Davies", email = "emlyn.davies@sintef.no" },
     { name = "Alex Nimmo Smith", email = "alex@nimmosmith.co.uk" },
 ]
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 requires-python = "~=3.12.0"
 readme = "README.md"
 keywords = [
@@ -64,6 +66,11 @@ classification = [
 
 classification-torch = [
     "torch>=2.1.0",
+]
+
+[dependency-groups]
+dev = [
+    "pip-licenses>=5.5.0,<6",
 ]
 
 [project.urls]
