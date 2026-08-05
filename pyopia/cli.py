@@ -9,6 +9,7 @@ import time
 import datetime
 import traceback
 import logging
+import logging.handlers
 import json
 import numpy as np
 from rich.progress import Progress
@@ -301,65 +302,71 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = "block"):
     """
     t1 = time.time()
 
-    with Progress(transient=True) as progress:
-        progress.console.print(f"[blue]PYOPIA VERSION {pyopia.__version__}")
+    pipeline_config = pyopia.io.load_toml(config_filename)
+    log_queue = multiprocessing.Queue(-1)
+    listener = setup_queue_log_listener(pipeline_config, log_queue)
+    route_logging_through_queue(pipeline_config, log_queue)
+    logger = logging.getLogger("rich")
 
-        progress.console.print("[blue]LOAD CONFIG")
-        pipeline_config = pyopia.io.load_toml(config_filename)
+    try:
+        with Progress(transient=True) as progress:
+            progress.console.print(f"[blue]PYOPIA VERSION {pyopia.__version__}")
+            progress.console.print("[blue]LOAD CONFIG")
+            logger.info(f"PyOPIA process started {pd.Timestamp.now()}")
 
-        setup_logging(pipeline_config)
-        logger = logging.getLogger("rich")
-        logger.info(f"PyOPIA process started {pd.Timestamp.now()}")
+            check_chunks(num_chunks, pipeline_config)
 
-        check_chunks(num_chunks, pipeline_config)
-
-        progress.console.print("[blue]OBTAIN IMAGE LIST")
-        conf_corrbg = pipeline_config["steps"].get("correctbackground", dict())
-        average_window = conf_corrbg.get("average_window", 0)
-        bgshift_function = conf_corrbg.get("bgshift_function", "pass")
-        raw_files = pyopia.pipeline.FilesToProcess(
-            pipeline_config["general"]["raw_files"]
-        )
-        raw_files.prepare_chunking(
-            num_chunks, average_window, bgshift_function, strategy=strategy
-        )
-
-        # Write the dataset list of images to a text file
-        raw_files.to_filelist_file("filelist.txt")
-
-        progress.console.print("[blue]PREPARE FOLDERS")
-        if "output" not in pipeline_config["steps"]:
-            raise Exception(
-                'The given config file is missing an "output" step.\n'
-                + "This is needed to setup how to save data to disc."
+            progress.console.print("[blue]OBTAIN IMAGE LIST")
+            conf_corrbg = pipeline_config["steps"].get("correctbackground", dict())
+            average_window = conf_corrbg.get("average_window", 0)
+            bgshift_function = conf_corrbg.get("bgshift_function", "pass")
+            raw_files = pyopia.pipeline.FilesToProcess(
+                pipeline_config["general"]["raw_files"]
             )
-        output_datafile = pipeline_config["steps"]["output"]["output_datafile"]
-        os.makedirs(os.path.split(output_datafile)[:-1][0], exist_ok=True)
-
-        if os.path.isfile(output_datafile + "-STATS.nc"):
-            dt_now = datetime.datetime.now().strftime("D%Y%m%dT%H%M%S")
-            newname = output_datafile + "-conflict-" + str(dt_now) + "-STATS.nc"
-            logger.warning(f"Renaming conflicting file to: {newname}")
-            os.rename(output_datafile + "-STATS.nc", newname)
-
-        progress.console.print("[blue]INITIALISE PIPELINE")
-
-    # With one chunk we keep the non-multiprocess functionality to ensure backwards compatibility
-    job_list = []
-    if num_chunks == 1:
-        process_file_list(raw_files, pipeline_config, 0)
-    else:
-        for c, chunk in enumerate(raw_files.chunked_files):
-            job = multiprocessing.Process(
-                target=process_file_list, args=(chunk, pipeline_config, c)
+            raw_files.prepare_chunking(
+                num_chunks, average_window, bgshift_function, strategy=strategy
             )
-            job_list.append(job)
 
-    # Start all the jobs
-    [job.start() for job in job_list]
+            # Write the dataset list of images to a text file
+            raw_files.to_filelist_file("filelist.txt")
 
-    # If we are using multiprocessing, make sure all jobs have finished
-    [job.join() for job in job_list]
+            progress.console.print("[blue]PREPARE FOLDERS")
+            if "output" not in pipeline_config["steps"]:
+                raise Exception(
+                    'The given config file is missing an "output" step.\n'
+                    + "This is needed to setup how to save data to disc."
+                )
+            output_datafile = pipeline_config["steps"]["output"]["output_datafile"]
+            os.makedirs(os.path.split(output_datafile)[:-1][0], exist_ok=True)
+
+            if os.path.isfile(output_datafile + "-STATS.nc"):
+                dt_now = datetime.datetime.now().strftime("D%Y%m%dT%H%M%S")
+                newname = output_datafile + "-conflict-" + str(dt_now) + "-STATS.nc"
+                logger.warning(f"Renaming conflicting file to: {newname}")
+                os.rename(output_datafile + "-STATS.nc", newname)
+
+            progress.console.print("[blue]INITIALISE PIPELINE")
+
+        # With one chunk we keep the non-multiprocess functionality to ensure backwards compatibility
+        job_list = []
+        if num_chunks == 1:
+            process_file_list(raw_files, pipeline_config, 0, log_queue)
+        else:
+            for c, chunk in enumerate(raw_files.chunked_files):
+                job = multiprocessing.Process(
+                    target=process_file_list,
+                    args=(chunk, pipeline_config, c, log_queue),
+                    name=f"chunk-{c}",
+                )
+                job_list.append(job)
+
+        # Start all the jobs
+        [job.start() for job in job_list]
+
+        # If we are using multiprocessing, make sure all jobs have finished
+        [job.join() for job in job_list]
+    finally:
+        listener.stop()
 
     # Calculate and print total processing time
     time_total = pd.to_timedelta(time.time() - t1, "seconds")
@@ -386,23 +393,28 @@ def process_realtime(config_filename: str, watch_folder: str = None):
     """
     # Load config and setup logging
     pipeline_config = pyopia.io.load_toml(config_filename)
-    setup_logging(pipeline_config)
+    log_queue = multiprocessing.Queue(-1)
+    listener = setup_queue_log_listener(pipeline_config, log_queue)
+    route_logging_through_queue(pipeline_config, log_queue)
 
-    # Create output folders
-    if "output" not in pipeline_config["steps"]:
-        raise RuntimeError(
-            'The given config file is missing an "output" step.\n'
-            + "This is needed to setup how to save data to disc."
-        )
-    if "output_datafile" not in pipeline_config["steps"]["output"]:
-        raise RuntimeError(
-            'The given config file is missing "output_datafile" option in the "output" step.\n'
-            + "This is needed to setup how to save data to disc."
-        )
-    output_datafile = pipeline_config["steps"]["output"]["output_datafile"]
-    os.makedirs(os.path.split(output_datafile)[:-1][0], exist_ok=True)
+    try:
+        # Create output folders
+        if "output" not in pipeline_config["steps"]:
+            raise RuntimeError(
+                'The given config file is missing an "output" step.\n'
+                + "This is needed to setup how to save data to disc."
+            )
+        if "output_datafile" not in pipeline_config["steps"]["output"]:
+            raise RuntimeError(
+                'The given config file is missing "output_datafile" option in the "output" step.\n'
+                + "This is needed to setup how to save data to disc."
+            )
+        output_datafile = pipeline_config["steps"]["output"]["output_datafile"]
+        os.makedirs(os.path.split(output_datafile)[:-1][0], exist_ok=True)
 
-    pyopia.realtime.run_realtime(pipeline_config, watch_folder=watch_folder)
+        pyopia.realtime.run_realtime(pipeline_config, watch_folder=watch_folder)
+    finally:
+        listener.stop()
 
 
 @app.command()
@@ -433,14 +445,20 @@ def merge_mfdata(
         Process this many files together and store as partially merged netcdf files, which
         are then merged at the end. Default: None, process all files together.
     """
-    setup_logging({"general": {}})
+    pipeline_config = {"general": {}}
+    log_queue = multiprocessing.Queue(-1)
+    listener = setup_queue_log_listener(pipeline_config, log_queue)
+    route_logging_through_queue(pipeline_config, log_queue)
 
-    pyopia.io.merge_and_save_mfdataset(
-        path_to_data,
-        prefix=prefix,
-        overwrite_existing_partials=overwrite_existing_partials,
-        chunk_size=chunk_size,
-    )
+    try:
+        pyopia.io.merge_and_save_mfdataset(
+            path_to_data,
+            prefix=prefix,
+            overwrite_existing_partials=overwrite_existing_partials,
+            chunk_size=chunk_size,
+        )
+    finally:
+        listener.stop()
 
 
 @app.command()
@@ -572,7 +590,7 @@ def export_to_ecotaxa(
     )
 
 
-def process_file_list(file_list, pipeline_config, c):
+def process_file_list(file_list, pipeline_config, c, log_queue):
     """Run a PyOPIA processing pipeline for a chuncked list of files based on a given config.toml
 
     Parameters
@@ -586,9 +604,14 @@ def process_file_list(file_list, pipeline_config, c):
     c : int
         Chunk index for tracking progress and logging. If set to 0, enables the
         progress bar; for other values, the progress bar is disabled.
+
+    log_queue : multiprocessing.Queue
+        Queue set up by `setup_queue_log_listener` in the calling command. Logging is
+        routed through it rather than this process opening its own handlers, so that
+        multiple chunks running in parallel don't write to the same log file at once.
     """
     processing_pipeline = pyopia.pipeline.Pipeline(pipeline_config)
-    setup_logging(pipeline_config)
+    route_logging_through_queue(pipeline_config, log_queue)
     logger = logging.getLogger("rich")
 
     with get_custom_progress_bar(
@@ -600,25 +623,31 @@ def process_file_list(file_list, pipeline_config, c):
             try:
                 logger.debug(f"Chunk {c} starting to process {filename}")
                 processing_pipeline.run(filename)
+            except pyopia.auxillarydata.AuxillaryDataError as e:
+                # The auxiliary data file is shared by every image in this chunk, so a
+                # parsing failure will not resolve itself by retrying on the next image.
+                logger.error(
+                    f"[red]Stopping chunk {c}: {e} "
+                    "Fix the auxiliary data file and re-run; "
+                    "the rest of this chunk has been skipped."
+                )
+                break
             except Exception as e:
                 logger.warning(
                     "[red]An error occured in processing, "
                     + "skipping rest of pipeline and moving to next image."
                     + f"(chunk {c})"
                 )
-                logger.error(e)
-                logger.debug("".join(traceback.format_tb(e.__traceback__)))
+                logger.error(f"{type(e).__name__}: {e}")
+                logger.error("".join(traceback.format_tb(e.__traceback__)))
 
 
-def setup_logging(pipeline_config):
-    """Configure logging
+LOG_FORMAT = "%(asctime)s %(levelname)s %(processName)s [%(module)s.%(funcName)s] %(message)s"
+LOG_DATEFMT = "%Y-%m-%d %H:%M:%S"
 
-    Parameters
-    ----------
-    pipeline_config : dict
-        TOML settings
-    """
-    # Get user parameters or default values for logging
+
+def _log_level_and_handlers(pipeline_config):
+    """Build the log level and the real handlers (file or console) from pipeline_config."""
     log_file = pipeline_config["general"].get("log_file", None)
     log_level_name = pipeline_config["general"].get("log_level", "INFO")
     log_level = getattr(logging, log_level_name)
@@ -629,14 +658,69 @@ def setup_logging(pipeline_config):
     else:
         handlers = [logging.FileHandler(log_file, mode="a")]
 
-    # Configure logger
-    log_format = "%(asctime)s %(levelname)s %(processName)s [%(module)s.%(funcName)s] %(message)s"
-    logging.basicConfig(
-        level=log_level,
-        datefmt="%Y-%m-%d %H:%M:%S",
-        format=log_format,
-        handlers=handlers,
+    return log_level, handlers
+
+
+def setup_queue_log_listener(pipeline_config, log_queue):
+    """Start a QueueListener that owns the real log handlers (file or console).
+
+    This is the one place PyOPIA opens the real log file/console handler. Call it once
+    per command, before any process - including the caller itself - starts logging via
+    `route_logging_through_queue`. Every process sends LogRecords through `log_queue`
+    instead of writing to the log file directly, so this listener is the sole writer,
+    whether processing runs as one process or several in parallel; this avoids the
+    multi-writer file corruption risk of separate processes each opening their own
+    FileHandler onto the same file. See:
+    https://docs.python.org/3/howto/logging-cookbook.html#logging-to-a-single-file-from-multiple-processes
+
+    Give each worker process a distinct `name` (e.g. `chunk-{c}`) when creating it, so
+    `%(processName)s` in the merged log identifies which chunk a line came from.
+
+    Parameters
+    ----------
+    pipeline_config : dict
+        TOML settings
+    log_queue : multiprocessing.Queue
+        Queue shared with every process that logs via `route_logging_through_queue`
+
+    Returns
+    -------
+    logging.handlers.QueueListener
+        Started listener; call `.stop()` once every process has finished logging
+    """
+    _, handlers = _log_level_and_handlers(pipeline_config)
+    formatter = logging.Formatter(LOG_FORMAT, datefmt=LOG_DATEFMT)
+    for handler in handlers:
+        handler.setFormatter(formatter)
+
+    listener = logging.handlers.QueueListener(
+        log_queue, *handlers, respect_handler_level=True
     )
+    listener.start()
+    return listener
+
+
+def route_logging_through_queue(pipeline_config, log_queue):
+    """Configure this process's root logger to send everything through `log_queue`.
+
+    Used identically by every process that logs - the command's own main process and any
+    worker chunks it spawns - so exactly one process (the listener started by
+    `setup_queue_log_listener`) ever writes to the real log file/console.
+
+    Parameters
+    ----------
+    pipeline_config : dict
+        TOML settings
+    log_queue : multiprocessing.Queue
+        Queue read by the listener started by `setup_queue_log_listener`
+    """
+    log_level_name = pipeline_config["general"].get("log_level", "INFO")
+    log_level = getattr(logging, log_level_name)
+
+    root_logger = logging.getLogger()
+    root_logger.handlers.clear()
+    root_logger.addHandler(logging.handlers.QueueHandler(log_queue))
+    root_logger.setLevel(log_level)
 
 
 def check_chunks(chunks, pipeline_config):
