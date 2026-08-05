@@ -59,3 +59,26 @@ jobs:
 
       - name: Run the automated tests
         run: uv run pytest -v -m "not training"
+
+  License_check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.6.10"
+
+      - name: Install PyOPIA
+        run: uv sync --all-extras --dev
+
+      - name: Check dependency licenses
+        run: >
+          uv run pip-licenses
+          --fail-on="GPL;AGPL;LGPL;Commons Clause;Non-Commercial;SSPL;Business Source License"
+          --partial-match
+          --ignore-packages docutils
