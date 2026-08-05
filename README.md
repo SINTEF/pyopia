@@ -144,6 +144,29 @@ We welcome additions and improvements to the code! We request that you follow a 
 
 Use the NumPy style in docstrings. See style guide [here](https://numpydoc.readthedocs.io/en/latest/format.html#documenting-classes)
 
+## Testing
+
+PyOPIA's test suite lives in `pyopia/tests/` and runs via `pytest` (see `uv run pytest` below). A few things are useful to know before running or adding to it:
+
+**Markers**: some tests are tagged with pytest markers to indicate how expensive they are.
+
+- `@pytest.mark.slow` - tests that do real network downloads and/or real model inference (e.g. downloading the example classifier model and running real predictions on it). These run in routine CI, but you can skip them for a fast local feedback loop:
+  ```bash
+  uv run pytest -m "not slow"
+  ```
+- `@pytest.mark.training` - tests that train a model from scratch (currently, a notebook that trains a DINOv2-based classifier). These never run in routine CI - only manually, or on a schedule - since they involve a real, uncapped multi-epoch training run rather than a check of PyOPIA's own correctness:
+  ```bash
+  uv run pytest -m training
+  ```
+
+Unmarked tests are fast and have no external dependencies; they always run.
+
+**Shared fixtures**: tests that need real example data (an example image, the trained classifier model, the classifier training database, an example hologram) get it from session-scoped fixtures defined in `pyopia/tests/conftest.py`, rather than each downloading their own copy. The download happens once per test run and is shared across every test file that needs it.
+
+**Notebooks**: `pyopia/tests/test_notebooks.py` executes the notebooks in `notebooks/` and `docs/notebooks/` to check they still run against the current codebase. Each notebook is its own parametrized test (`test_notebook[<name>.ipynb]`), tagged `slow`/`training` as above where relevant. Not every notebook is included - a couple depend on state produced by another notebook, or by a user's own prior processing run, and would fail if executed standalone; see the comments in `test_notebooks.py` for which ones and why. These tests also get a longer timeout (1800s) and up to 2 automatic retries on failure, since running a Jupyter kernel via nbconvert has shown real, platform-specific flakiness on macOS CI runners rather than a reproducible bug.
+
+Please do not disable or remove tests just to make a pull request pass - see Contributions guideline 3 above.
+
 # Installing
 
 ## For users
@@ -173,7 +196,7 @@ For the next steps, you need to be located in the PyOPIA root directory that con
 uv sync --all-extras
 ```
 
-3. (optional) Run local tests:
+3. (optional) Run local tests (see the Testing section above for markers and how to run a fast subset):
 
 ```bash
 uv run pytest
