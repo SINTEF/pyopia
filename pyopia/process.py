@@ -183,7 +183,7 @@ def get_spine_length(imbw_roi):
     return spine_length
 
 
-def extract_roi(input_image, bbox):
+def extract_roi(input_image, bbox, pad=0):
     '''Given a full image and bounding box, this will return the roi image from within the bounding box
 
     Parameters
@@ -192,12 +192,19 @@ def extract_roi(input_image, bbox):
         Full image. Can be any image, such as background-corrected image
     bbox : array
         bounding box from regionprops [r1, c1, r2, c2]
+    pad : int, optional
+        Additional fixed-pixel margin to add on every side before cropping, on top of
+        whatever bbox was passed in (e.g. one already expanded via :func:`expand_bbox`).
+        Clamped to image bounds. See :func:`pad_bbox`. Defaults to 0 (no padding).
 
     Returns
     -------
     roi : array
         Image cropped to region of interest
     '''
+    if pad:
+        bbox = pad_bbox(bbox, input_image.shape, pad)
+
     # refer to skimage regionprops documentation on how bbox is structured
     roi = input_image[bbox[0]:bbox[2], bbox[1]:bbox[3]]
 
@@ -257,6 +264,54 @@ def expand_bbox(bbox, image_shape, fraction):
     ], dtype=int)
 
 
+def pad_bbox(bbox, image_shape, pad):
+    '''Expand a bounding box by a fixed number of pixels on every side, clamped to image bounds.
+
+    Unlike :func:`expand_bbox`, which scales with the particle's own size, this adds the
+    same absolute pixel margin regardless of particle size - useful for guaranteeing a
+    consistent border (e.g. a small non-particle margin for the classifier, or for visual
+    inspection/montage context) rather than one proportional to the particle. Can be
+    combined with :func:`expand_bbox`: apply that first, then pass its result here.
+
+    Parameters
+    ----------
+    bbox : array-like of int
+        [min_row, min_col, max_row, max_col], following the skimage regionprops
+        convention where ``max_row`` and ``max_col`` are exclusive.
+    image_shape : tuple
+        Shape of the full image. Only the first two elements (H, W) are used,
+        so passing ``imc.shape`` works for both 2-D and 3-D images.
+    pad : int
+        Number of pixels to add on every side. ``0`` (or ``None``) returns the bbox
+        unchanged. Must be non-negative.
+
+    Returns
+    -------
+    padded : ndarray of int, shape (4,)
+        Padded and clamped bounding box, integer-valued.
+
+    Raises
+    ------
+    ValueError
+        If ``pad`` is negative.
+    '''
+    bbox_int = np.asarray(bbox, dtype=int)
+    if pad is None or pad == 0:
+        return bbox_int
+    if pad < 0:
+        raise ValueError(f'pad must be non-negative, got {pad}')
+
+    r1, c1, r2, c2 = bbox_int
+    H, W = image_shape[0], image_shape[1]
+
+    return np.array([
+        max(0, r1 - pad),
+        max(0, c1 - pad),
+        min(H, r2 + pad),
+        min(W, c2 + pad),
+    ], dtype=int)
+
+
 def put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i):
     '''Adds rois to an open hdf file if export_outputpath is not None.
     For use within {func}`pyopia.process.export_particles`
@@ -286,7 +341,7 @@ def put_roi_in_h5(export_outputpath, HDF5File, roi, filename, i):
 def extract_particles(imc, timestamp, Classification, region_properties,
                       export_outputpath=None, min_length=0, propnames=['major_axis_length', 'minor_axis_length',
                                                                        'equivalent_diameter'],
-                      bbox_expansion=0.0):
+                      bbox_expansion=0.0, pad=0):
     '''Extracts the particles to build stats and export particle rois to HDF5 files
 
     Parameters
@@ -314,6 +369,13 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         bounds. Only the exported ROI image is affected; the ``minr/minc/maxr/
         maxc`` columns saved in stats continue to report the un-expanded
         regionprops bbox so that measurements are unchanged.
+    pad : int, optional
+        Fixed-pixel margin added on every side, on top of ``bbox_expansion`` (either,
+        both, or neither can be used). Unlike ``bbox_expansion``, this doesn't scale
+        with particle size, so it's useful for guaranteeing a consistent absolute
+        border - e.g. a small non-particle margin for the classifier, since the
+        classifier is run on this same cropped ROI. Clamped to image bounds.
+        Defaults to 0 (no padding). See :func:`pad_bbox`.
 
     Returns
     -------
@@ -365,10 +427,10 @@ def extract_particles(imc, timestamp, Classification, region_properties,
         if ((data[i, 0] > min_length) & (data[i, 1] > 2)):
 
             nb_extractable_part += 1
-            # extract the region of interest from the corrected colour image,
-            # optionally with the bbox expanded by `bbox_expansion` to add context
+            # extract the region of interest from the corrected colour image, optionally
+            # with the bbox expanded by `bbox_expansion` and/or a fixed `pad` margin
             roi_bbox = expand_bbox(bboxes[i, :], imc.shape, bbox_expansion)
-            roi = extract_roi(imc, roi_bbox)
+            roi = extract_roi(imc, roi_bbox, pad=pad)
 
             if Classification is not None:
                 # run a prediction on what type of particle this might be
@@ -490,7 +552,7 @@ def statextract(imbw, timestamp, imc,
                 export_outputpath=None,
                 min_length=0,
                 propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter'],
-                bbox_expansion=0.0):
+                bbox_expansion=0.0, pad=0):
     '''Extracts statistics of particles in a binary images (imbw)
 
     Parameters
@@ -519,6 +581,9 @@ def statextract(imbw, timestamp, imc,
     bbox_expansion : float, optional
         Fractional expansion of bounding boxes when cropping ROI images for export.
         See :func:`extract_particles`. Defaults to 0.0 (no expansion).
+    pad : int, optional
+        Fixed-pixel margin added on every side, on top of ``bbox_expansion``.
+        See :func:`extract_particles`. Defaults to 0 (no padding).
 
     Returns
     -------
@@ -547,7 +612,7 @@ def statextract(imbw, timestamp, imc,
     stats = extract_particles(imc, timestamp, Classification, region_properties,
                               export_outputpath=export_outputpath, min_length=min_length,
                               propnames=propnames,
-                              bbox_expansion=bbox_expansion)
+                              bbox_expansion=bbox_expansion, pad=pad)
 
     return stats, saturation
 
@@ -632,6 +697,13 @@ class CalculateStats():
         width and height (5% on each side, clamped to image bounds). The
         regionprops measurements and the ``minr/minc/maxr/maxc`` columns
         written into stats are unaffected. Defaults to ``0.0`` (no expansion).
+    pad: (int, optional)
+        Fixed-pixel margin added on every side of each ROI crop, on top of
+        ``bbox_expansion`` - either, both, or neither can be used. Unlike
+        ``bbox_expansion``, this doesn't scale with particle size, so it's useful
+        for guaranteeing a consistent absolute border, e.g. a small non-particle
+        margin for the classifier (which is run on this same cropped ROI).
+        Clamped to image bounds. Defaults to ``0`` (no padding).
 
     Configure from a TOML pipeline as::
 
@@ -639,6 +711,7 @@ class CalculateStats():
         pipeline_class = "pyopia.process.CalculateStats"
         export_outputpath = "/path/to/rois"
         bbox_expansion = 0.1
+        pad = 2
 
     Returns
     -------
@@ -654,7 +727,7 @@ class CalculateStats():
                  min_length=0,
                  propnames=['major_axis_length', 'minor_axis_length', 'equivalent_diameter'],
                  roi_source='im_corrected',
-                 bbox_expansion=0.0):
+                 bbox_expansion=0.0, pad=0):
 
         self.max_coverage = max_coverage
         self.max_particles = max_particles
@@ -663,6 +736,7 @@ class CalculateStats():
         self.propnames = propnames
         self.roi_source = roi_source
         self.bbox_expansion = bbox_expansion
+        self.pad = pad
 
         self.calc_image_stats = CalculateImageStats()
 
@@ -675,7 +749,7 @@ class CalculateStats():
                                         export_outputpath=self.export_outputpath,
                                         min_length=self.min_length,
                                         propnames=self.propnames,
-                                        bbox_expansion=self.bbox_expansion)
+                                        bbox_expansion=self.bbox_expansion, pad=self.pad)
         stats['timestamp'] = data['timestamp']
         stats['saturation'] = saturation
 
