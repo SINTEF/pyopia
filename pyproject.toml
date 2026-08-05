@@ -69,6 +69,13 @@ classification-torch = [
 ]
 
 [dependency-groups]
+# Packages needed to build the docs that aren't already part of the base install or
+# the classification extra (which the docs build also installs, since example
+# notebooks exercise real classification).
+docs = [
+    "docopt",
+    "setuptools",
+]
 dev = [
     "pip-licenses>=5.5.0,<6",
 ]
