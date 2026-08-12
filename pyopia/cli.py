@@ -366,7 +366,7 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = "block"):
         # If we are using multiprocessing, make sure all jobs have finished
         [job.join() for job in job_list]
     finally:
-        listener.stop()
+        stop_queue_logging(listener, log_queue)
 
     # Calculate and print total processing time
     time_total = pd.to_timedelta(time.time() - t1, "seconds")
@@ -414,7 +414,7 @@ def process_realtime(config_filename: str, watch_folder: str = None):
 
         pyopia.realtime.run_realtime(pipeline_config, watch_folder=watch_folder)
     finally:
-        listener.stop()
+        stop_queue_logging(listener, log_queue)
 
 
 @app.command()
@@ -458,7 +458,7 @@ def merge_mfdata(
             chunk_size=chunk_size,
         )
     finally:
-        listener.stop()
+        stop_queue_logging(listener, log_queue)
 
 
 @app.command()
@@ -721,6 +721,27 @@ def route_logging_through_queue(pipeline_config, log_queue):
     root_logger.handlers.clear()
     root_logger.addHandler(logging.handlers.QueueHandler(log_queue))
     root_logger.setLevel(log_level)
+
+
+def stop_queue_logging(listener, log_queue):
+    """Stop the queue listener and fully close the queue itself.
+
+    Stopping the listener alone isn't enough: an unclosed multiprocessing.Queue
+    keeps its background feeder thread alive, which can prevent the process
+    from exiting cleanly once everything else has finished - most visibly as a
+    hang on Windows, where process-exit/thread-cleanup semantics are stricter
+    than on Linux/macOS.
+
+    Parameters
+    ----------
+    listener : logging.handlers.QueueListener
+        Listener started by `setup_queue_log_listener`
+    log_queue : multiprocessing.Queue
+        The same queue passed to `setup_queue_log_listener`
+    """
+    listener.stop()
+    log_queue.close()
+    log_queue.join_thread()
 
 
 def check_chunks(chunks, pipeline_config):
