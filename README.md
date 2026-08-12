@@ -154,7 +154,7 @@ PyOPIA's test suite lives in `pyopia/tests/` and runs via `pytest` (see `uv run 
   ```bash
   uv run pytest -m "not slow"
   ```
-- `@pytest.mark.training` - tests that train a model from scratch (currently, a notebook that trains a DINOv2-based classifier). These never run in routine CI - only manually, or on a schedule - since they involve a real, uncapped multi-epoch training run rather than a check of PyOPIA's own correctness:
+- `@pytest.mark.training` - tests that train a model from scratch (currently, a notebook that trains a DINOv2-based classifier). These never run in routine CI - only manually - since they involve a real, uncapped multi-epoch training run rather than a check of PyOPIA's own correctness:
   ```bash
   uv run pytest -m training
   ```
