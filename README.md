@@ -150,16 +150,11 @@ PyOPIA's test suite lives in `pyopia/tests/` and runs via `pytest` (see `uv run 
   ```bash
   uv run pytest -m "not slow"
   ```
-- `@pytest.mark.training` - tests that train a model from scratch (currently, a notebook that trains a DINOv2-based classifier). These never run in routine CI - only manually, or on a schedule - since they involve a real, uncapped multi-epoch training run rather than a check of PyOPIA's own correctness:
-  ```bash
-  uv run pytest -m training
-  ```
-
 Unmarked tests are fast and have no external dependencies; they always run.
 
 **Shared fixtures**: tests that need real example data (an example image, the trained classifier model, the classifier training database, an example hologram) get it from session-scoped fixtures defined in `pyopia/tests/conftest.py`, rather than each downloading their own copy. The download happens once per test run and is shared across every test file that needs it.
 
-**Notebooks**: `pyopia/tests/test_notebooks.py` executes the notebooks in `notebooks/` and `docs/notebooks/` to check they still run against the current codebase. Each notebook is its own parametrized test (`test_notebook[<name>.ipynb]`), tagged `slow`/`training` as above where relevant. Not every notebook is included - a couple depend on state produced by another notebook, or by a user's own prior processing run, and would fail if executed standalone; see the comments in `test_notebooks.py` for which ones and why. These tests also get a longer timeout (1800s) and up to 2 automatic retries on failure, since running a Jupyter kernel via nbconvert has shown real, platform-specific flakiness on macOS CI runners rather than a reproducible bug.
+**Notebooks**: `pyopia/tests/test_notebooks.py` executes the notebooks in `notebooks/` and `docs/notebooks/` to check they still run against the current codebase. Each notebook is its own parametrized test (`test_notebook[<name>.ipynb]`), tagged `slow` as above where relevant. Not every notebook is included - a couple depend on state produced by another notebook, or by a user's own prior processing run, and would fail if executed standalone; see the comments in `test_notebooks.py` for which ones and why. These tests also get a longer timeout (1800s) and up to 2 automatic retries on failure, since running a Jupyter kernel via nbconvert has shown real, platform-specific flakiness on macOS CI runners rather than a reproducible bug.
 
 Please do not disable or remove tests just to make a pull request pass - see Contributions guideline 3 above.
 

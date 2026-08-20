@@ -19,13 +19,15 @@ from nbconvert.preprocessors import ExecutePreprocessor
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# Real network downloads and/or real pipeline runs, but no model training: acceptable
-# to run in routine CI, just excluded from a fast local `pytest -m "not slow"` loop.
+# Real network downloads and/or real pipeline runs (including real model
+# training/inference), but bounded enough to run in routine CI - excluded only from a
+# fast local `pytest -m "not slow"` loop.
 SLOW_NOTEBOOKS = [
     REPO_ROOT / 'notebooks' / 'single-image-stats.ipynb',
     REPO_ROOT / 'notebooks' / 'pipeline-holo.ipynb',
     REPO_ROOT / 'notebooks' / 'single-image-stats-holo.ipynb',
     REPO_ROOT / 'notebooks' / 'pyopia-classifier' / 'pyopia-default-classifier.ipynb',
+    REPO_ROOT / 'notebooks' / 'pyopia-classifier' / 'pyopia-torch-dinov2-classifier-train.ipynb',
     REPO_ROOT / 'docs' / 'notebooks' / 'background_correction.ipynb',
     REPO_ROOT / 'docs' / 'notebooks' / 'montaging.ipynb',
     REPO_ROOT / 'docs' / 'notebooks' / 'stats.ipynb',
@@ -47,13 +49,6 @@ DOCS_ONLY_NOTEBOOKS = [
     REPO_ROOT / 'docs' / 'notebooks' / 'big_datasets.ipynb',
 ]
 
-# Trains a real model from scratch (a DINOv2 backbone + 30 real training epochs, no
-# reduced-epoch CI mode). Never runs in routine CI; run manually or on a schedule only,
-# with `pytest -m training`.
-TRAINING_NOTEBOOKS = [
-    REPO_ROOT / 'notebooks' / 'pyopia-classifier' / 'pyopia-torch-dinov2-classifier-train.ipynb',
-]
-
 # Not included: docs/notebooks/STATSnc.ipynb loads a pre-existing 'test-STATS.nc' file
 # that no notebook produces at that same relative path when run in isolation - it's
 # designed to be read by a user who already has their own processed stats file sitting
@@ -66,7 +61,6 @@ NOTEBOOK_PARAMS = (
     [pytest.param(nb, id=nb.name, marks=pytest.mark.slow) for nb in SLOW_NOTEBOOKS]
     + [pytest.param(nb, id=nb.name) for nb in FAST_NOTEBOOKS]
     + [pytest.param(nb, id=nb.name) for nb in DOCS_ONLY_NOTEBOOKS]
-    + [pytest.param(nb, id=nb.name, marks=[pytest.mark.slow, pytest.mark.training]) for nb in TRAINING_NOTEBOOKS]
 )
 
 # Overrides pyproject.toml's 600s default for every test in this module. Confirmed on a
