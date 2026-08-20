@@ -3,9 +3,9 @@
 import fnmatch
 import logging
 import pathlib
-import queue
 import threading
 import time
+from collections import deque
 
 import pandas as pd
 from rich import print as rich_print
@@ -29,7 +29,7 @@ def _resolve_watch_settings(raw_files_pattern: str, watch_folder: str | None) ->
 
 def _enqueue_file_if_new(
     file_path: pathlib.Path,
-    file_queue: queue.Queue,
+    file_queue: deque,
     file_pattern: str,
     seen_files: set[str],
     seen_lock: threading.Lock,
@@ -46,14 +46,14 @@ def _enqueue_file_if_new(
             return False
         seen_files.add(file_key)
 
-    file_queue.put(file_path)
+    file_queue.append(file_path)
     return True
 
 
 def _enqueue_existing_files(
     watch_folder: str,
     file_pattern: str,
-    file_queue: queue.Queue,
+    file_queue: deque,
     seen_files: set[str],
     seen_lock: threading.Lock,
     logger: logging.Logger,
@@ -64,7 +64,7 @@ def _enqueue_existing_files(
 
 
 def _build_event_handler(
-    file_queue: queue.Queue,
+    file_queue: deque,
     file_pattern: str,
     seen_files: set[str],
     seen_lock: threading.Lock,
@@ -95,7 +95,7 @@ def _build_event_handler(
 
 def _worker_loop(
     stop_event: threading.Event,
-    file_queue: queue.Queue,
+    file_queue: deque,
     processing_pipeline: pyopia.pipeline.Pipeline,
     logger: logging.Logger,
     runtime_state: dict,
@@ -103,8 +103,12 @@ def _worker_loop(
 ):
     while not stop_event.is_set():
         try:
-            filepath = file_queue.get(timeout=1)
-        except queue.Empty:
+            # Pop from the right (most recently queued) so a backlog is worked off
+            # newest-first, matching the point of a bounded, oldest-dropping queue:
+            # stay close to "now" rather than grinding through stale images.
+            filepath = file_queue.pop()
+        except IndexError:
+            time.sleep(0.1)
             continue
 
         try:
@@ -123,10 +127,9 @@ def _worker_loop(
         finally:
             with state_lock:
                 runtime_state["current_file"] = "idle"
-            file_queue.task_done()
 
 
-def run_realtime(pipeline_config: dict, watch_folder: str | None = None):
+def run_realtime(pipeline_config: dict, watch_folder: str | None = None, queue_size: int = 10):
     """Run a PyOPIA processing pipeline in realtime by watching a folder.
 
     Parameters
@@ -135,6 +138,11 @@ def run_realtime(pipeline_config: dict, watch_folder: str | None = None):
         Loaded PyOPIA pipeline config.
     watch_folder : str, optional
         Folder to monitor. If not provided, inferred from ``general.raw_files``.
+    queue_size : int, optional
+        Maximum number of queued images retained when processing falls behind
+        acquisition; older images are dropped to stay close to realtime. A bigger
+        queue only delays which images get dropped - it doesn't fix an underlying
+        backlog where processing is slower than acquisition.
     """
     logger = logging.getLogger("rich")
     logger.info(f"PyOPIA realtime process started {pd.Timestamp.now()}")
@@ -145,7 +153,7 @@ def run_realtime(pipeline_config: dict, watch_folder: str | None = None):
 
     processing_pipeline = pyopia.pipeline.Pipeline(pipeline_config)
 
-    file_queue = queue.Queue()
+    file_queue = deque(maxlen=queue_size)
     stop_event = threading.Event()
     seen_files: set[str] = set()
     seen_lock = threading.Lock()
@@ -212,7 +220,7 @@ def run_realtime(pipeline_config: dict, watch_folder: str | None = None):
                     description=(
                         "[blue]Realtime active"
                         f" | processed: {processed_count}"
-                        f" | queued: {file_queue.qsize()}"
+                        f" | queued: {len(file_queue)}"
                         f" | current: {current_file}"
                     ),
                 )

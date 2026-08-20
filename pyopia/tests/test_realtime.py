@@ -1,6 +1,6 @@
 import logging
-import queue
 import threading
+from collections import deque
 from pathlib import Path
 
 import pyopia.realtime
@@ -119,7 +119,7 @@ def test_resolve_watch_settings_prefers_explicit_watch_folder(tmp_path: Path):
 
 
 def test_event_handler_enqueues_only_matching_moved_files(tmp_path: Path):
-    file_queue = queue.Queue()
+    file_queue = deque()
     logger = logging.getLogger("test")
     seen_files = set()
     seen_lock = threading.Lock()
@@ -142,13 +142,13 @@ def test_event_handler_enqueues_only_matching_moved_files(tmp_path: Path):
     handler.on_moved(moved_event_match)
     handler.on_moved(moved_event_no_match)
 
-    queued = file_queue.get_nowait()
+    queued = file_queue.popleft()
     assert queued == matched
-    assert file_queue.empty()
+    assert len(file_queue) == 0
 
 
 def test_event_handler_deduplicates_same_moved_file(tmp_path: Path):
-    file_queue = queue.Queue()
+    file_queue = deque()
     logger = logging.getLogger("test")
     seen_files = set()
     seen_lock = threading.Lock()
@@ -167,13 +167,13 @@ def test_event_handler_deduplicates_same_moved_file(tmp_path: Path):
     handler.on_moved(moved_event)
     handler.on_moved(moved_event)
 
-    queued = file_queue.get_nowait()
+    queued = file_queue.popleft()
     assert queued == matched
-    assert file_queue.empty()
+    assert len(file_queue) == 0
 
 
 def test_enqueue_existing_files_matches_pattern_and_deduplicates(tmp_path: Path):
-    file_queue = queue.Queue()
+    file_queue = deque()
     seen_files = set()
     seen_lock = threading.Lock()
     logger = logging.getLogger("test")
@@ -200,13 +200,29 @@ def test_enqueue_existing_files_matches_pattern_and_deduplicates(tmp_path: Path)
         logger,
     )
 
-    queued = file_queue.get_nowait()
+    queued = file_queue.popleft()
     assert queued == matched
-    assert file_queue.empty()
+    assert len(file_queue) == 0
+
+
+def test_enqueue_drops_oldest_once_queue_size_is_exceeded(tmp_path: Path):
+    file_queue = deque(maxlen=2)
+    seen_files = set()
+    seen_lock = threading.Lock()
+
+    files = []
+    for i in range(3):
+        f = tmp_path / f"image_{i}.silc"
+        f.write_text("ok")
+        files.append(f)
+        pyopia.realtime._enqueue_file_if_new(f, file_queue, "*.silc", seen_files, seen_lock)
+
+    assert len(file_queue) == 2
+    assert list(file_queue) == files[1:]
 
 
 def test_integration_existing_then_moved_files_processed_once(tmp_path: Path):
-    file_queue = queue.Queue()
+    file_queue = deque()
     seen_files = set()
     seen_lock = threading.Lock()
     logger = logging.getLogger("test")
@@ -272,8 +288,8 @@ def test_worker_loop_processes_one_file_and_uses_posix_path(tmp_path: Path):
     image_file.write_text("content")
 
     stop_event = threading.Event()
-    file_queue = queue.Queue()
-    file_queue.put(image_file)
+    file_queue = deque()
+    file_queue.append(image_file)
     pipeline = DummyPipeline()
     runtime_state = {"processed_count": 0, "current_file": "idle"}
     state_lock = threading.Lock()
