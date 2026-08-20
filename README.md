@@ -200,7 +200,8 @@ The version number of PyOPIA is split into three sections: MAJOR.MINOR.PATCH
 ## Build docs locally
 
 ```bash
-sphinx-build -b html docs/ docs/_build/html
+uv sync --extra classification --group docs
+uv run sphinx-build -b html docs/ docs/_build/html
 ```
 
 ----
