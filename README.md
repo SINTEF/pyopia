@@ -110,6 +110,11 @@ PYOPIA_CONFIG=my_run.toml docker compose run --rm pyopia
 - Under development. See/register issues, [here](https://github.com/SINTEF/pyopia/issues)
 
 ----
+# Releases
+
+Releases are cut when a finished, documented, and tested piece of work is ready to be used, rather than on a fixed schedule. If a feature has landed on `main` and meets the Contributions guidelines below, it should go out in the next release rather than sit unreleased. We aim to keep the Docker image (see Running with Docker above) in sync with each release, publishing it as part of the release process rather than as a separate manual step.
+
+----
 # Design principles
 
 - PyOPIA is instrument-agnostic at its core: SilCam, holographic, and UVP support are all built as pluggable instrument modules on top of a shared `Pipeline`.
@@ -126,6 +131,10 @@ We welcome additions and improvements to the code! We request that you follow a 
 3. All pull requests are required to pass all tests before merging. Please do not disable or remove tests just to make your branch pass the pull request.
 4. All pull requests must be reviewed by a person. The benefits from code review are plenty, but we like to emphasise that code reviews help spreading the awareness of code changes. Please note that code reviews should be a pleasant experience, so be pleasant, polite and remember that there is a human being with good intentions on the other side of the screen.
 5. All contributions are linted with flake8. We recommend that you run flake8 on your code while developing to fix any issues as you go. We recommend using autopep8 to autoformat your Python code (but please check the code behaviour is not affected by autoformatting before pushing). This makes flake8 happy, and makes it easier for us all to maintain a consistent and readable code base.
+
+### Using AI tools
+
+AI coding tools (e.g. Claude, Copilot, ChatGPT) are welcome as an aid to writing PyOPIA contributions. They are tools, not authors: whoever submits a pull request is responsible for the code in it, regardless of how much of it an AI tool helped produce. Please review, understand, and test any AI-assisted changes yourself before submitting them - the same guidelines above (documentation, tests, review, flake8) apply either way.
 
 ## Docstrings
 
