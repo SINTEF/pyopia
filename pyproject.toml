@@ -101,7 +101,6 @@ path = "pyopia/__init__.py"
 [tool.pytest.ini_options]
 markers = [
     "slow: real network downloads and/or real model inference; excluded from `pytest -m \"not slow\"` for a fast local loop, but still run in routine CI",
-    "training: trains a model from scratch (e.g. notebook-based training tutorials); never runs in routine CI, only manually or on a schedule",
 ]
 timeout = 600
 

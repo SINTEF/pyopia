@@ -20,7 +20,7 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: Run the automated tests
-        run: uv run pytest -v -m "not training"
+        run: uv run pytest -v
 
   Ubuntu_uv:
     runs-on: ubuntu-latest
@@ -39,7 +39,7 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: Run the automated tests
-        run: uv run pytest -v -m "not training"
+        run: uv run pytest -v
 
   MacOS_uv:
     runs-on: macos-latest
@@ -58,7 +58,7 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: Run the automated tests
-        run: uv run pytest -v -m "not training"
+        run: uv run pytest -v
 
   License_check:
     runs-on: ubuntu-latest
