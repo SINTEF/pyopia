@@ -177,9 +177,15 @@ def init_project(
     instrument : str
         Either `silcam`, `holo` or `uvp`
     example_data: bool
-        If specified, download 10 example SilCam images and put them in the images/ folder
+        If specified, download real example images matching `instrument` into the
+        images/ folder: 10 SilCam images for `silcam`, a folder of holograms for
+        `holo`. Not yet supported for `uvp` - falls back to no example data.
     """
-    raw_files = "images/*.silc"
+    raw_files_patterns = {
+        "silcam": "images/*.silc",
+        "holo": "images/holo_test_data_01/*.pgm",
+    }
+    raw_files = raw_files_patterns.get(instrument, "images/*.silc")
     outfolder = "processed"
     output_prefix = project_name
     model_path = ""
@@ -197,7 +203,6 @@ def init_project(
         title = "PyOPIA example data"
         longitude = 14.45498
         latitude = 68.89363
-        instrument = "silcam"
 
     # @todo Move this to instrument modules
     seavox_instrument_identifier = (
@@ -274,7 +279,11 @@ def init_project(
         fh.write(pyopia.auxillarydata.AUXILLARY_DATA_FILE_TEMPLATE)
 
     # Get example image data
-    if example_data:
+    if example_data and instrument == "holo":
+        print("[blue]Downloading example holo images")
+        with contextlib.chdir(images_folder):
+            pyopia.exampledata.get_folder_from_holo_repository(existsok=True)
+    elif example_data:
         print("[blue]Downloading example SilCam images")
         example_imgs_zip = proj_folder / Path("pyopia-example-images-10.zip")
         pyopia.exampledata.get_file_from_pysilcam_blob(
