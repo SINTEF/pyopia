@@ -73,6 +73,19 @@ docker run --rm \
 
 Any PyOPIA CLI command works, e.g. `docker run --rm ghcr.io/sintef/pyopia:latest --help`.
 
+### Windows (PowerShell)
+
+The invocations above use POSIX/bash syntax. In PowerShell, drop `--user $(id -u):$(id -g)`
+(Docker Desktop on Windows doesn't use the same UID/GID bind-mount permission model
+Linux does, so it isn't needed) and use `${PWD}` in place of `$PWD`:
+
+```powershell
+docker run --rm `
+    -v "${PWD}:${PWD}" -w "${PWD}" `
+    ghcr.io/sintef/pyopia:latest `
+    process config.toml
+```
+
 ## Using docker compose
 
 Each GitHub release attaches a `compose.yaml` as an asset. 
