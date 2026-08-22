@@ -9,6 +9,26 @@ import logging
 logger = logging.getLogger()
 
 
+def _make_progress_hook(label):
+    """Build a `urllib.request.urlretrieve` reporthook that logs download progress.
+
+    Logs at 10%-increments (never more often than that, to avoid spamming logs with
+    one line per block) rather than every callback.
+    """
+    last_logged = -1
+
+    def _hook(block_count, block_size, total_size):
+        nonlocal last_logged
+        if total_size <= 0:
+            return
+        percent = min(100, block_count * block_size * 100 // total_size)
+        if percent >= last_logged + 10 or percent == 100:
+            logger.info(f"Downloading {label}... {percent}%")
+            last_logged = percent
+
+    return _hook
+
+
 def get_classifier_database_from_pysilcam_blob(download_directory="./"):
     """Downloads and unzips the silcam_database of labelled example images from pysilcam.blob
     into the working dir. if it doesn't already exist
@@ -30,7 +50,9 @@ def get_classifier_database_from_pysilcam_blob(download_directory="./"):
     os.makedirs(download_directory, exist_ok=False)
     url = "https://pysilcam.blob.core.windows.net/test-data/silcam_database.zip"
     logger.info("Downloading....")
-    urllib.request.urlretrieve(url, download_directory + "/silcam_database.zip")
+    urllib.request.urlretrieve(
+        url, download_directory + "/silcam_database.zip", reporthook=_make_progress_hook("silcam_database.zip")
+    )
     logger.info("Unzipping....")
     with zipfile.ZipFile(
         os.path.join(download_directory, "silcam_database.zip"), "r"
@@ -63,7 +85,9 @@ def get_file_from_pysilcam_blob(filename, download_directory="./"):
     if os.path.exists(os.path.join(download_directory, filename)):
         return filename
     url = "https://pysilcam.blob.core.windows.net/test-data/" + filename
-    urllib.request.urlretrieve(url, os.path.join(download_directory, filename))
+    urllib.request.urlretrieve(
+        url, os.path.join(download_directory, filename), reporthook=_make_progress_hook(filename)
+    )
     return download_directory
 
 
@@ -112,7 +136,7 @@ def get_example_model(download_directory="./"):
     )
     if not model_path.exists():
         logger.info("Downloading example model...")
-        urllib.request.urlretrieve(model_url, model_path)
+        urllib.request.urlretrieve(model_url, model_path, reporthook=_make_progress_hook("classifier model"))
     return str(model_path)
 
 
