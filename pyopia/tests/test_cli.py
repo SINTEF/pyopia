@@ -144,6 +144,31 @@ def test_init_project_refuses_to_overwrite_existing_folder(tmp_path):
     assert not (existing_project / 'config.toml').exists()
 
 
+@pytest.mark.slow
+@pytest.mark.flaky(reruns=2, reruns_delay=10)
+def test_init_project_with_example_data_downloads_real_holo_images(tmp_path):
+    '''Regression test for #434: --instrument holo previously always got silcam example
+    data regardless (and raw_files was hardcoded to *.silc for every instrument, so a
+    generated holo config could never have matched real holo files anyway).
+
+    Retries on failure: this downloads via gdown/Google Drive
+    (get_folder_from_holo_repository), the same flaky path #421 already documents -
+    confirmed hitting that exact rate-limiting during development of this test.
+    '''
+    result = invoke_in(tmp_path, [
+        'init-project', 'holoproj', '--instrument', 'holo', '--example-data'
+    ])
+
+    assert result.exit_code == 0, result.output
+
+    proj_folder = tmp_path / 'holoproj'
+    config = toml.load(proj_folder / 'config.toml')
+    assert config['general']['raw_files'] == 'images/holo_test_data_01/*.pgm'
+
+    matched_files = list(proj_folder.glob('images/holo_test_data_01/*.pgm'))
+    assert len(matched_files) > 0
+
+
 def test_check_chunks_rejects_less_than_one_chunk():
     with pytest.raises(RuntimeError, match='at least 1 chunk'):
         pyopia.cli.check_chunks(0, {'steps': {'output': {}}})
