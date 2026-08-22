@@ -568,6 +568,44 @@ def make_montage(
 
 
 @app.command()
+def summary_stats(stats_filename: pathlib.Path, json_output: bool = False):
+    """Print summary statistics (particle count, d50, size distribution) from a STATS file
+
+    Parameters
+    ----------
+    stats_filename : pathlib.Path
+        Path to a `-STATS.nc` file, as produced by `process` or `merge-mfdata`
+    json_output : bool, optional
+        Print machine-readable JSON to stdout instead of a human-readable summary,
+        by default False
+    """
+    xstats = pyopia.io.load_stats(str(stats_filename))
+    config = pyopia.io.steps_from_xstats(xstats)
+    pixel_size = config["general"]["pixel_size"]
+    stats = xstats.to_pandas()
+
+    dias, number_distribution = pyopia.statistics.nd_from_stats(stats, pixel_size)
+    d50 = pyopia.statistics.d50_from_stats(stats, pixel_size)
+
+    result = {
+        "particle_count": len(stats),
+        "images_with_particles": pyopia.statistics.count_images_in_stats(stats),
+        "d50_microns": float(d50),
+        "dias": dias.tolist(),
+        "number_distribution": number_distribution.tolist(),
+    }
+
+    if json_output:
+        # Not using this module's `print` (from rich import print, above) - it interprets
+        # "[...]" as console markup, which would corrupt the JSON array fields below.
+        sys.stdout.write(json.dumps(result) + "\n")
+    else:
+        print(f"[blue]Particle count: {result['particle_count']}")
+        print(f"[blue]Images with particles: {result['images_with_particles']}")
+        print(f"[blue]d50: {result['d50_microns']:.1f} um")
+
+
+@app.command()
 def export_to_ecotaxa(
     stats_filename: pathlib.Path,
     export_filename: pathlib.Path,

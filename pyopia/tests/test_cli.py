@@ -309,3 +309,25 @@ def test_export_to_ecotaxa_creates_bundle_zip(silcam_cli_merged_stats, tmp_path)
         names = bundle.namelist()
         assert 'ecotaxa_particle_statistics.tsv' in names
         assert sum(name.endswith('.png') for name in names) == 1740
+
+
+@pytest.mark.slow
+def test_summary_stats_json_output(silcam_cli_merged_stats, tmp_path):
+    result = invoke_in(tmp_path, ['summary-stats', str(silcam_cli_merged_stats), '--json-output'])
+
+    assert result.exit_code == 0, result.output
+    summary = json.loads(result.output)
+
+    assert summary['particle_count'] == 1740
+    assert summary['images_with_particles'] == 2
+    assert summary['d50_microns'] > 0
+    assert len(summary['dias']) == len(summary['number_distribution']) == 52
+
+
+@pytest.mark.slow
+def test_summary_stats_human_readable_output(silcam_cli_merged_stats, tmp_path):
+    result = invoke_in(tmp_path, ['summary-stats', str(silcam_cli_merged_stats)])
+
+    assert result.exit_code == 0, result.output
+    assert 'Particle count: 1740' in result.output
+    assert 'Images with particles: 2' in result.output
