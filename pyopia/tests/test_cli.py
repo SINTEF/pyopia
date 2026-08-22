@@ -139,7 +139,7 @@ def test_init_project_refuses_to_overwrite_existing_folder(tmp_path):
 
     result = invoke_in(tmp_path, ['init-project', 'myproj'])
 
-    assert result.exit_code == 0
+    assert result.exit_code == 1
     assert 'ERROR' in result.output
     assert not (existing_project / 'config.toml').exists()
 
@@ -182,6 +182,25 @@ def test_process_produces_real_particle_stats_and_roi_export(silcam_cli_project)
 
     roi_files = list(silcam_cli_project['roi_folder'].glob('*.h5'))
     assert len(roi_files) == len(silcam_cli_project['stats_files']) == 2
+
+
+@pytest.mark.slow
+def test_process_writes_progress_file_when_requested(tmp_path, silcam_cli_project):
+    '''Regression test for #423: re-runs the real silcam_cli_project config (reusing its
+    already-downloaded data rather than a fresh download) with --progress-file, and
+    checks the final written JSON reflects both images having been processed.
+    '''
+    progress_file = tmp_path / 'progress.json'
+
+    result = invoke_in(silcam_cli_project['project_dir'], [
+        'process', str(silcam_cli_project['config_filename']), '--progress-file', str(progress_file)
+    ])
+
+    assert result.exit_code == 0, result.output
+    assert progress_file.is_file()
+
+    progress = json.loads(progress_file.read_text())
+    assert progress == {'processed': 2, 'total': 2}
 
 
 def test_process_realtime_requires_an_output_step(tmp_path):
