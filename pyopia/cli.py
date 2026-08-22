@@ -568,6 +568,49 @@ def make_montage(
 
 
 @app.command()
+def make_montage_scaled(
+    stats_filename: pathlib.Path,
+    output_filename: str = "montage.png",
+    rel_scale: float = 1.0,
+):
+    """Create a scaled circular montage of particles, packed largest first
+
+    Unlike `make-montage`, every particle is attempted (no upfront subsampling), and
+    `rel_scale` controls how much of the canvas is available for packing - set it
+    proportional to relative sample size when comparing several montages side by side,
+    so packed density stays a fair comparison rather than every montage looking
+    equally full regardless of how much data it represents. See
+    `pyopia.statistics.make_montage_scaled`'s own docstring for the full explanation.
+
+    Parameters
+    ----------
+    stats_filename : pathlib.Path
+        Path to a `-STATS.nc` file, as produced by `process` or `merge-mfdata`
+    output_filename : str
+        Store montage figure to this filename
+    rel_scale : float, optional
+        Fraction (0-1) of the full canvas area used as the circular placement
+        boundary, by default 1.0
+    """
+    print("[blue]LOAD STATS")
+    xstats = pyopia.io.load_stats(str(stats_filename))
+    config = pyopia.io.steps_from_xstats(xstats)
+
+    print("[blue]CREATING MONTAGE")
+    montage = pyopia.statistics.make_montage_scaled(
+        xstats.to_pandas(),
+        config["general"]["pixel_size"],
+        config["steps"]["statextract"]["export_outputpath"],
+        rel_scale=rel_scale,
+        eyecandy=False,
+    )
+
+    print("[blue]STORING MONTAGE")
+    pyopia.plotting.montage_plot(montage, config["general"]["pixel_size"])
+    plt.savefig(output_filename, dpi=300, bbox_inches="tight")
+
+
+@app.command()
 def summary_stats(stats_filename: pathlib.Path, json_output: bool = False):
     """Print summary statistics (particle count, d50, size distribution) from a STATS file
 

@@ -295,6 +295,19 @@ def test_make_montage_creates_real_montage_image(silcam_cli_merged_stats, tmp_pa
 
 
 @pytest.mark.slow
+def test_make_montage_scaled_creates_real_montage_image(silcam_cli_merged_stats, tmp_path):
+    montage_path = tmp_path / 'montage_scaled.png'
+
+    result = invoke_in(tmp_path, [
+        'make-montage-scaled', str(silcam_cli_merged_stats), '--output-filename', str(montage_path)
+    ])
+
+    assert result.exit_code == 0, result.output
+    assert montage_path.is_file()
+    assert montage_path.stat().st_size > 0
+
+
+@pytest.mark.slow
 def test_export_to_ecotaxa_creates_bundle_zip(silcam_cli_merged_stats, tmp_path):
     export_path = tmp_path / 'ecotaxa_export.zip'
 
