@@ -10,5 +10,6 @@ this branch is deleted once they have.
 
 Docker images built from this branch use distinct tags, never `latest`.
 
-Scope: #434 (holo only - uvp split to #436), #427, #423, #426, plus a
-make-montage-scaled CLI command (follow-on to #407, no separate issue)
+Scope: #434 (holo only - uvp split to #436), #427, #423, #426, #421 (code
+ready, blocked on a "sample-data" GitHub release being created - see #421),
+plus a make-montage-scaled CLI command (follow-on to #407, no separate issue)
