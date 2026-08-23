@@ -145,15 +145,15 @@ def test_init_project_refuses_to_overwrite_existing_folder(tmp_path):
 
 
 @pytest.mark.slow
-@pytest.mark.flaky(reruns=2, reruns_delay=10)
 def test_init_project_with_example_data_downloads_real_holo_images(tmp_path):
     '''Regression test for #434: --instrument holo previously always got silcam example
     data regardless (and raw_files was hardcoded to *.silc for every instrument, so a
     generated holo config could never have matched real holo files anyway).
 
-    Retries on failure: this downloads via gdown/Google Drive
-    (get_folder_from_holo_repository), the same flaky path #421 already documents -
-    confirmed hitting that exact rate-limiting during development of this test.
+    get_folder_from_holo_repository previously downloaded via gdown/Google Drive, the
+    flaky path #421 documents (confirmed hitting that exact rate-limiting during
+    initial development of this test) - now downloads from the same blob storage
+    everything else in exampledata.py uses, so no retry treatment needed here.
     '''
     result = invoke_in(tmp_path, [
         'init-project', 'holoproj', '--instrument', 'holo', '--example-data'
