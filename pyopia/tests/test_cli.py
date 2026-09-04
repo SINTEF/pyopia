@@ -107,6 +107,7 @@ def test_version_flag_prints_package_version():
     assert f'PyOPIA version: {pyopia.__version__}' in result.output
 
 
+@pytest.mark.slow
 def test_init_project_creates_expected_structure(tmp_path):
     result = invoke_in(tmp_path, ['init-project', 'myproj'])
 
@@ -168,6 +169,7 @@ def test_process_requires_an_output_step(tmp_path):
     assert 'output' in str(result.exception)
 
 
+@pytest.mark.slow
 def test_process_produces_real_particle_stats_and_roi_export(silcam_cli_project):
     for stats_file in silcam_cli_project['stats_files']:
         with xarray.open_dataset(stats_file) as stats:
@@ -234,6 +236,7 @@ def test_process_realtime_prepares_output_folder_and_calls_run_realtime(tmp_path
     assert recorded['pipeline_config']['steps']['output']['output_datafile'] == output_datafile
 
 
+@pytest.mark.slow
 def test_merge_mfdata_combines_per_image_stats(silcam_cli_project, silcam_cli_merged_stats):
     with xarray.open_dataset(silcam_cli_merged_stats) as merged:
         merged.load()
@@ -247,6 +250,7 @@ def test_merge_mfdata_combines_per_image_stats(silcam_cli_project, silcam_cli_me
     assert len(merged.major_axis_length) == sum(per_image_particle_counts) == 1740
 
 
+@pytest.mark.slow
 def test_convert_raw_images_creates_png(silcam_cli_project, tmp_path):
     result = invoke_in(tmp_path, ['convert-raw-images', str(silcam_cli_project['config_filename'])])
 
@@ -256,6 +260,7 @@ def test_convert_raw_images_creates_png(silcam_cli_project, tmp_path):
     assert len(converted) == 2
 
 
+@pytest.mark.slow
 def test_make_montage_creates_real_montage_image(silcam_cli_merged_stats, tmp_path):
     montage_path = tmp_path / 'montage.png'
 
@@ -268,6 +273,7 @@ def test_make_montage_creates_real_montage_image(silcam_cli_merged_stats, tmp_pa
     assert montage_path.stat().st_size > 0
 
 
+@pytest.mark.slow
 def test_export_to_ecotaxa_creates_bundle_zip(silcam_cli_merged_stats, tmp_path):
     export_path = tmp_path / 'ecotaxa_export.zip'
 

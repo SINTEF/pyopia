@@ -191,10 +191,12 @@ class Pipeline():
 
         # an eventual metadata parser could replace this below printing
         # and format into an appropriate standard
+        import pprint
+
         logger.info('\n-- Pipeline configuration --\n')
         from pyopia import __version__ as pyopia_version
         logger.info(f'PyOpia version: {pyopia_version} + \n')
-        logger.debug(steps_to_string(self.steps))
+        logger.debug(pprint.pformat(self.settings['steps']))
         logger.info('\n---------------------------------\n')
 
 
