@@ -19,15 +19,13 @@ from nbconvert.preprocessors import ExecutePreprocessor
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-# Real network downloads and/or real pipeline runs (including real model
-# training/inference), but bounded enough to run in routine CI - excluded only from a
-# fast local `pytest -m "not slow"` loop.
+# Real network downloads and/or real pipeline runs, but no model training: acceptable
+# to run in routine CI, just excluded from a fast local `pytest -m "not slow"` loop.
 SLOW_NOTEBOOKS = [
     REPO_ROOT / 'notebooks' / 'single-image-stats.ipynb',
     REPO_ROOT / 'notebooks' / 'pipeline-holo.ipynb',
     REPO_ROOT / 'notebooks' / 'single-image-stats-holo.ipynb',
     REPO_ROOT / 'notebooks' / 'pyopia-classifier' / 'pyopia-default-classifier.ipynb',
-    REPO_ROOT / 'notebooks' / 'pyopia-classifier' / 'pyopia-torch-dinov2-classifier-train.ipynb',
     REPO_ROOT / 'docs' / 'notebooks' / 'background_correction.ipynb',
     REPO_ROOT / 'docs' / 'notebooks' / 'montaging.ipynb',
     REPO_ROOT / 'docs' / 'notebooks' / 'stats.ipynb',
