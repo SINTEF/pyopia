@@ -3,9 +3,9 @@
 import fnmatch
 import logging
 import pathlib
+from collections import deque
 import threading
 import time
-from collections import deque
 
 import pandas as pd
 from rich import print as rich_print
@@ -124,6 +124,7 @@ def _worker_loop(
                 runtime_state["processed_count"] += 1
         except Exception as exc:
             logger.exception(f"Error processing {filepath}: {exc}")
+            time.sleep(0.1)
         finally:
             with state_lock:
                 runtime_state["current_file"] = "idle"
