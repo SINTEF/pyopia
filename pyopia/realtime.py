@@ -3,11 +3,9 @@
 import fnmatch
 import logging
 import pathlib
-import queue
 from collections import deque
 import threading
 import time
-from collections import deque
 
 import pandas as pd
 from rich import print as rich_print
