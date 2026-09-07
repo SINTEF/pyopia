@@ -75,6 +75,13 @@ class Pipeline():
         # Flag used to control whether remaining pipeline steps should be skipped once it has been set to True
         self.data['skip_next_steps'] = False
 
+        # Progress tracking is opt-in via enable_progress_tracking(); left at these
+        # defaults, _log_progress() is a no-op
+        self._progress_total_files = None
+        self._progress_files_done = 0
+        self._progress_start_time = None
+        self._progress_log_interval = 5
+
         self.pass_general_settings()
 
         for stepname in self.stepnames:
@@ -126,9 +133,67 @@ class Pipeline():
 
                 # Reset skip flag
                 self.data['skip_next_steps'] = False
+                self._log_progress()
                 return
 
+        self._log_progress()
         return
+
+    def enable_progress_tracking(self, total_files, log_interval=5):
+        '''Opt in to periodic progress/ETA logging as `run()` is called in a loop
+
+        Logs percent complete, elapsed time and an ETA at INFO level every
+        `log_interval` files. Has no effect unless called - by default `run()` does
+        not log any progress summary.
+
+        Note
+        ----
+        When running as multiple chunks (`pyopia process --num-chunks`), each chunk
+        runs in its own process with its own `Pipeline` instance, so progress is
+        reported per chunk (e.g. "3 of 20" for that chunk's own file list) rather than
+        as a single total across every chunk.
+
+        Parameters
+        ----------
+        total_files : int
+            Total number of files that will be passed to `run()`, used to calculate
+            percent complete and ETA
+        log_interval : int, optional
+            Log a progress update every this many files, by default 5
+
+        Examples
+        --------
+        >>> pipeline = Pipeline(settings)
+        >>> pipeline.enable_progress_tracking(len(filenames))
+        >>> for filename in filenames:
+        ...     pipeline.run(filename)
+        '''
+        self._progress_total_files = total_files
+        self._progress_files_done = 0
+        self._progress_start_time = time.time()
+        self._progress_log_interval = log_interval
+
+    def _log_progress(self):
+        '''Log a progress/ETA update, if progress tracking is enabled and due'''
+        if self._progress_total_files is None:
+            return
+
+        self._progress_files_done += 1
+        done = self._progress_files_done
+        total = self._progress_total_files
+
+        if done % self._progress_log_interval != 0 and done != total:
+            return
+
+        elapsed = time.time() - self._progress_start_time
+        remaining = (elapsed / done) * (total - done)
+        eta = (datetime.datetime.now() + datetime.timedelta(seconds=remaining)).strftime('%H:%M:%S')
+
+        logger.info(
+            f'Progress: {done}/{total} ({100 * done / total:.1f}%) - '
+            f'elapsed {datetime.timedelta(seconds=int(elapsed))}, '
+            f'ETA {eta} (in {datetime.timedelta(seconds=int(remaining))})'
+        )
 
     def run_step(self, stepname):
         '''Execute a pipeline step and update the pipeline data
@@ -191,10 +256,12 @@ class Pipeline():
 
         # an eventual metadata parser could replace this below printing
         # and format into an appropriate standard
+        import pprint
+
         logger.info('\n-- Pipeline configuration --\n')
         from pyopia import __version__ as pyopia_version
         logger.info(f'PyOpia version: {pyopia_version} + \n')
-        logger.debug(steps_to_string(self.steps))
+        logger.debug(pprint.pformat(self.settings['steps']))
         logger.info('\n---------------------------------\n')
 
 
@@ -351,6 +418,7 @@ class FilesToProcess:
     '''
     def __init__(self, glob_pattern=None):
         self.files = None
+        self.glob_pattern = glob_pattern
         self.background_files = []
         self.chunked_files = []
         if glob_pattern is not None:
@@ -399,6 +467,11 @@ class FilesToProcess:
         strategy : str, optional
             Strategy to use for chunking dataset, either `block` or `interleave`. Defult: `block`
         '''
+        if len(self.files) == 0:
+            raise RuntimeError(
+                f'No raw files found for "{self.glob_pattern}". '
+                'Check the general.raw_files setting in your config file.'
+            )
         if num_chunks > len(self.files) // 2:
             raise RuntimeError('Number of chunks exceeds more than half the number of files to process. Use less chunks.')
         self.chunk_files(num_chunks, strategy)

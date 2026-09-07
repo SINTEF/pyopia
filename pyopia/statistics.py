@@ -5,7 +5,9 @@ Module containing tools for handling particle image statistics after processing
 import os
 import pandas as pd
 import numpy as np
+from skimage.draw import disk
 from skimage.exposure import rescale_intensity
+from skimage.morphology import binary_dilation
 import h5py
 from tqdm import tqdm
 from pyopia.io import write_stats, load_stats_as_dataframe
@@ -478,6 +480,178 @@ def make_montage(
     return montage_image
 
 
+def make_montage_scaled(
+    stats_file_or_df,
+    pixel_size,
+    roidir,
+    msize=1024,
+    rel_scale=1.0,
+    gap=2,
+    max_attempts=500,
+    maxlength=100000,
+    crop_region=None,
+    brightness=1,
+    eyecandy=True,
+):
+    """Makes a montage of particles packed within a circular boundary, largest first
+
+    This is an alternative to :func:`make_montage` for instruments (e.g. holographic
+    imaging) where particles are naturally monochrome: the montage is a single-channel
+    grayscale image rather than RGB, so it can be plotted directly with
+    :func:`pyopia.plotting.montage_plot`, including its 1mm scale reference.
+
+    The key difference from :func:`make_montage` is `rel_scale`: rather than always
+    filling the same fixed canvas regardless of how much data went into it,
+    `rel_scale` controls the *area* of the circular region available for packing, as a
+    fraction of the full canvas area. This makes it possible to visually compare
+    particle number density across datasets with different sample sizes - e.g. several
+    depth bins with different numbers of raw images - fairly: set `rel_scale`
+    proportional to each dataset's relative sample size (e.g. number of raw images, or
+    total sample volume) against a shared reference, generate one montage per dataset,
+    and place them side by side. A bin with half the raw images of another gets half
+    the circle area to fill, so the resulting packed density is directly comparable
+    between montages, rather than every montage always looking equally "full"
+    regardless of how much data it actually represents.
+
+    Every exported particle is attempted, largest first, since bigger particles are
+    harder to accommodate once the canvas starts filling up - there is no upfront
+    subsampling or truncation, since either would misrepresent the true relative
+    abundance of particle sizes. Each particle is given a `gap`-pixel buffer against
+    its neighbours (via binary dilation of its silhouette) so that packed particles
+    don't visually touch. A particle that can't find a free spot within `max_attempts`
+    random placements is skipped rather than resized or forced in; if any particles are
+    skipped this way, a warning is logged summarising how many, once the montage is
+    complete. This means `msize` is too small to fit everything - increase it (and, if
+    this montage is one of several being compared via `rel_scale`, increase `msize` the
+    same way for all of them, to keep the relative comparison valid; don't compensate
+    by changing `rel_scale` itself, since that would distort the comparison it exists
+    to preserve).
+
+    Parameters
+    ----------
+    stats_file_or_df : DataFrame or str
+        either a str specifying the location of the STATS.nc file that comes from processing, or a stats dataframe
+    pixel_size : float
+        pixel size of system in microns
+    roidir : str
+        location of roifiles
+    msize : int, optional
+        size of the (square) canvas in pixels, by default 1024
+    rel_scale : float, optional
+        fraction (0-1) of the full canvas *area* used as the circular placement
+        boundary. Set this proportional to relative sample size when comparing several
+        montages side by side (see above); use 1.0 for a single montage that isn't
+        being compared against others, by default 1.0
+    gap : int, optional
+        minimum gap in pixels enforced between packed particles, by default 2
+    max_attempts : int, optional
+        number of random placement attempts per particle before giving up on it, by default 500
+    maxlength : int, optional
+        maximum length in microns of particles to be included in montage, by default 100000
+    crop_region : tuple, optional
+        None or 4-tuple of lower-left then upper-right coord of crop, passed to :func:`crop_stats`, by default None
+    brightness : int, optional
+        brightness of packaged particles used with eyecandy option, by default 1
+    eyecandy : bool, optional
+        boolean which if True will explode the contrast of packed particles
+        (nice for natural particles, but not so good for oil and gas), by default True
+
+    Returns
+    -------
+    montage_image : array
+        grayscale montage image (values 0-1, dark particles on a light background,
+        with the region outside the circular boundary shown slightly darker than the
+        background so the boundary is visible) that can be plotted with
+        :func:`pyopia.plotting.montage_plot`
+    """
+    if isinstance(stats_file_or_df, str):
+        stats = load_stats_as_dataframe(stats_file_or_df)
+    else:
+        stats = stats_file_or_df
+
+    if crop_region is not None:
+        stats = crop_stats(stats, crop_region)
+
+    # remove nans because concentrations are not important here
+    stats = stats[~np.isnan(stats["major_axis_length"])]
+    stats = stats[(stats["major_axis_length"] * pixel_size) < maxlength]
+
+    # pack largest particles first, since they're the hardest to fit later on
+    stats = stats.sort_values(by=["major_axis_length"], ascending=False)
+
+    # every exported particle is attempted - see docstring for why this isn't subsampled
+    roifiles = stats["export_name"][stats["export_name"] != "not_exported"].values
+
+    # background = 1 (white); slightly darker outside the circular boundary so it's
+    # visible; particles are painted in as they're placed (values < 1)
+    montage = np.ones((msize, msize), dtype=np.float64)
+    # radius scales with sqrt(rel_scale) so that *area* (not radius) is proportional
+    # to rel_scale - see the rel_scale explanation above
+    radius = np.sqrt(rel_scale) * msize / 2
+    rr, cc = disk((msize / 2, msize / 2), radius, shape=montage.shape)
+    within_boundary = np.zeros(montage.shape, dtype=bool)
+    within_boundary[rr, cc] = True
+    montage[~within_boundary] = 0.9
+
+    # available[i, j] is True while position (i, j) is free to place a particle in
+    available = within_boundary.copy()
+
+    logger.info("making a scaled montage - this might take some time....")
+    n_placed = 0
+    for roi_name in tqdm(roifiles):
+        particle_image = roi_from_export_name(roi_name, roidir)
+        if particle_image.ndim == 3:
+            particle_image = particle_image.mean(axis=2)
+
+        if eyecandy:
+            particle_image = explode_contrast(particle_image)
+            particle_image = bright_norm(particle_image, brightness)
+        particle_image = np.clip(particle_image, 0, 1)
+
+        height, width = particle_image.shape
+        if height >= msize or width >= msize:
+            continue
+
+        # silhouette of the particle (darker-than-background pixels), padded out by
+        # `gap` so placed particles keep a visual buffer from their neighbours
+        silhouette = binary_dilation(particle_image < 0.9, footprint=np.ones((gap * 2 + 1, gap * 2 + 1)))
+
+        placed = False
+        for _ in range(max_attempts):
+            r = np.random.randint(0, msize - height)
+            c = np.random.randint(0, msize - width)
+
+            footprint = available[r:r + height, c:c + width]
+            if np.all(footprint[silhouette]):
+                canvas_region = montage[r:r + height, c:c + width]
+                particle_pixels = particle_image < 0.9
+                canvas_region[particle_pixels] = particle_image[particle_pixels]
+
+                available[r:r + height, c:c + width][silhouette] = False
+                placed = True
+                n_placed += 1
+                break
+
+        if not placed:
+            logger.debug(f"Could not find a free spot for particle: {roi_name}")
+
+    _log_montage_placement_summary(n_placed, len(roifiles))
+
+    return montage
+
+
+def _log_montage_placement_summary(n_placed, n_total):
+    """Log how many particles a scaled montage placed, warning if any were skipped"""
+    n_skipped = n_total - n_placed
+    if n_skipped > 0:
+        logger.warning(
+            f"{n_skipped} of {n_total} particles could not be placed and were skipped - "
+            "consider increasing msize to fit all particles (and, if comparing this montage "
+            "against others via rel_scale, increase msize consistently for all of them)."
+        )
+    logger.info(f"scaled montage complete: placed {n_placed} of {n_total} particles")
+
+
 def gen_roifiles(stats, auto_scaler=500):
     """Generates a list of filenames suitable for making montages with
 
@@ -549,19 +723,28 @@ def get_j(dias, number_distribution):
         Junge slope from fitting of psd between 150 and 300um
     """
     # conduct this calculation only on the part of the size distribution where
-    # LISST-100 and SilCam data overlap
+    # LISST-100 and SilCam data overlap. Bins with a non-positive count are excluded
+    # entirely (rather than masked via np.log's `where=`), since `where=` without a
+    # matching `out=` leaves uninitialized memory in the skipped positions, which would
+    # otherwise be fed straight into the fit below.
     ind = (
         np.isfinite(dias)
         & np.isfinite(number_distribution)
         & (dias < 300)
         & (dias > 150)
+        & (number_distribution > 0)
     )
+
+    # A linear fit needs at least two points. With fewer than that in range - e.g. an
+    # image with no particles between 150 and 300um - the slope is undefined.
+    if np.sum(ind) < 2:
+        return np.nan
 
     # use polyfit to obtain the slope of the ditriubtion in log-space (which is
     # assumed near-linear in most parts of the ocean)
     p = np.polyfit(
         np.log(dias[ind]),
-        np.log(number_distribution[ind], where=number_distribution[ind] > 0),
+        np.log(number_distribution[ind]),
         1,
     )
     junge_slope = p[0]

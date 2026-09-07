@@ -661,6 +661,179 @@ class StatsToDisc:
         return data
 
 
+class ImageToDisc:
+    '''Pipeline-compatible class for saving processed images to disc.
+
+    Saves specified pipeline images (e.g. raw, background corrected, segmented)
+    to an output folder. Can optionally downscale images and/or combine them
+    into a single collage per input image.
+
+    Required keys in :class:`pyopia.pipeline.Data`:
+        - :attr:`pyopia.pipeline.Data.filename`
+        - At least one of the image keys specified in ``image_keys``
+
+    Parameters
+    ----------
+    output_folder : str
+        Path to the output folder where images will be saved.
+        Created automatically if it does not exist.
+    image_keys : list of str, optional
+        List of pipeline data keys to save as images.
+        Defaults to ``['imraw', 'imbg', 'im_corrected', 'imbw']``.
+        Keys that are not present in the pipeline data for a given image
+        will be silently skipped.
+    scale_factor : float, optional
+        Factor to downscale images before saving. E.g. 0.5 halves the
+        resolution. Defaults to 1.0 (no scaling).
+    collage : bool, optional
+        If True, all specified images are combined into a single collage
+        image (one row per image key) rather than saved as separate files.
+        Defaults to False.
+    image_format : str, optional
+        Image file format extension. Defaults to ``'png'``.
+
+    Returns
+    -------
+    data : :class:`pyopia.pipeline.Data`
+        Unmodified pipeline data.
+
+    Examples
+    --------
+    Save background-corrected and segmented images to a folder:
+
+    .. code-block:: toml
+
+        [steps.saveimages]
+        pipeline_class = 'pyopia.io.ImageToDisc'
+        output_folder = 'processed_images'
+        image_keys = ['imraw', 'im_corrected', 'imbw']
+        scale_factor = 0.5
+
+    Save a collage of all processing stages:
+
+    .. code-block:: toml
+
+        [steps.saveimages]
+        pipeline_class = 'pyopia.io.ImageToDisc'
+        output_folder = 'processed_images'
+        collage = true
+    '''
+
+    def __init__(self, output_folder='processed_images',
+                 image_keys=None,
+                 scale_factor=1.0,
+                 collage=False,
+                 image_format='png'):
+        if image_keys is None:
+            image_keys = ['imraw', 'imbg', 'im_corrected', 'imbw']
+        self.output_folder = output_folder
+        self.image_keys = image_keys
+        self.scale_factor = scale_factor
+        self.collage = collage
+        self.image_format = image_format
+
+    def __call__(self, data):
+        os.makedirs(self.output_folder, exist_ok=True)
+
+        source_filename = data.get('filename', 'unknown')
+        base_name = Path(source_filename).stem
+
+        # Collect available images (keep original dtypes for efficiency)
+        available_images = []
+        for key in self.image_keys:
+            if key in data and data[key] is not None:
+                available_images.append((key, np.asarray(data[key])))
+
+        if not available_images:
+            logger.warning('ImageToDisc: No images found in pipeline data for the specified keys.')
+            return data
+
+        if self.collage:
+            self._save_collage(available_images, base_name)
+        else:
+            self._save_separate(available_images, base_name)
+
+        return data
+
+    def _prepare_image(self, img):
+        '''Prepare an image for saving: handle scaling and normalisation.
+
+        Parameters
+        ----------
+        img : ndarray
+            Image array (2D or 3D, float or bool).
+
+        Returns
+        -------
+        img : ndarray
+            Prepared image array clipped to [0, 1].
+        '''
+        from skimage.transform import rescale
+
+        # Convert to float64 for saving
+        img = img.astype(np.float64)
+
+        if self.scale_factor != 1.0:
+            multichannel = img.ndim == 3
+            img = rescale(img, self.scale_factor,
+                          channel_axis=2 if multichannel else None,
+                          anti_aliasing=True,
+                          preserve_range=True)
+        # Clip to valid range for plt.imsave
+        img = np.clip(img, 0, 1)
+        return img
+
+    def _save_separate(self, available_images, base_name):
+        '''Save each image key as a separate file.'''
+        import matplotlib.pyplot as plt
+
+        for key, img in available_images:
+            img = self._prepare_image(img)
+            out_path = Path(self.output_folder) / f'{base_name}_{key}.{self.image_format}'
+            if img.ndim == 2:
+                plt.imsave(str(out_path), img, cmap='gray')
+            else:
+                plt.imsave(str(out_path), img)
+            logger.debug(f'ImageToDisc: Saved {key} to {out_path}')
+
+    def _save_collage(self, available_images, base_name):
+        '''Save all images combined into a single collage image.'''
+        import matplotlib.pyplot as plt
+        from skimage.transform import resize
+
+        # Determine target width (use first image width, after scale)
+        first_img = available_images[0][1]
+        if first_img.ndim == 2:
+            target_h, target_w = first_img.shape
+        else:
+            target_h, target_w = first_img.shape[:2]
+
+        if self.scale_factor != 1.0:
+            target_h = int(target_h * self.scale_factor)
+            target_w = int(target_w * self.scale_factor)
+
+        # Resize all images to the same dimensions and convert to 3-channel
+        panels = []
+        for key, img in available_images:
+            if img.dtype == bool:
+                img = img.astype(np.float64)
+
+            if img.ndim == 2:
+                img = resize(img, (target_h, target_w), anti_aliasing=True, preserve_range=True)
+                # Convert grayscale to RGB for stacking
+                img = np.stack([img, img, img], axis=-1)
+            else:
+                img = resize(img, (target_h, target_w, img.shape[2]), anti_aliasing=True, preserve_range=True)
+
+            img = np.clip(img, 0, 1)
+            panels.append(img)
+
+        collage = np.concatenate(panels, axis=0)
+        out_path = Path(self.output_folder) / f'{base_name}_collage.{self.image_format}'
+        plt.imsave(str(out_path), collage)
+        logger.debug(f'ImageToDisc: Saved collage to {out_path}')
+
+
 def load_toml(toml_file):
     """Load a TOML settings file from file
 
