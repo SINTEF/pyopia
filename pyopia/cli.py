@@ -375,7 +375,7 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = "block"):
 
 
 @app.command()
-def process_realtime(config_filename: str, watch_folder: str = None):
+def process_realtime(config_filename: str, watch_folder: str = None, queue_size: int = 10):
     """Run a PyOPIA processing pipeline in realtime by watching a folder.
 
     Parameters
@@ -385,6 +385,12 @@ def process_realtime(config_filename: str, watch_folder: str = None):
 
     watch_folder : str, optional
         Folder to monitor. If not provided, inferred from `general.raw_files` in config.
+
+    queue_size : int, optional
+        Maximum number of queued images retained when processing falls behind
+        acquisition; older images are dropped to stay close to realtime. A bigger
+        queue only delays which images get dropped - it doesn't fix an underlying
+        backlog where processing is slower than acquisition. Defaults to 10.
 
     Notes
     -----
@@ -412,7 +418,7 @@ def process_realtime(config_filename: str, watch_folder: str = None):
         output_datafile = pipeline_config["steps"]["output"]["output_datafile"]
         os.makedirs(os.path.split(output_datafile)[:-1][0], exist_ok=True)
 
-        pyopia.realtime.run_realtime(pipeline_config, watch_folder=watch_folder)
+        pyopia.realtime.run_realtime(pipeline_config, watch_folder=watch_folder, queue_size=queue_size)
     finally:
         stop_queue_logging(listener, log_queue)
 

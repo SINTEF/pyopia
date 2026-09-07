@@ -213,8 +213,8 @@ def test_process_realtime_prepares_output_folder_and_calls_run_realtime(tmp_path
     recorded = {}
     monkeypatch.setattr(
         pyopia.cli.pyopia.realtime, 'run_realtime',
-        lambda pipeline_config, watch_folder=None: recorded.update(
-            pipeline_config=pipeline_config, watch_folder=watch_folder
+        lambda pipeline_config, watch_folder=None, queue_size=10: recorded.update(
+            pipeline_config=pipeline_config, watch_folder=watch_folder, queue_size=queue_size
         )
     )
 
@@ -227,12 +227,14 @@ def test_process_realtime_prepares_output_folder_and_calls_run_realtime(tmp_path
         }, fh)
 
     result = invoke_in(tmp_path, [
-        'process-realtime', str(config_filename), '--watch-folder', str(tmp_path / 'images')
+        'process-realtime', str(config_filename), '--watch-folder', str(tmp_path / 'images'),
+        '--queue-size', '25',
     ])
 
     assert result.exit_code == 0, result.output
     assert (tmp_path / 'proc').is_dir()
     assert recorded['watch_folder'] == str(tmp_path / 'images')
+    assert recorded['queue_size'] == 25
     assert recorded['pipeline_config']['steps']['output']['output_datafile'] == output_datafile
 
 
