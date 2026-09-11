@@ -169,13 +169,13 @@ def get_example_hologram_and_background(download_directory="./"):
 
 
 def get_folder_from_holo_repository(foldername="holo_test_data_01", existsok=False):
-    """Downloads and unzips a folder of holo test images from the "sample-data" GitHub
-    release into the working dir, if it doesn't already exist.
+    """Downloads and unzips a folder of holo test images from the "sample-data_v2.0.0"
+    GitHub release into the working dir, if it doesn't already exist.
 
     Only works for folder names that have actually been uploaded as a
     "{foldername}.zip" asset on that release - currently just "holo_test_data_01"
-    (see https://github.com/SINTEF/pyopia/releases/tag/sample-data). This used to
-    fetch from a Google Drive folder via `gdown`, which was a source of
+    (see https://github.com/SINTEF/pyopia/releases/tag/sample-data_v2.0.0). This used
+    to fetch from a Google Drive folder via `gdown`, which was a source of
     flaky/rate-limited downloads in CI (#421). GitHub release assets are the
     officially-recommended place for large files associated with a repo (no size or
     bandwidth limit, unlike committing them into git history) - see the discussion on
@@ -184,7 +184,7 @@ def get_folder_from_holo_repository(foldername="holo_test_data_01", existsok=Fal
     Parameters
     ----------
     foldername : string
-        name of a folder hosted as "{foldername}.zip" on the "sample-data" release
+        name of a folder hosted as "{foldername}.zip" on the "sample-data_v2.0.0" release
     existsok : (bool, optional)
         if True, then don't download if the specified folder already exists, defaults to False
 
@@ -197,7 +197,7 @@ def get_folder_from_holo_repository(foldername="holo_test_data_01", existsok=Fal
         logger.info(foldername + " already exists. Skipping download.")
         return foldername
 
-    url = f"https://github.com/SINTEF/pyopia/releases/download/sample-data/{foldername}.zip"
+    url = f"https://github.com/SINTEF/pyopia/releases/download/sample-data_v2.0.0/{foldername}.zip"
     zip_path = f"{foldername}.zip"
     urllib.request.urlretrieve(url, zip_path, reporthook=_make_progress_hook(zip_path))
     with zipfile.ZipFile(zip_path, "r") as zipit:
