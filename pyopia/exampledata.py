@@ -1,12 +1,31 @@
 import urllib.request
 import zipfile
 import os
-import gdown
 from pathlib import Path
 
 import logging
 
 logger = logging.getLogger()
+
+
+def _make_progress_hook(label):
+    """Build a `urllib.request.urlretrieve` reporthook that logs download progress.
+
+    Logs at 10%-increments (never more often than that, to avoid spamming logs with
+    one line per block) rather than every callback.
+    """
+    last_logged = -1
+
+    def _hook(block_count, block_size, total_size):
+        nonlocal last_logged
+        if total_size <= 0:
+            return
+        percent = min(100, block_count * block_size * 100 // total_size)
+        if percent >= last_logged + 10 or percent == 100:
+            logger.info(f"Downloading {label}... {percent}%")
+            last_logged = percent
+
+    return _hook
 
 
 def get_classifier_database_from_pysilcam_blob(download_directory="./"):
@@ -30,7 +49,9 @@ def get_classifier_database_from_pysilcam_blob(download_directory="./"):
     os.makedirs(download_directory, exist_ok=False)
     url = "https://pysilcam.blob.core.windows.net/test-data/silcam_database.zip"
     logger.info("Downloading....")
-    urllib.request.urlretrieve(url, download_directory + "/silcam_database.zip")
+    urllib.request.urlretrieve(
+        url, download_directory + "/silcam_database.zip", reporthook=_make_progress_hook("silcam_database.zip")
+    )
     logger.info("Unzipping....")
     with zipfile.ZipFile(
         os.path.join(download_directory, "silcam_database.zip"), "r"
@@ -63,7 +84,9 @@ def get_file_from_pysilcam_blob(filename, download_directory="./"):
     if os.path.exists(os.path.join(download_directory, filename)):
         return filename
     url = "https://pysilcam.blob.core.windows.net/test-data/" + filename
-    urllib.request.urlretrieve(url, os.path.join(download_directory, filename))
+    urllib.request.urlretrieve(
+        url, os.path.join(download_directory, filename), reporthook=_make_progress_hook(filename)
+    )
     return download_directory
 
 
@@ -112,7 +135,7 @@ def get_example_model(download_directory="./"):
     )
     if not model_path.exists():
         logger.info("Downloading example model...")
-        urllib.request.urlretrieve(model_url, model_path)
+        urllib.request.urlretrieve(model_url, model_path, reporthook=_make_progress_hook("classifier model"))
     return str(model_path)
 
 
@@ -146,32 +169,38 @@ def get_example_hologram_and_background(download_directory="./"):
 
 
 def get_folder_from_holo_repository(foldername="holo_test_data_01", existsok=False):
-    """Downloads a specified folder from the holo testing repository into the working dir. if it doesn't already exist
+    """Downloads and unzips a folder of holo test images from the "sample-data_v2.0.0"
+    GitHub release into the working dir, if it doesn't already exist.
 
-    only works for known folders that are on the GoogleDrive repository
-    by default will download a known-good folder. Additional elif statements can be added to implement additional folders.
+    Only works for folder names that have actually been uploaded as a
+    "{foldername}.zip" asset on that release - currently just "holo_test_data_01"
+    (see https://github.com/SINTEF/pyopia/releases/tag/sample-data_v2.0.0). This used
+    to fetch from a Google Drive folder via `gdown`, which was a source of
+    flaky/rate-limited downloads in CI (#421). GitHub release assets are the
+    officially-recommended place for large files associated with a repo (no size or
+    bandwidth limit, unlike committing them into git history) - see the discussion on
+    #421 for why this isn't pysilcam's existing blob storage instead.
 
     Parameters
     ----------
     foldername : string
-        known filename on the blob
+        name of a folder hosted as "{foldername}.zip" on the "sample-data_v2.0.0" release
     existsok : (bool, optional)
         if True, then don't download if the specified folder already exists, defaults to False
 
+    Returns
+    -------
+    string
+        foldername, the directory that was downloaded and unzipped (or already existed)
     """
-    if foldername == "holo_test_data_01":
-        url = "https://drive.google.com/drive/folders/1yNatOaKdWwYQp-5WVEDItoibr-k0lGsP?usp=share_link"
-
-    elif foldername == "holo_test_data_02":
-        url = "https://drive.google.com/drive/folders/1E5iNSyfeKcVMLVe4PNEwF2Q2mo3WVjF5?usp=share_link"
-
-    else:
-        foldername == "holo_test_data_01"
-        url = "https://drive.google.com/drive/folders/1yNatOaKdWwYQp-5WVEDItoibr-k0lGsP?usp=share_link"
-
     if os.path.exists(foldername) and existsok:
         logger.info(foldername + " already exists. Skipping download.")
         return foldername
 
-    gdown.download_folder(url, quiet=True, use_cookies=False)
+    url = f"https://github.com/SINTEF/pyopia/releases/download/sample-data_v2.0.0/{foldername}.zip"
+    zip_path = f"{foldername}.zip"
+    urllib.request.urlretrieve(url, zip_path, reporthook=_make_progress_hook(zip_path))
+    with zipfile.ZipFile(zip_path, "r") as zipit:
+        zipit.extractall(".")
+    os.remove(zip_path)
     return foldername

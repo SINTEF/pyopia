@@ -137,13 +137,13 @@ def generate_config(
     instrument : str
         either `silcam`, `holo` or `uvp`
     raw_files : str
-        raw_files
+        Glob pattern matching the raw image files to process, e.g. `images/*.silc`
     model_path : str
-        model_path
+        Path to the classifier model file used by the classification step
     outfolder : str
-        outfolder
+        Directory the processed output (STATS files, ROI images) is written to
     output_prefix : str
-        output_prefix
+        Filename prefix used for output files, e.g. `<output_prefix>-STATS.nc`
     """
     match instrument:
         case "silcam":
@@ -177,9 +177,15 @@ def init_project(
     instrument : str
         Either `silcam`, `holo` or `uvp`
     example_data: bool
-        If specified, download 10 example SilCam images and put them in the images/ folder
+        If specified, download real example images matching `instrument` into the
+        images/ folder: 10 SilCam images for `silcam`, a folder of holograms for
+        `holo`. Not yet supported for `uvp` - falls back to no example data.
     """
-    raw_files = "images/*.silc"
+    raw_files_patterns = {
+        "silcam": "images/*.silc",
+        "holo": "images/holo_test_data_01/*.pgm",
+    }
+    raw_files = raw_files_patterns.get(instrument, "images/*.silc")
     outfolder = "processed"
     output_prefix = project_name
     model_path = ""
@@ -197,7 +203,6 @@ def init_project(
         title = "PyOPIA example data"
         longitude = 14.45498
         latitude = 68.89363
-        instrument = "silcam"
 
     # @todo Move this to instrument modules
     seavox_instrument_identifier = (
@@ -228,7 +233,7 @@ def init_project(
     print(f"[blue]Creating PyOPIA project folder {proj_folder}")
     if proj_folder.exists():
         print(f"[red]ERROR: Project folder {proj_folder} exists")
-        return
+        raise typer.Exit(code=1)
     proj_folder.mkdir()
 
     # Create subfolders
@@ -274,7 +279,11 @@ def init_project(
         fh.write(pyopia.auxillarydata.AUXILLARY_DATA_FILE_TEMPLATE)
 
     # Get example image data
-    if example_data:
+    if example_data and instrument == "holo":
+        print("[blue]Downloading example holo images")
+        with contextlib.chdir(images_folder):
+            pyopia.exampledata.get_folder_from_holo_repository(existsok=True)
+    elif example_data:
         print("[blue]Downloading example SilCam images")
         example_imgs_zip = proj_folder / Path("pyopia-example-images-10.zip")
         pyopia.exampledata.get_file_from_pysilcam_blob(
@@ -286,7 +295,12 @@ def init_project(
 
 
 @app.command()
-def process(config_filename: str, num_chunks: int = 1, strategy: str = "block"):
+def process(
+    config_filename: str,
+    num_chunks: int = 1,
+    strategy: str = "block",
+    progress_file: str = None,
+):
     """Run a PyOPIA processing pipeline based on given a config.toml
 
     Parameters
@@ -294,11 +308,20 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = "block"):
     config_filename : str
         Config filename
 
-    numchunks : int, optional
-        Split the dataset into chucks, and process in parallell, by default 1
+    num_chunks : int, optional
+        Split the dataset into chunks, and process in parallel, by default 1
 
     strategy : str, optional
-        Strategy to use for chunking dataset, either `block` or `interleave`. Defult: `block`
+        Strategy to use for chunking dataset, either `block` or `interleave`. Default: `block`
+
+    progress_file : str, optional
+        If given, periodically write `{"processed": N, "total": M}` as JSON to this
+        path after each image, for external tooling to poll (e.g. a GUI driving this
+        command as a subprocess) rather than parsing log output. Written
+        write-temp-then-rename so a concurrent reader never sees a partial write. With
+        `num_chunks > 1`, each chunk writes its own `<progress_file>.chunk<N>` instead
+        of one shared file, since multiple processes writing the same path at once
+        would race.
     """
     t1 = time.time()
 
@@ -309,53 +332,54 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = "block"):
     logger = logging.getLogger("rich")
 
     try:
-        with Progress(transient=True) as progress:
-            progress.console.print(f"[blue]PYOPIA VERSION {pyopia.__version__}")
-            progress.console.print("[blue]LOAD CONFIG")
-            logger.info(f"PyOPIA process started {pd.Timestamp.now()}")
+        logger.info(f"PYOPIA VERSION {pyopia.__version__}")
+        logger.info("LOAD CONFIG")
+        logger.info(f"PyOPIA process started {pd.Timestamp.now()}")
 
-            check_chunks(num_chunks, pipeline_config)
+        check_chunks(num_chunks, pipeline_config)
 
-            progress.console.print("[blue]OBTAIN IMAGE LIST")
-            conf_corrbg = pipeline_config["steps"].get("correctbackground", dict())
-            average_window = conf_corrbg.get("average_window", 0)
-            bgshift_function = conf_corrbg.get("bgshift_function", "pass")
-            raw_files = pyopia.pipeline.FilesToProcess(
-                pipeline_config["general"]["raw_files"]
+        logger.info("OBTAIN IMAGE LIST")
+        conf_corrbg = pipeline_config["steps"].get("correctbackground", dict())
+        average_window = conf_corrbg.get("average_window", 0)
+        bgshift_function = conf_corrbg.get("bgshift_function", "pass")
+        raw_files = pyopia.pipeline.FilesToProcess(
+            pipeline_config["general"]["raw_files"]
+        )
+        raw_files.prepare_chunking(
+            num_chunks, average_window, bgshift_function, strategy=strategy
+        )
+
+        # Write the dataset list of images to a text file
+        raw_files.to_filelist_file("filelist.txt")
+
+        logger.info("PREPARE FOLDERS")
+        if "output" not in pipeline_config["steps"]:
+            raise Exception(
+                'The given config file is missing an "output" step.\n'
+                + "This is needed to setup how to save data to disc."
             )
-            raw_files.prepare_chunking(
-                num_chunks, average_window, bgshift_function, strategy=strategy
-            )
+        output_datafile = pipeline_config["steps"]["output"]["output_datafile"]
+        os.makedirs(os.path.split(output_datafile)[:-1][0], exist_ok=True)
 
-            # Write the dataset list of images to a text file
-            raw_files.to_filelist_file("filelist.txt")
+        if os.path.isfile(output_datafile + "-STATS.nc"):
+            dt_now = datetime.datetime.now().strftime("D%Y%m%dT%H%M%S")
+            newname = output_datafile + "-conflict-" + str(dt_now) + "-STATS.nc"
+            logger.warning(f"Renaming conflicting file to: {newname}")
+            os.rename(output_datafile + "-STATS.nc", newname)
 
-            progress.console.print("[blue]PREPARE FOLDERS")
-            if "output" not in pipeline_config["steps"]:
-                raise Exception(
-                    'The given config file is missing an "output" step.\n'
-                    + "This is needed to setup how to save data to disc."
-                )
-            output_datafile = pipeline_config["steps"]["output"]["output_datafile"]
-            os.makedirs(os.path.split(output_datafile)[:-1][0], exist_ok=True)
-
-            if os.path.isfile(output_datafile + "-STATS.nc"):
-                dt_now = datetime.datetime.now().strftime("D%Y%m%dT%H%M%S")
-                newname = output_datafile + "-conflict-" + str(dt_now) + "-STATS.nc"
-                logger.warning(f"Renaming conflicting file to: {newname}")
-                os.rename(output_datafile + "-STATS.nc", newname)
-
-            progress.console.print("[blue]INITIALISE PIPELINE")
+        logger.info("INITIALISE PIPELINE")
 
         # With one chunk we keep the non-multiprocess functionality to ensure backwards compatibility
         job_list = []
         if num_chunks == 1:
-            process_file_list(raw_files, pipeline_config, 0, log_queue)
+            process_file_list(raw_files, pipeline_config, 0, log_queue, progress_file=progress_file)
         else:
             for c, chunk in enumerate(raw_files.chunked_files):
+                chunk_progress_file = f"{progress_file}.chunk{c}" if progress_file else None
                 job = multiprocessing.Process(
                     target=process_file_list,
                     args=(chunk, pipeline_config, c, log_queue),
+                    kwargs={"progress_file": chunk_progress_file},
                     name=f"chunk-{c}",
                 )
                 job_list.append(job)
@@ -365,13 +389,12 @@ def process(config_filename: str, num_chunks: int = 1, strategy: str = "block"):
 
         # If we are using multiprocessing, make sure all jobs have finished
         [job.join() for job in job_list]
+
+        # Calculate and log total processing time, before the queue listener stops
+        time_total = pd.to_timedelta(time.time() - t1, "seconds")
+        logger.info(f"PROCESSING COMPLETED IN {time_total}")
     finally:
         stop_queue_logging(listener, log_queue)
-
-    # Calculate and print total processing time
-    time_total = pd.to_timedelta(time.time() - t1, "seconds")
-    with Progress(transient=True) as progress:
-        progress.console.print(f"[blue]PROCESSING COMPLETED IN {time_total}")
 
 
 @app.command()
@@ -554,6 +577,87 @@ def make_montage(
 
 
 @app.command()
+def make_montage_scaled(
+    stats_filename: pathlib.Path,
+    output_filename: str = "montage.png",
+    rel_scale: float = 1.0,
+):
+    """Create a scaled circular montage of particles, packed largest first
+
+    Unlike `make-montage`, every particle is attempted (no upfront subsampling), and
+    `rel_scale` controls how much of the canvas is available for packing - set it
+    proportional to relative sample size when comparing several montages side by side,
+    so packed density stays a fair comparison rather than every montage looking
+    equally full regardless of how much data it represents. See
+    `pyopia.statistics.make_montage_scaled`'s own docstring for the full explanation.
+
+    Parameters
+    ----------
+    stats_filename : pathlib.Path
+        Path to a `-STATS.nc` file, as produced by `process` or `merge-mfdata`
+    output_filename : str
+        Store montage figure to this filename
+    rel_scale : float, optional
+        Fraction (0-1) of the full canvas area used as the circular placement
+        boundary, by default 1.0
+    """
+    print("[blue]LOAD STATS")
+    xstats = pyopia.io.load_stats(str(stats_filename))
+    config = pyopia.io.steps_from_xstats(xstats)
+
+    print("[blue]CREATING MONTAGE")
+    montage = pyopia.statistics.make_montage_scaled(
+        xstats.to_pandas(),
+        config["general"]["pixel_size"],
+        config["steps"]["statextract"]["export_outputpath"],
+        rel_scale=rel_scale,
+        eyecandy=False,
+    )
+
+    print("[blue]STORING MONTAGE")
+    pyopia.plotting.montage_plot(montage, config["general"]["pixel_size"])
+    plt.savefig(output_filename, dpi=300, bbox_inches="tight")
+
+
+@app.command()
+def summary_stats(stats_filename: pathlib.Path, json_output: bool = False):
+    """Print summary statistics (particle count, d50, size distribution) from a STATS file
+
+    Parameters
+    ----------
+    stats_filename : pathlib.Path
+        Path to a `-STATS.nc` file, as produced by `process` or `merge-mfdata`
+    json_output : bool, optional
+        Print machine-readable JSON to stdout instead of a human-readable summary,
+        by default False
+    """
+    xstats = pyopia.io.load_stats(str(stats_filename))
+    config = pyopia.io.steps_from_xstats(xstats)
+    pixel_size = config["general"]["pixel_size"]
+    stats = xstats.to_pandas()
+
+    dias, number_distribution = pyopia.statistics.nd_from_stats(stats, pixel_size)
+    d50 = pyopia.statistics.d50_from_stats(stats, pixel_size)
+
+    result = {
+        "particle_count": len(stats),
+        "images_with_particles": pyopia.statistics.count_images_in_stats(stats),
+        "d50_microns": float(d50),
+        "dias": dias.tolist(),
+        "number_distribution": number_distribution.tolist(),
+    }
+
+    if json_output:
+        # Not using this module's `print` (from rich import print, above) - it interprets
+        # "[...]" as console markup, which would corrupt the JSON array fields below.
+        sys.stdout.write(json.dumps(result) + "\n")
+    else:
+        print(f"[blue]Particle count: {result['particle_count']}")
+        print(f"[blue]Images with particles: {result['images_with_particles']}")
+        print(f"[blue]d50: {result['d50_microns']:.1f} um")
+
+
+@app.command()
 def export_to_ecotaxa(
     stats_filename: pathlib.Path,
     export_filename: pathlib.Path,
@@ -596,7 +700,19 @@ def export_to_ecotaxa(
     )
 
 
-def process_file_list(file_list, pipeline_config, c, log_queue):
+def _write_progress_file(progress_file, processed, total):
+    """Atomically write `{"processed": N, "total": M}` as JSON to `progress_file`.
+
+    Write-temp-then-rename so a concurrent reader (e.g. a GUI polling this file) never
+    sees a partial write.
+    """
+    tmp_path = f"{progress_file}.tmp"
+    with open(tmp_path, "w") as fh:
+        json.dump({"processed": processed, "total": total}, fh)
+    os.replace(tmp_path, progress_file)
+
+
+def process_file_list(file_list, pipeline_config, c, log_queue, progress_file=None):
     """Run a PyOPIA processing pipeline for a chuncked list of files based on a given config.toml
 
     Parameters
@@ -615,16 +731,23 @@ def process_file_list(file_list, pipeline_config, c, log_queue):
         Queue set up by `setup_queue_log_listener` in the calling command. Logging is
         routed through it rather than this process opening its own handlers, so that
         multiple chunks running in parallel don't write to the same log file at once.
+
+    progress_file : str, optional
+        If given, write `{"processed": N, "total": M}` as JSON to this path after each
+        file in `file_list` (see `process`'s own `progress_file` docs for the
+        multi-chunk naming convention).
     """
     processing_pipeline = pyopia.pipeline.Pipeline(pipeline_config)
     route_logging_through_queue(pipeline_config, log_queue)
     logger = logging.getLogger("rich")
 
+    total = len(file_list)
     with get_custom_progress_bar(
         f"[blue]Processing progress (chunk {c})", disable=c != 0
     ) as pbar:
-        for filename in pbar.track(
-            file_list, description=f"[blue]Processing progress (chunk {c})"
+        for processed, filename in enumerate(
+            pbar.track(file_list, description=f"[blue]Processing progress (chunk {c})"),
+            start=1,
         ):
             try:
                 logger.debug(f"Chunk {c} starting to process {filename}")
@@ -646,6 +769,9 @@ def process_file_list(file_list, pipeline_config, c, log_queue):
                 )
                 logger.error(f"{type(e).__name__}: {e}")
                 logger.error("".join(traceback.format_tb(e.__traceback__)))
+            finally:
+                if progress_file is not None:
+                    _write_progress_file(progress_file, processed, total)
 
 
 LOG_FORMAT = "%(asctime)s %(levelname)s %(processName)s [%(module)s.%(funcName)s] %(message)s"
