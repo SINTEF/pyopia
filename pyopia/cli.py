@@ -316,12 +316,8 @@ def process(
 
     progress_file : str, optional
         If given, periodically write `{"processed": N, "total": M}` as JSON to this
-        path after each image, for external tooling to poll (e.g. a GUI driving this
-        command as a subprocess) rather than parsing log output. Written
-        write-temp-then-rename so a concurrent reader never sees a partial write. With
-        `num_chunks > 1`, each chunk writes its own `<progress_file>.chunk<N>` instead
-        of one shared file, since multiple processes writing the same path at once
-        would race.
+        path after each image, for external tooling to poll. With `num_chunks > 1`,
+        each chunk writes its own `<progress_file>.chunk<N>` instead of one shared file.
     """
     t1 = time.time()
 

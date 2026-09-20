@@ -172,14 +172,8 @@ def get_folder_from_holo_repository(foldername="holo_test_data_01", existsok=Fal
     """Downloads and unzips a folder of holo test images from the "sample-data_v2.0.0"
     GitHub release into the working dir, if it doesn't already exist.
 
-    Only works for folder names that have actually been uploaded as a
-    "{foldername}.zip" asset on that release - currently just "holo_test_data_01"
-    (see https://github.com/SINTEF/pyopia/releases/tag/sample-data_v2.0.0). This used
-    to fetch from a Google Drive folder via `gdown`, which was a source of
-    flaky/rate-limited downloads in CI (#421). GitHub release assets are the
-    officially-recommended place for large files associated with a repo (no size or
-    bandwidth limit, unlike committing them into git history) - see the discussion on
-    #421 for why this isn't pysilcam's existing blob storage instead.
+    Only works for folder names already uploaded as a "{foldername}.zip" asset on
+    that release - currently just "holo_test_data_01". See #421 for background.
 
     Parameters
     ----------
