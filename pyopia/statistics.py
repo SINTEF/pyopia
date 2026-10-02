@@ -495,37 +495,15 @@ def make_montage_scaled(
 ):
     """Makes a montage of particles packed within a circular boundary, largest first
 
-    This is an alternative to :func:`make_montage` for instruments (e.g. holographic
-    imaging) where particles are naturally monochrome: the montage is a single-channel
-    grayscale image rather than RGB, so it can be plotted directly with
-    :func:`pyopia.plotting.montage_plot`, including its 1mm scale reference.
+    Grayscale montage (unlike :func:`make_montage`'s RGB), suited to plotting with
+    :func:`pyopia.plotting.montage_plot`. `rel_scale` sets the area of the circular
+    placement boundary as a fraction of the full canvas - set it proportional to
+    relative sample size to compare particle density fairly across datasets of
+    different sizes. See #407 for the design rationale.
 
-    The key difference from :func:`make_montage` is `rel_scale`: rather than always
-    filling the same fixed canvas regardless of how much data went into it,
-    `rel_scale` controls the *area* of the circular region available for packing, as a
-    fraction of the full canvas area. This makes it possible to visually compare
-    particle number density across datasets with different sample sizes - e.g. several
-    depth bins with different numbers of raw images - fairly: set `rel_scale`
-    proportional to each dataset's relative sample size (e.g. number of raw images, or
-    total sample volume) against a shared reference, generate one montage per dataset,
-    and place them side by side. A bin with half the raw images of another gets half
-    the circle area to fill, so the resulting packed density is directly comparable
-    between montages, rather than every montage always looking equally "full"
-    regardless of how much data it actually represents.
-
-    Every exported particle is attempted, largest first, since bigger particles are
-    harder to accommodate once the canvas starts filling up - there is no upfront
-    subsampling or truncation, since either would misrepresent the true relative
-    abundance of particle sizes. Each particle is given a `gap`-pixel buffer against
-    its neighbours (via binary dilation of its silhouette) so that packed particles
-    don't visually touch. A particle that can't find a free spot within `max_attempts`
-    random placements is skipped rather than resized or forced in; if any particles are
-    skipped this way, a warning is logged summarising how many, once the montage is
-    complete. This means `msize` is too small to fit everything - increase it (and, if
-    this montage is one of several being compared via `rel_scale`, increase `msize` the
-    same way for all of them, to keep the relative comparison valid; don't compensate
-    by changing `rel_scale` itself, since that would distort the comparison it exists
-    to preserve).
+    Every exported particle is attempted, largest first. A particle that can't find
+    a free spot within `max_attempts` tries is skipped; a summary warning is logged
+    once the montage completes if any were.
 
     Parameters
     ----------
@@ -540,8 +518,8 @@ def make_montage_scaled(
     rel_scale : float, optional
         fraction (0-1) of the full canvas *area* used as the circular placement
         boundary. Set this proportional to relative sample size when comparing several
-        montages side by side (see above); use 1.0 for a single montage that isn't
-        being compared against others, by default 1.0
+        montages side by side; use 1.0 for a single montage that isn't being compared
+        against others, by default 1.0
     gap : int, optional
         minimum gap in pixels enforced between packed particles, by default 2
     max_attempts : int, optional
@@ -768,6 +746,32 @@ def count_images_in_stats(stats):
     n_images = len(u)
 
     return n_images
+
+
+def summary_from_stats(stats, pixel_size):
+    """Summary statistics from a stats DataFrame
+
+    Parameters
+    ----------
+    stats : DataFrame
+        particle statistics
+    pixel_size : float
+        pixel size in microns per pixel
+
+    Returns
+    -------
+    dict
+        JSON-serialisable summary with keys `particle_count`, `images_with_particles`,
+        `d50_microns`, `dias` (size bin mid-points in microns) and `number_distribution`
+    """
+    dias, number_distribution = nd_from_stats(stats, pixel_size)
+    return {
+        "particle_count": len(stats),
+        "images_with_particles": count_images_in_stats(stats),
+        "d50_microns": float(d50_from_stats(stats, pixel_size)),
+        "dias": dias.tolist(),
+        "number_distribution": number_distribution.tolist(),
+    }
 
 
 def extract_nth_largest(stats, n=0):

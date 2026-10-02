@@ -139,9 +139,34 @@ def test_init_project_refuses_to_overwrite_existing_folder(tmp_path):
 
     result = invoke_in(tmp_path, ['init-project', 'myproj'])
 
-    assert result.exit_code == 0
+    assert result.exit_code == 1
     assert 'ERROR' in result.output
     assert not (existing_project / 'config.toml').exists()
+
+
+@pytest.mark.slow
+def test_init_project_with_example_data_downloads_real_holo_images(tmp_path):
+    '''Regression test for #434: --instrument holo previously always got silcam example
+    data regardless (and raw_files was hardcoded to *.silc for every instrument, so a
+    generated holo config could never have matched real holo files anyway).
+
+    get_folder_from_holo_repository previously downloaded via gdown/Google Drive, the
+    flaky path #421 documents (confirmed hitting that exact rate-limiting during
+    initial development of this test) - now downloads from the same blob storage
+    everything else in exampledata.py uses, so no retry treatment needed here.
+    '''
+    result = invoke_in(tmp_path, [
+        'init-project', 'holoproj', '--instrument', 'holo', '--example-data'
+    ])
+
+    assert result.exit_code == 0, result.output
+
+    proj_folder = tmp_path / 'holoproj'
+    config = toml.load(proj_folder / 'config.toml')
+    assert config['general']['raw_files'] == 'images/holo_test_data_01/*.pgm'
+
+    matched_files = list(proj_folder.glob('images/holo_test_data_01/*.pgm'))
+    assert len(matched_files) > 0
 
 
 def test_check_chunks_rejects_less_than_one_chunk():
@@ -182,6 +207,25 @@ def test_process_produces_real_particle_stats_and_roi_export(silcam_cli_project)
 
     roi_files = list(silcam_cli_project['roi_folder'].glob('*.h5'))
     assert len(roi_files) == len(silcam_cli_project['stats_files']) == 2
+
+
+@pytest.mark.slow
+def test_process_writes_progress_file_when_requested(tmp_path, silcam_cli_project):
+    '''Regression test for #423: re-runs the real silcam_cli_project config (reusing its
+    already-downloaded data rather than a fresh download) with --progress-file, and
+    checks the final written JSON reflects both images having been processed.
+    '''
+    progress_file = tmp_path / 'progress.json'
+
+    result = invoke_in(silcam_cli_project['project_dir'], [
+        'process', str(silcam_cli_project['config_filename']), '--progress-file', str(progress_file)
+    ])
+
+    assert result.exit_code == 0, result.output
+    assert progress_file.is_file()
+
+    progress = json.loads(progress_file.read_text())
+    assert progress == {'processed': 2, 'total': 2}
 
 
 def test_process_realtime_requires_an_output_step(tmp_path):
@@ -276,6 +320,19 @@ def test_make_montage_creates_real_montage_image(silcam_cli_merged_stats, tmp_pa
 
 
 @pytest.mark.slow
+def test_make_montage_scaled_creates_real_montage_image(silcam_cli_merged_stats, tmp_path):
+    montage_path = tmp_path / 'montage_scaled.png'
+
+    result = invoke_in(tmp_path, [
+        'make-montage-scaled', str(silcam_cli_merged_stats), '--output-filename', str(montage_path)
+    ])
+
+    assert result.exit_code == 0, result.output
+    assert montage_path.is_file()
+    assert montage_path.stat().st_size > 0
+
+
+@pytest.mark.slow
 def test_export_to_ecotaxa_creates_bundle_zip(silcam_cli_merged_stats, tmp_path):
     export_path = tmp_path / 'ecotaxa_export.zip'
 
@@ -290,3 +347,25 @@ def test_export_to_ecotaxa_creates_bundle_zip(silcam_cli_merged_stats, tmp_path)
         names = bundle.namelist()
         assert 'ecotaxa_particle_statistics.tsv' in names
         assert sum(name.endswith('.png') for name in names) == 1740
+
+
+@pytest.mark.slow
+def test_summary_stats_json_output(silcam_cli_merged_stats, tmp_path):
+    result = invoke_in(tmp_path, ['summary-stats', str(silcam_cli_merged_stats), '--json-output'])
+
+    assert result.exit_code == 0, result.output
+    summary = json.loads(result.output)
+
+    assert summary['particle_count'] == 1740
+    assert summary['images_with_particles'] == 2
+    assert summary['d50_microns'] > 0
+    assert len(summary['dias']) == len(summary['number_distribution']) == 52
+
+
+@pytest.mark.slow
+def test_summary_stats_human_readable_output(silcam_cli_merged_stats, tmp_path):
+    result = invoke_in(tmp_path, ['summary-stats', str(silcam_cli_merged_stats)])
+
+    assert result.exit_code == 0, result.output
+    assert 'Particle count: 1740' in result.output
+    assert 'Images with particles: 2' in result.output
