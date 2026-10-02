@@ -748,6 +748,32 @@ def count_images_in_stats(stats):
     return n_images
 
 
+def summary_from_stats(stats, pixel_size):
+    """Summary statistics from a stats DataFrame
+
+    Parameters
+    ----------
+    stats : DataFrame
+        particle statistics
+    pixel_size : float
+        pixel size in microns per pixel
+
+    Returns
+    -------
+    dict
+        JSON-serialisable summary with keys `particle_count`, `images_with_particles`,
+        `d50_microns`, `dias` (size bin mid-points in microns) and `number_distribution`
+    """
+    dias, number_distribution = nd_from_stats(stats, pixel_size)
+    return {
+        "particle_count": len(stats),
+        "images_with_particles": count_images_in_stats(stats),
+        "d50_microns": float(d50_from_stats(stats, pixel_size)),
+        "dias": dias.tolist(),
+        "number_distribution": number_distribution.tolist(),
+    }
+
+
 def extract_nth_largest(stats, n=0):
     """Return statistics of the nth largest particle
 

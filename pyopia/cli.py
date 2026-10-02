@@ -629,19 +629,9 @@ def summary_stats(stats_filename: pathlib.Path, json_output: bool = False):
     """
     xstats = pyopia.io.load_stats(str(stats_filename))
     config = pyopia.io.steps_from_xstats(xstats)
-    pixel_size = config["general"]["pixel_size"]
-    stats = xstats.to_pandas()
-
-    dias, number_distribution = pyopia.statistics.nd_from_stats(stats, pixel_size)
-    d50 = pyopia.statistics.d50_from_stats(stats, pixel_size)
-
-    result = {
-        "particle_count": len(stats),
-        "images_with_particles": pyopia.statistics.count_images_in_stats(stats),
-        "d50_microns": float(d50),
-        "dias": dias.tolist(),
-        "number_distribution": number_distribution.tolist(),
-    }
+    result = pyopia.statistics.summary_from_stats(
+        xstats.to_pandas(), config["general"]["pixel_size"]
+    )
 
     if json_output:
         # Not using this module's `print` (from rich import print, above) - it interprets
