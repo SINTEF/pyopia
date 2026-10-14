@@ -385,6 +385,19 @@ def test_export_to_ecotaxa_label_folders_need_classifier_output(silcam_stats_wit
     assert 'probability' in str(result.exception)
 
 
+@pytest.mark.slow
+def test_montage_commands_accept_msize_and_filter_variable(silcam_cli_merged_stats, tmp_path):
+    for command in ['make-montage', 'make-montage-scaled']:
+        montage_path = tmp_path / f'{command}.png'
+
+        result = invoke_in(tmp_path, [
+            command, str(silcam_cli_merged_stats), '--output-filename', str(montage_path),
+            '--msize', '512', '--filter-variable', 'major_axis_length', '0', '100000'
+        ])
+
+        assert result.exit_code == 0, result.output
+        assert montage_path.stat().st_size > 0
+
 
 @pytest.mark.slow
 def test_summary_stats_json_output(silcam_cli_merged_stats, tmp_path):

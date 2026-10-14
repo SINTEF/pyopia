@@ -526,6 +526,17 @@ def convert_raw_images(config_filename: str):
         plt.imsave(pathlib.Path(output_folder, filename.stem + ".png"), data["imraw"])
 
 
+def _filter_stats(xstats, filter_variable):
+    """Keep only particles with filter_variable (name, min, max) within [min, max]"""
+    if filter_variable[0] is None:
+        return xstats
+    print(filter_variable)
+    return xstats.where(
+        (xstats[filter_variable[0]] <= filter_variable[2])
+        & (xstats[filter_variable[0]] >= filter_variable[1])
+    )
+
+
 @app.command()
 def make_montage(
     stats_filename: pathlib.Path,
@@ -535,6 +546,7 @@ def make_montage(
         None,
         None,
     ],
+    msize: int = 1024,
 ):
     """Create a montage of particles
 
@@ -546,24 +558,21 @@ def make_montage(
         Store montage figure to this filename
     filter_variable: list
         Variables to filter on (name, min, max), e.g. ['depth', 5, None]
+    msize : int, optional
+        Size of the (square) montage canvas in pixels, by default 1024
     """
     print("[blue]LOAD STATS")
     xstats = pyopia.io.load_stats(str(stats_filename))
     config = pyopia.io.steps_from_xstats(xstats)
 
-    # Filter the stats
-    if filter_variable[0] is not None:
-        print(filter_variable)
-        xstats = xstats.where(
-            (xstats[filter_variable[0]] <= filter_variable[2])
-            & (xstats[filter_variable[0]] >= filter_variable[1])
-        )
+    xstats = _filter_stats(xstats, filter_variable)
 
     print("[blue]CREATING MONTAGE")
     montage = pyopia.statistics.make_montage(
         xstats.to_pandas(),
         config["general"]["pixel_size"],
         config["steps"]["statextract"]["export_outputpath"],
+        msize=msize,
         eyecandy=False,
     )
 
@@ -577,6 +586,12 @@ def make_montage_scaled(
     stats_filename: pathlib.Path,
     output_filename: str = "montage.png",
     rel_scale: float = 1.0,
+    filter_variable: Annotated[Tuple[str, float, float], typer.Option()] = [
+        None,
+        None,
+        None,
+    ],
+    msize: int = 1024,
 ):
     """Create a scaled circular montage of particles, packed largest first
 
@@ -596,16 +611,23 @@ def make_montage_scaled(
     rel_scale : float, optional
         Fraction (0-1) of the full canvas area used as the circular placement
         boundary, by default 1.0
+    filter_variable: list
+        Variables to filter on (name, min, max), e.g. ['depth', 5, None]
+    msize : int, optional
+        Size of the (square) montage canvas in pixels, by default 1024
     """
     print("[blue]LOAD STATS")
     xstats = pyopia.io.load_stats(str(stats_filename))
     config = pyopia.io.steps_from_xstats(xstats)
+
+    xstats = _filter_stats(xstats, filter_variable)
 
     print("[blue]CREATING MONTAGE")
     montage = pyopia.statistics.make_montage_scaled(
         xstats.to_pandas(),
         config["general"]["pixel_size"],
         config["steps"]["statextract"]["export_outputpath"],
+        msize=msize,
         rel_scale=rel_scale,
         eyecandy=False,
     )
