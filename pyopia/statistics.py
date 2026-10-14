@@ -1221,12 +1221,20 @@ def add_best_guesses_to_stats(stats):
     -------
     stats : DataFrame
         particle statistics from silcam process with new columns for best guess and best guess value
+
+    Raises
+    ------
+    ValueError
+        if stats has no "probability" columns (i.e. no classifier was used)
     """
     cols = stats.columns
 
     p = np.zeros_like(cols) != 0
     for i, c in enumerate(cols):
         p[i] = str(c).startswith("probability")
+
+    if not p.any():
+        raise ValueError("stats contains no 'probability' columns - best guesses need classifier output")
 
     pinds = np.squeeze(np.argwhere(p))
 

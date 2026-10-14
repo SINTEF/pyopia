@@ -143,10 +143,13 @@ class EcotaxaExporter:
             else roi_dir
         )
 
-        # Create statistics DataFrame, add classification best guess info for all particles
-        self.df_stats_export = pyopia.statistics.add_best_guesses_to_stats(
-            xstats.to_pandas()
-        )
+        # Create statistics DataFrame, adding classification best guess info (only
+        # used for the label folder names) when label folders are requested
+        self.df_stats_export = xstats.to_pandas()
+        if make_label_folders:
+            self.df_stats_export = pyopia.statistics.add_best_guesses_to_stats(
+                self.df_stats_export
+            )
 
         buffer = io.BytesIO()
         with zipfile.ZipFile(self.export_filename, mode="w") as zip:
