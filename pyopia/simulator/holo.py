@@ -27,14 +27,15 @@ def _transfer_function(shape, pixel_size, wavelength, distance):
     Returns
     -------
     np.array
-        complex transfer function, zero for evanescent and band-limited frequencies
+        complex transfer function relative to a normally incident plane wave (so it is 1 at zero frequency),
+        zero for evanescent and band-limited frequencies
     '''
     ny, nx = shape
     fx = fft.fftfreq(nx, pixel_size)[None, :]
     fy = fft.fftfreq(ny, pixel_size)[:, None]
     root = 1 - (wavelength * fx) ** 2 - (wavelength * fy) ** 2
     propagating = root > 0
-    h = np.exp(2j * np.pi * distance / wavelength * np.sqrt(np.where(propagating, root, 0)))
+    h = np.exp(2j * np.pi * distance / wavelength * (np.sqrt(np.where(propagating, root, 0)) - 1))
 
     # band limit avoids aliasing of the transfer function at long distances
     limit_x = 1 / (wavelength * np.sqrt((2 * distance / (nx * pixel_size)) ** 2 + 1))

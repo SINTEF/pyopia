@@ -17,7 +17,7 @@ def test_synthetic_hologram_is_reproducible_and_keeps_mean_level():
 
     assert first.dtype == np.uint8
     assert np.array_equal(first, second)
-    assert abs(first.mean() - 160) < 2
+    assert 0.9 * 160 < first.mean() < 160 + 1  # particles remove light, so the mean sits just below the background level
 
 
 def test_reconstruction_focuses_a_synthetic_particle_at_its_true_depth():
@@ -71,3 +71,16 @@ def test_match_to_truth_handles_stats_that_restart_their_index_for_each_image():
 
     assert matches['found'].tolist() == [True, True]
     assert n_unmatched == 0
+
+
+def test_shadow_behind_an_opaque_particle_is_dark_whatever_the_distance():
+    # the scattered field must add to the incident plane wave with the right phase, so a change in
+    # distance of a fraction of a wavelength must not change the shadow
+    particle_x, particle_y, diameter = 100.0, 100.0, 100.0
+    rows, cols = np.mgrid[0:200, 0:200]
+    inside = np.hypot(rows - particle_y, cols - particle_x) < 0.7 * diameter / 4.4 / 2
+
+    for depth in (2.0, 2.00005, 2.0001, 2.00015):
+        particles = np.array([[particle_x, particle_y, depth, diameter]])
+        image = synthetic_hologram((200, 200), particles, offset=0.0, pad=128, mean_counts=100, noise_counts=0)
+        assert image[inside].mean() / 100 < 0.35
