@@ -214,7 +214,7 @@ def match_to_truth(stats, truth, pixel_size=4.4):
     n_unmatched : int
         number of detections not matched to a true particle
     '''
-    stats = stats.dropna(subset=['minr']).copy()
+    stats = stats.dropna(subset=['minr']).reset_index(drop=True)  # processed stats repeat index labels across images
     stats['image'] = [os.path.splitext(os.path.basename(f))[0] for f in stats['holo_filename']]
     stats['x_px'] = (stats['minc'] + stats['maxc']) / 2
     stats['y_px'] = (stats['minr'] + stats['maxr']) / 2

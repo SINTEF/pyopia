@@ -58,3 +58,16 @@ def test_match_to_truth_reports_errors_missed_particles_and_extra_detections():
     assert matches.loc[0, 'depth_error'] == 0.5
     assert np.isnan(matches.loc[1, 'size_error'])
     assert n_unmatched == 1
+
+
+def test_match_to_truth_handles_stats_that_restart_their_index_for_each_image():
+    truth = pd.DataFrame({'image': ['a', 'b'], 'x_px': [100.0, 100.0], 'y_px': [100.0, 100.0],
+                          'z_mm': [10.0, 10.0], 'diameter_um': [44.0, 44.0]})
+    stats = pd.DataFrame({'holo_filename': ['a.pgm', 'b.pgm'], 'minr': [95, 95], 'minc': [95, 95],
+                          'maxr': [105, 105], 'maxc': [105, 105], 'equivalent_diameter': [10.0, 10.0], 'z': [10.0, 10.0]},
+                         index=[0, 0])
+
+    matches, n_unmatched = match_to_truth(stats, truth)
+
+    assert matches['found'].tolist() == [True, True]
+    assert n_unmatched == 0
