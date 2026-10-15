@@ -110,8 +110,8 @@ def test_holo_pipeline(tmp_path, holo_example_files):
 
     print('stats header: ', stats.data_vars)
     print('Total number of particles: ', len(stats.major_axis_length))
-    assert len(stats.major_axis_length) == 40, ('Number of particles expected in this test is 56 for main' +
-                                                ' (or 40 for dev-1.2.)' +
+    assert len(stats.major_axis_length) == 39, ('Number of particles expected in this test is 39' +
+                                                ' (40 before particles focussing on the last slice were discarded)' +
                                                 ' This test counted ' + str(len(stats.major_axis_length)) +
                                                 ' Something has altered the number of particles detected')
 

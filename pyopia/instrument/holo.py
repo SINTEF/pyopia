@@ -549,7 +549,7 @@ class Focus():
                 case _:
                     raise ValueError('focus_function in pyopia.instrument.holo.Focus not recognised')
 
-            if self.discard_end_slices and (ifocus_ == 0 or ifocus_ == im_stack.shape[2]):
+            if self.discard_end_slices and (ifocus_ == 0 or ifocus_ == im_stack.shape[2] - 1):
                 continue
             ifocus.append(ifocus_)
             rp_out.append(rp)
@@ -606,7 +606,7 @@ class MergeStats():
         z = (np.arange(data['settings']['steps']['initial']['minZ'],
                        (data['settings']['steps']['initial']['maxZ'] + data['settings']['steps']['initial']['stepZ']),
                        data['settings']['steps']['initial']['stepZ']))
-        stats['z'] = z[stats['ifocus']-1]
+        stats['z'] = z[stats['ifocus']]
         stats['holo_filename'] = data['filename']
         data['stats'] = stats
         return data
