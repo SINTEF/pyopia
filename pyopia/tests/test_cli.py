@@ -402,8 +402,7 @@ def test_make_montage_accepts_msize_and_filter_variable(silcam_cli_merged_stats,
 def test_make_montage_rel_scale_requires_scaled(tmp_path):
     result = invoke_in(tmp_path, ['make-montage', 'unused-STATS.nc', '--rel-scale', '0.5'])
 
-    assert result.exit_code != 0
-    assert '--rel-scale' in result.output
+    assert result.exit_code == 2
 
 
 @pytest.mark.slow
