@@ -320,11 +320,11 @@ def test_make_montage_creates_real_montage_image(silcam_cli_merged_stats, tmp_pa
 
 
 @pytest.mark.slow
-def test_make_montage_scaled_creates_real_montage_image(silcam_cli_merged_stats, tmp_path):
+def test_make_montage_scaled_option_creates_real_montage_image(silcam_cli_merged_stats, tmp_path):
     montage_path = tmp_path / 'montage_scaled.png'
 
     result = invoke_in(tmp_path, [
-        'make-montage-scaled', str(silcam_cli_merged_stats), '--output-filename', str(montage_path)
+        'make-montage', str(silcam_cli_merged_stats), '--scaled', '--output-filename', str(montage_path)
     ])
 
     assert result.exit_code == 0, result.output
@@ -347,6 +347,62 @@ def test_export_to_ecotaxa_creates_bundle_zip(silcam_cli_merged_stats, tmp_path)
         names = bundle.namelist()
         assert 'ecotaxa_particle_statistics.tsv' in names
         assert sum(name.endswith('.png') for name in names) == 1740
+
+
+@pytest.fixture
+def silcam_stats_without_classifier(silcam_cli_merged_stats, tmp_path):
+    '''Copy of the merged real stats with the classifier `probability_*` columns removed'''
+    xstats = pyopia.io.load_stats(str(silcam_cli_merged_stats))
+    xstats = xstats.drop_vars([v for v in xstats.data_vars if str(v).startswith('probability')])
+    path = tmp_path / 'no-classifier-STATS.nc'
+    xstats.to_netcdf(path, engine=pyopia.io.NETCDF_ENGINE)
+    return path
+
+
+@pytest.mark.slow
+def test_export_to_ecotaxa_works_without_classifier_output(silcam_stats_without_classifier, tmp_path):
+    export_path = tmp_path / 'ecotaxa_export.zip'
+
+    result = invoke_in(tmp_path, [
+        'export-to-ecotaxa', str(silcam_stats_without_classifier), str(export_path)
+    ])
+
+    assert result.exit_code == 0, result.output
+    with zipfile.ZipFile(export_path) as bundle:
+        names = bundle.namelist()
+        assert 'ecotaxa_particle_statistics.tsv' in names
+        assert sum(name.endswith('.png') for name in names) == 1740
+
+
+@pytest.mark.slow
+def test_export_to_ecotaxa_label_folders_need_classifier_output(silcam_stats_without_classifier, tmp_path):
+    result = invoke_in(tmp_path, [
+        'export-to-ecotaxa', str(silcam_stats_without_classifier), str(tmp_path / 'ecotaxa_export.zip'),
+        '--make-label-folders'
+    ])
+
+    assert isinstance(result.exception, ValueError)
+    assert 'probability' in str(result.exception)
+
+
+@pytest.mark.slow
+def test_make_montage_accepts_msize_and_filter_variable(silcam_cli_merged_stats, tmp_path):
+    for extra_args in ([], ['--scaled']):
+        montage_path = tmp_path / f'montage{len(extra_args)}.png'
+
+        result = invoke_in(tmp_path, [
+            'make-montage', str(silcam_cli_merged_stats), '--output-filename', str(montage_path),
+            '--msize', '512', '--filter-variable', 'major_axis_length', '0', '100000', *extra_args
+        ])
+
+        assert result.exit_code == 0, result.output
+        assert montage_path.stat().st_size > 0
+
+
+def test_make_montage_rel_scale_requires_scaled(tmp_path):
+    result = invoke_in(tmp_path, ['make-montage', 'unused-STATS.nc', '--rel-scale', '0.5'])
+
+    assert result.exit_code == 2
 
 
 @pytest.mark.slow

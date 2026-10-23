@@ -147,9 +147,9 @@ class Reconstruct():
     stack_clean : float
         defines amount of cleaning of stack (fraction of max value below which to zero)
     forward_filter_option : int
-        switch to control filtering in frequency domain (0=none,1=DC only,2=zero ferquency/default)
+        switch to control filtering in frequency domain (0=none (default), 1=DC only, 2=zero-frequency row and column)
     inverse_output_option :  int
-        switch to control optional scaling of output intensity (0=square/default,1=linear)
+        switch to control output intensity (0=squared real part (default), 1=real part)
 
     Returns
     -------
@@ -192,7 +192,7 @@ def forward_transform(im, forward_filter_option=2):
     im : np.array
         hologram (usually background-corrected)
     forward_filter_option : int
-        filtering in frequency domain (0=none/default,1=DC only,2=zero ferquency)
+        filtering in frequency domain (0=none (default), 1=DC only, 2=zero-frequency row and column)
 
     Returns
     -------
@@ -224,16 +224,21 @@ def create_kernel(im, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
 
     Parameters
     ----------
-    im : np.arry
+    im : np.array
         hologram
     pixel_size : float
         pixel_size in microns per pixel (i.e. usually 4.4 for lisst-holo type of resolution)
     wavelength : float
         laser wavelength in nm
+    n : float
+        refractive index of the sample medium
+    offset : float
+        air-equivalent distance in mm from the sensor to the front of the sample volume
+        (air path plus glass path divided by the glass refractive index)
     minZ : float
-        minimum reconstruction distance in mm
+        minimum reconstruction depth within the sample volume in mm
     maxZ : float
-        maximum reconstruction distance in mm
+        maximum reconstruction depth within the sample volume in mm
     stepZ : float
         step size in mm (i.e. resolution of reconstruction between minZ and maxZ)
 
@@ -278,11 +283,11 @@ def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0):
     im_stack : np.array
         pre-allocated array to receive output
     inverse_output_option: int
-        optional scaling of output intensity (0=square/default,1=linear)
+        output intensity (0=squared real part (default), 1=real part)
 
     Returns
     -------
-    np.arry
+    np.array
         im_stack
     '''
 
@@ -304,7 +309,7 @@ def clean_stack(im_stack, stack_clean):
     ----------
     im_stack : np.array
 
-    stack_clean : flaot
+    stack_clean : float
         pixels below this value will be zeroed
 
     Returns
@@ -319,34 +324,34 @@ def clean_stack(im_stack, stack_clean):
 
 
 def std_map(im_stack):
-    '''_summary_
+    '''summarise an image stack as the standard deviation through z
 
     Parameters
     ----------
-    im_stack : _type_
-        _description_
+    im_stack : np.array
+        image stack
 
     Returns
     -------
-    _type_
-        _description_
+    np.array
+        2D image of the standard deviation through the stack
     '''
     std_map = np.std(im_stack, axis=2)
     return std_map
 
 
 def max_map(im_stack):
-    '''_summary_
+    '''summarise an image stack as the maximum through z
 
     Parameters
     ----------
-    im_stack : _type_
-        _description_
+    im_stack : np.array
+        image stack
 
     Returns
     -------
-    _type_
-        _description_
+    np.array
+        2D image of the maximum through the stack
     '''
     max_map = np.max(im_stack, axis=2)
     return max_map
@@ -425,7 +430,8 @@ def find_focus_sobel(im_stack, bbox, increase_depth_of_field):
     Returns
     -------
     im : image
-        focussed image for bbox
+        sobel edge magnitude of the bbox region at the focus plane
+        (or its maximum over adjacent planes if increase_depth_of_field is True)
 
     ifocus: int
         index through stack of focussed image
@@ -543,7 +549,7 @@ class Focus():
                 case _:
                     raise ValueError('focus_function in pyopia.instrument.holo.Focus not recognised')
 
-            if self.discard_end_slices and (ifocus_ == 0 or ifocus_ == im_stack.shape[2]):
+            if self.discard_end_slices and (ifocus_ == 0 or ifocus_ == im_stack.shape[2] - 1):
                 continue
             ifocus.append(ifocus_)
             rp_out.append(rp)
@@ -600,7 +606,7 @@ class MergeStats():
         z = (np.arange(data['settings']['steps']['initial']['minZ'],
                        (data['settings']['steps']['initial']['maxZ'] + data['settings']['steps']['initial']['stepZ']),
                        data['settings']['steps']['initial']['stepZ']))
-        stats['z'] = z[stats['ifocus']-1]
+        stats['z'] = z[stats['ifocus']]
         stats['holo_filename'] = data['filename']
         data['stats'] = stats
         return data

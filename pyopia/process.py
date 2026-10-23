@@ -633,7 +633,7 @@ class Segment():
         runs ndi.binary_fill_holes if True. Defaults to True.
     segment_source: (str, optional)
         The key in Pipeline.data of the image to be segmented.
-        Defaults to 'im_corrected'
+        Defaults to 'im_corrected' (suits silcam); holo pipelines should use 'im_focussed'.
     segmentation_method: (str, optional)
         Segmentation method to use: ``'fast'`` or ``'accurate'``.
         Defaults to ``'fast'``.
