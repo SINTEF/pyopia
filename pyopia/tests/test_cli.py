@@ -320,11 +320,11 @@ def test_make_montage_creates_real_montage_image(silcam_cli_merged_stats, tmp_pa
 
 
 @pytest.mark.slow
-def test_make_montage_scaled_creates_real_montage_image(silcam_cli_merged_stats, tmp_path):
+def test_make_montage_scaled_option_creates_real_montage_image(silcam_cli_merged_stats, tmp_path):
     montage_path = tmp_path / 'montage_scaled.png'
 
     result = invoke_in(tmp_path, [
-        'make-montage-scaled', str(silcam_cli_merged_stats), '--output-filename', str(montage_path)
+        'make-montage', str(silcam_cli_merged_stats), '--scaled', '--output-filename', str(montage_path)
     ])
 
     assert result.exit_code == 0, result.output
@@ -386,17 +386,24 @@ def test_export_to_ecotaxa_label_folders_need_classifier_output(silcam_stats_wit
 
 
 @pytest.mark.slow
-def test_montage_commands_accept_msize_and_filter_variable(silcam_cli_merged_stats, tmp_path):
-    for command in ['make-montage', 'make-montage-scaled']:
-        montage_path = tmp_path / f'{command}.png'
+def test_make_montage_accepts_msize_and_filter_variable(silcam_cli_merged_stats, tmp_path):
+    for extra_args in ([], ['--scaled']):
+        montage_path = tmp_path / f'montage{len(extra_args)}.png'
 
         result = invoke_in(tmp_path, [
-            command, str(silcam_cli_merged_stats), '--output-filename', str(montage_path),
-            '--msize', '512', '--filter-variable', 'major_axis_length', '0', '100000'
+            'make-montage', str(silcam_cli_merged_stats), '--output-filename', str(montage_path),
+            '--msize', '512', '--filter-variable', 'major_axis_length', '0', '100000', *extra_args
         ])
 
         assert result.exit_code == 0, result.output
         assert montage_path.stat().st_size > 0
+
+
+def test_make_montage_rel_scale_requires_scaled(tmp_path):
+    result = invoke_in(tmp_path, ['make-montage', 'unused-STATS.nc', '--rel-scale', '0.5'])
+
+    assert result.exit_code != 0
+    assert '--rel-scale' in result.output
 
 
 @pytest.mark.slow
