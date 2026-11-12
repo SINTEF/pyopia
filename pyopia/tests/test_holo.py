@@ -45,6 +45,24 @@ def test_increased_depth_of_field_includes_both_planes_either_side_of_focus(focu
     assert (im_deep[13:15, 13:15] > im_single[13:15, 13:15]).all()
 
 
+def test_output_option_1_is_the_real_part_of_the_reconstructed_field():
+    im = np.random.default_rng(0).normal(1, 0.05, (32, 48))
+    kern = holo.create_kernel(im, 4.4, 658, 1.33, 27, 0, 1, 0.5)
+    im_fft = holo.forward_transform(im, 2)
+
+    stack_real = holo.inverse_transform(im_fft, kern, np.zeros(kern.shape), 1)
+    stack_squared = holo.inverse_transform(im_fft, kern, np.zeros(kern.shape), 0)
+
+    # the same field without the fftshift of the spectrum
+    im_fft_unshifted = np.fft.fft2(im)
+    im_fft_unshifted[:, 0] = 0
+    im_fft_unshifted[0, :] = 0
+    for i in range(kern.shape[2]):
+        expected = np.fft.ifft2(im_fft_unshifted * np.fft.ifftshift(kern[:, :, i])).real
+        np.testing.assert_allclose(stack_real[:, :, i], expected, atol=1e-12)
+    np.testing.assert_allclose(stack_real**2, stack_squared, atol=1e-12)
+
+
 def test_mergestats_reports_the_depth_of_the_focus_plane():
     stats = pd.DataFrame({'minr': [16], 'minc': [16], 'maxr': [24], 'maxc': [24]})
     data = {

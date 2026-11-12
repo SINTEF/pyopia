@@ -295,7 +295,7 @@ def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0):
         im_tmp = np.multiply(im_fft, kern[:, :, i])
         match inverse_output_option:
             case 1:
-                im_stack[:, :, i] = fft.ifft2(im_tmp, workers=os.cpu_count()).real
+                im_stack[:, :, i] = fft.ifft2(fft.ifftshift(im_tmp), workers=os.cpu_count()).real
             case _:
                 im_stack[:, :, i] = (fft.ifft2(im_tmp, workers=os.cpu_count()).real)**2
 
