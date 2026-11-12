@@ -28,7 +28,7 @@ def test_reconstruction_focuses_a_synthetic_particle_at_its_true_depth():
     kern = holo.create_kernel(im, 4.4, 658, 1.33, 27, 0, 50, 0.5)
     stack = holo.inverse_transform(holo.forward_transform(im, 2), kern, np.zeros(kern.shape))
 
-    focus = stack[140:160, 140:160, :].sum(axis=(0, 1))
+    focus = stack[:, 140:160, 140:160].sum(axis=(1, 2))
     assert abs(np.argmax(focus) * 0.5 - true_depth) <= 1.0
 
 

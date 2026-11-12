@@ -140,7 +140,8 @@ class Reconstruct():
 
     On the first call, builds the reconstruction kernel and image stack from the dimensions
     of `im_corrected` and stores them on `data['kern']` / `data['im_stack']` for reuse on
-    subsequent calls.
+    subsequent calls. The kernel and image stack have shape (planes, rows, columns), so that
+    each plane is contiguous in memory.
 
     Parameters
     ----------
@@ -245,7 +246,7 @@ def create_kernel(im, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
     Returns
     -------
     np.array
-        holographic reconstruction kernel (3D array of complex numbers)
+        holographic reconstruction kernel (3D array of complex numbers, shape (planes, rows, columns))
     '''
     cx = im.shape[1] / 2
     cy = im.shape[0] / 2
@@ -264,10 +265,10 @@ def create_kernel(im, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
     wavelength_m = wavelength * 1e-9
     k = 2 * np.pi / wavelength_m
 
-    kern = -1j * np.zeros((im.shape[0], im.shape[1], len(z)))
+    kern = -1j * np.zeros((len(z), im.shape[0], im.shape[1]))
     for i, z_ in enumerate(z):
 
-        kern[:, :, i] = np.exp(-1j * f**2 * z_ / (2 * k))
+        kern[i] = np.exp(-1j * f**2 * z_ / (2 * k))
     return kern
 
 
@@ -279,9 +280,9 @@ def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0):
     im_fft : np.array
         calculated from forward_transform
     kern : np.array
-        calculated from create_kernel
+        calculated from create_kernel, shape (planes, rows, columns)
     im_stack : np.array
-        pre-allocated array to receive output
+        pre-allocated array to receive output, shape (planes, rows, columns)
     inverse_output_option: int
         output intensity (0=squared real part (default), 1=real part)
 
@@ -291,13 +292,13 @@ def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0):
         im_stack
     '''
 
-    for i in range(np.shape(kern)[2]):
-        im_tmp = np.multiply(im_fft, kern[:, :, i])
+    for i in range(np.shape(kern)[0]):
+        im_tmp = np.multiply(im_fft, kern[i])
         match inverse_output_option:
             case 1:
-                im_stack[:, :, i] = fft.ifft2(fft.ifftshift(im_tmp), workers=os.cpu_count()).real
+                im_stack[i] = fft.ifft2(fft.ifftshift(im_tmp), workers=os.cpu_count()).real
             case _:
-                im_stack[:, :, i] = (fft.ifft2(im_tmp, workers=os.cpu_count()).real)**2
+                im_stack[i] = (fft.ifft2(im_tmp, workers=os.cpu_count()).real)**2
 
     return im_stack
 
@@ -329,14 +330,14 @@ def std_map(im_stack):
     Parameters
     ----------
     im_stack : np.array
-        image stack
+        image stack, shape (planes, rows, columns)
 
     Returns
     -------
     np.array
         2D image of the standard deviation through the stack
     '''
-    std_map = np.std(im_stack, axis=2)
+    std_map = np.std(im_stack, axis=0)
     return std_map
 
 
@@ -346,14 +347,14 @@ def max_map(im_stack):
     Parameters
     ----------
     im_stack : np.array
-        image stack
+        image stack, shape (planes, rows, columns)
 
     Returns
     -------
     np.array
         2D image of the maximum through the stack
     '''
-    max_map = np.max(im_stack, axis=2)
+    max_map = np.max(im_stack, axis=0)
     return max_map
 
 
@@ -384,7 +385,7 @@ def find_focus_imax(im_stack, bbox, increase_depth_of_field):
     Parameters
     ----------
     im_stack : nparray
-        image stack
+        image stack, shape (planes, rows, columns)
 
     bbox : tuple
         Bounding box (min_row, min_col, max_row, max_col)
@@ -400,14 +401,14 @@ def find_focus_imax(im_stack, bbox, increase_depth_of_field):
     ifocus: int
         index through stack of focussed image
     '''
-    roi = im_stack[bbox[0]:bbox[2], bbox[1]:bbox[3], :]
-    focus = np.sum(roi, axis=(0, 1))
+    roi = im_stack[:, bbox[0]:bbox[2], bbox[1]:bbox[3]]
+    focus = np.sum(roi, axis=(1, 2))
     ifocus = np.argmax(focus)
 
     if increase_depth_of_field:
-        im_focus = np.max(roi[:, :, np.max([ifocus-1, 0]):np.min([ifocus+2, roi.shape[2]])], axis=2)
+        im_focus = np.max(roi[np.max([ifocus-1, 0]):np.min([ifocus+2, roi.shape[0]])], axis=0)
     else:
-        im_focus = roi[:, :, ifocus]
+        im_focus = roi[ifocus]
 
     return im_focus, ifocus
 
@@ -419,7 +420,7 @@ def find_focus_sobel(im_stack, bbox, increase_depth_of_field):
     Parameters
     ----------
     im_stack : nparray
-        image stack
+        image stack, shape (planes, rows, columns)
 
     bbox : tuple
         Bounding box (min_row, min_col, max_row, max_col)
@@ -436,18 +437,18 @@ def find_focus_sobel(im_stack, bbox, increase_depth_of_field):
     ifocus: int
         index through stack of focussed image
     '''
-    im_bbox = im_stack[bbox[0]:bbox[2], bbox[1]:bbox[3], :]
+    im_bbox = im_stack[:, bbox[0]:bbox[2], bbox[1]:bbox[3]]
     roi = np.zeros_like(im_bbox)
-    for zi in range(roi.shape[2]):
-        roi[:, :, zi] = sobel(im_bbox[:, :, zi])
+    for zi in range(roi.shape[0]):
+        roi[zi] = sobel(im_bbox[zi])
 
-    focus = np.sum(roi, axis=(0, 1))
+    focus = np.sum(roi, axis=(1, 2))
     ifocus = np.argmax(focus)
 
     if increase_depth_of_field:
-        im_focus = np.max(roi[:, :, np.max([ifocus-1, 0]):np.min([ifocus+2, roi.shape[2]])], axis=2)
+        im_focus = np.max(roi[np.max([ifocus-1, 0]):np.min([ifocus+2, roi.shape[0]])], axis=0)
     else:
-        im_focus = roi[:, :, ifocus]
+        im_focus = roi[ifocus]
 
     return im_focus, ifocus
 
@@ -536,7 +537,7 @@ class Focus():
         # identify particles
         region_properties = pyopia.process.measure_particles(imssbw)
         # loop through bounding boxes to focus each particle and add to output imc
-        im_focussed = np.zeros_like(im_stack[:, :, 0])
+        im_focussed = np.zeros_like(im_stack[0])
         ifocus = []
         rp_out = []
         for rp in region_properties:
@@ -549,7 +550,7 @@ class Focus():
                 case _:
                     raise ValueError('focus_function in pyopia.instrument.holo.Focus not recognised')
 
-            if self.discard_end_slices and (ifocus_ == 0 or ifocus_ == im_stack.shape[2] - 1):
+            if self.discard_end_slices and (ifocus_ == 0 or ifocus_ == im_stack.shape[0] - 1):
                 continue
             ifocus.append(ifocus_)
             rp_out.append(rp)
