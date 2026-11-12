@@ -405,7 +405,7 @@ def find_focus_imax(im_stack, bbox, increase_depth_of_field):
     ifocus = np.argmax(focus)
 
     if increase_depth_of_field:
-        im_focus = np.max(roi[:, :, np.max([ifocus-1, 0]):np.min([ifocus+1, roi.shape[2]])], axis=2)
+        im_focus = np.max(roi[:, :, np.max([ifocus-1, 0]):np.min([ifocus+2, roi.shape[2]])], axis=2)
     else:
         im_focus = roi[:, :, ifocus]
 
@@ -445,7 +445,7 @@ def find_focus_sobel(im_stack, bbox, increase_depth_of_field):
     ifocus = np.argmax(focus)
 
     if increase_depth_of_field:
-        im_focus = np.max(roi[:, :, np.max([ifocus-1, 0]):np.min([ifocus+1, roi.shape[2]])], axis=2)
+        im_focus = np.max(roi[:, :, np.max([ifocus-1, 0]):np.min([ifocus+2, roi.shape[2]])], axis=2)
     else:
         im_focus = roi[:, :, ifocus]
 

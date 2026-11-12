@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
+import pytest
 
 import pyopia.instrument.holo as holo
 
@@ -26,6 +27,22 @@ def test_focus_discards_particles_at_either_end_of_the_stack():
     assert _focus(_stack_with_particle_at_plane(5))['stack_ifocus'] == [5]
     assert _focus(_stack_with_particle_at_plane(0))['stack_ifocus'] == []
     assert _focus(_stack_with_particle_at_plane(10))['stack_ifocus'] == []
+
+
+@pytest.mark.parametrize('focus_function', [holo.find_focus_imax, holo.find_focus_sobel])
+def test_increased_depth_of_field_includes_both_planes_either_side_of_focus(focus_function):
+    im_stack = _stack_with_particle_at_plane(5)
+    im_stack[13:15, 13:15, 6] = 0.5  # only visible on the plane after the focus plane
+    im_stack[25:27, 25:27, 4] = 0.5  # only visible on the plane before the focus plane
+    bbox = (12, 12, 28, 28)
+
+    im_single, ifocus = focus_function(im_stack, bbox, False)
+    im_deep, _ = focus_function(im_stack, bbox, True)
+
+    assert ifocus == 5
+    assert (im_single[1:3, 1:3] == im_single[0, 0]).all()
+    assert (im_deep[1:3, 1:3] > im_single[1:3, 1:3]).all()
+    assert (im_deep[13:15, 13:15] > im_single[13:15, 13:15]).all()
 
 
 def test_mergestats_reports_the_depth_of_the_focus_plane():
