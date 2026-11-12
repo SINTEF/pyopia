@@ -112,3 +112,8 @@ Silcam-Simulator
 --------------
 .. automodule:: pyopia.simulator.silcam
     :members:
+
+Holo-Simulator
+--------------
+.. automodule:: pyopia.simulator.holo
+    :members:
