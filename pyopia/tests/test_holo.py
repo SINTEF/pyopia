@@ -63,6 +63,62 @@ def test_output_option_1_is_the_real_part_of_the_reconstructed_field():
     np.testing.assert_allclose(stack_real**2, stack_squared, atol=1e-12)
 
 
+RECON_PARAMS = dict(wavelength=658, n=1.33, offset=27, minZ=0, maxZ=1, stepZ=0.5)
+PIXEL_SIZE = 4.4
+
+
+def _reconstruct(im, **reconstruct_args):
+    data = {
+        'im_corrected': im,
+        'settings': {'general': {'pixel_size': PIXEL_SIZE}},
+        'holo_recon_params': RECON_PARAMS,
+    }
+    return holo.Reconstruct(**reconstruct_args)(data)['im_stack']
+
+
+def _expected_stack(im, forward_filter_option, inverse_output_option):
+    '''Real part of the propagated field, plane by plane, on the unshifted frequency grid'''
+    spectrum = np.fft.fft2(im)
+    if forward_filter_option == 1:
+        spectrum[0, 0] = 0
+    elif forward_filter_option == 2:
+        spectrum[:, 0] = 0
+        spectrum[0, :] = 0
+
+    fy = np.fft.fftfreq(im.shape[0], 1 / im.shape[0])[:, None] / (im.shape[0] / 2)
+    fx = np.fft.fftfreq(im.shape[1], 1 / im.shape[1])[None, :] / (im.shape[1] / 2)
+    f_squared = (np.pi / (PIXEL_SIZE / 1e6))**2 * (fx**2 + fy**2)
+    k = 2 * np.pi / (RECON_PARAMS['wavelength'] * 1e-9)
+    z = np.arange(RECON_PARAMS['minZ'], RECON_PARAMS['maxZ'] + RECON_PARAMS['stepZ'], RECON_PARAMS['stepZ'])
+    z = z * 1e-3 / RECON_PARAMS['n'] + RECON_PARAMS['offset'] * 1e-3
+
+    planes = [np.fft.ifft2(spectrum * np.exp(-1j * f_squared * z_ / (2 * k))).real for z_ in z]
+    stack = np.stack(planes, axis=2)
+    return stack**2 if inverse_output_option == 0 else stack
+
+
+@pytest.mark.parametrize('inverse_output_option', [0, 1])
+@pytest.mark.parametrize('forward_filter_option', [0, 1, 2])
+def test_reconstruct_matches_an_independent_calculation(forward_filter_option, inverse_output_option):
+    im = np.random.default_rng(0).normal(1, 0.05, (32, 48))
+
+    stack = _reconstruct(im, forward_filter_option=forward_filter_option, inverse_output_option=inverse_output_option)
+
+    expected = _expected_stack(im, forward_filter_option, inverse_output_option)
+    np.testing.assert_allclose(stack, expected, atol=1e-12)
+
+
+def test_reconstruct_stack_clean_zeroes_pixels_below_a_fraction_of_the_maximum():
+    im = np.random.default_rng(0).normal(1, 0.05, (32, 48))
+
+    stack = _reconstruct(im, forward_filter_option=2, stack_clean=0.02)
+
+    expected = _expected_stack(im, 2, 0)
+    expected[expected < expected.max() * 0.02] = 0
+    np.testing.assert_allclose(stack, expected, atol=1e-12)
+    assert (stack == 0).any()
+
+
 def test_mergestats_reports_the_depth_of_the_focus_plane():
     stats = pd.DataFrame({'minr': [16], 'minc': [16], 'maxr': [24], 'maxc': [24]})
     data = {
