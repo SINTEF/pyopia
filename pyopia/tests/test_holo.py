@@ -45,24 +45,6 @@ def test_increased_depth_of_field_includes_both_planes_either_side_of_focus(focu
     assert (im_deep[13:15, 13:15] > im_single[13:15, 13:15]).all()
 
 
-def test_output_option_1_is_the_real_part_of_the_reconstructed_field():
-    im = np.random.default_rng(0).normal(1, 0.05, (32, 48))
-    kern = holo.create_kernel(im, 4.4, 658, 1.33, 27, 0, 1, 0.5)
-    im_fft = holo.forward_transform(im, 2)
-
-    stack_real = holo.inverse_transform(im_fft, kern, np.zeros(kern.shape), 1)
-    stack_squared = holo.inverse_transform(im_fft, kern, np.zeros(kern.shape), 0)
-
-    # the same field without the fftshift of the spectrum
-    im_fft_unshifted = np.fft.fft2(im)
-    im_fft_unshifted[:, 0] = 0
-    im_fft_unshifted[0, :] = 0
-    for i in range(kern.shape[0]):
-        expected = np.fft.ifft2(im_fft_unshifted * np.fft.ifftshift(kern[i])).real
-        np.testing.assert_allclose(stack_real[i], expected, atol=1e-12)
-    np.testing.assert_allclose(stack_real**2, stack_squared, atol=1e-12)
-
-
 RECON_PARAMS = dict(wavelength=658, n=1.33, offset=27, minZ=0, maxZ=1, stepZ=0.5)
 PIXEL_SIZE = 4.4
 
@@ -97,10 +79,11 @@ def _expected_stack(im, forward_filter_option, inverse_output_option):
     return stack**2 if inverse_output_option == 0 else stack
 
 
+@pytest.mark.parametrize('shape', [(32, 48), (33, 47)])
 @pytest.mark.parametrize('inverse_output_option', [0, 1])
 @pytest.mark.parametrize('forward_filter_option', [0, 1, 2])
-def test_reconstruct_matches_an_independent_calculation(forward_filter_option, inverse_output_option):
-    im = np.random.default_rng(0).normal(1, 0.05, (32, 48))
+def test_reconstruct_matches_an_independent_calculation(shape, forward_filter_option, inverse_output_option):
+    im = np.random.default_rng(0).normal(1, 0.05, shape)
 
     stack = _reconstruct(im, forward_filter_option=forward_filter_option, inverse_output_option=inverse_output_option)
 

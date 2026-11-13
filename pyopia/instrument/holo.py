@@ -140,8 +140,9 @@ class Reconstruct():
 
     On the first call, builds the reconstruction kernel and image stack from the dimensions
     of `im_corrected` and stores them on `data['kern']` / `data['im_stack']` for reuse on
-    subsequent calls. The kernel and image stack have shape (planes, rows, columns), so that
-    each plane is contiguous in memory.
+    subsequent calls. The image stack has shape (planes, rows, columns), so that each plane is
+    contiguous in memory. The kernel is real and covers the half spectrum of a real image
+    (see :func:`create_kernel`).
 
     Parameters
     ----------
@@ -171,9 +172,9 @@ class Reconstruct():
         if 'kern' not in data:
             pixel_size = data['settings']['general']['pixel_size']
             logger.info(f'Build kernel with pixel_size = {pixel_size} um')
-            kern = create_kernel(imc, pixel_size, **data['holo_recon_params'])
+            kern = create_kernel(imc.shape, pixel_size, **data['holo_recon_params'])
             data['kern'] = kern
-            data['im_stack'] = np.zeros(np.shape(kern)).astype(np.float64)
+            data['im_stack'] = np.zeros((kern.shape[0], *imc.shape))
 
         kern = data['kern']
         im_stack = data['im_stack']
@@ -186,7 +187,7 @@ class Reconstruct():
 
 
 def forward_transform(im, forward_filter_option=2):
-    '''Perform forward transform with optional filtering
+    '''Half spectrum of a real image, with optional filtering
 
     Parameters
     ----------
@@ -198,13 +199,10 @@ def forward_transform(im, forward_filter_option=2):
     Returns
     -------
     im_fft : np.array
-        im_fft
+        non-negative column frequencies only, shape (rows, columns // 2 + 1), zero frequency first
     '''
+    im_fft = fft.rfft2(im, workers=os.cpu_count())
 
-    # Perform forward transform
-    im_fft = fft.fft2(im, workers=os.cpu_count())
-
-    # apply filtering if required
     match forward_filter_option:
         case 1:
             im_fft[0, 0] = 0
@@ -214,19 +212,19 @@ def forward_transform(im, forward_filter_option=2):
         case _:
             pass
 
-    # fftshift
-    im_fft = fft.fftshift(im_fft)
-
     return im_fft
 
 
-def create_kernel(im, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
-    '''create reconstruction kernel
+def create_kernel(shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
+    '''create the cosine of the reconstruction kernel phase on the half spectrum of a real image
+
+    For a real image the spectrum is Hermitian and the kernel phase is even in frequency, so the real part of the
+    reconstructed field is the inverse transform of the spectrum times the cosine of the phase alone.
 
     Parameters
     ----------
-    im : np.array
-        hologram
+    shape : tuple
+        (rows, columns) of the hologram
     pixel_size : float
         pixel_size in microns per pixel (i.e. usually 4.4 for lisst-holo type of resolution)
     wavelength : float
@@ -246,41 +244,31 @@ def create_kernel(im, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
     Returns
     -------
     np.array
-        holographic reconstruction kernel (3D array of complex numbers, shape (planes, rows, columns))
+        cosine of the kernel phase, shape (planes, rows, columns // 2 + 1), at the FFT frequencies of the image
     '''
-    cx = im.shape[1] / 2
-    cy = im.shape[0] / 2
-
-    x = (np.arange(0, im.shape[1]) - cx) / cx
-    y = (np.arange(0, im.shape[0]) - cy) / cy
-    y = y.reshape(im.shape[0], 1)
-
-    f1 = np.tile(x, (im.shape[0], 1))
-    f2 = np.tile(y, (1, im.shape[1]))
-
-    f = (np.pi / (pixel_size / 1e6)) * (f1**2 + f2**2)**0.5
+    rows, columns = shape
+    f1 = np.arange(columns // 2 + 1) / (columns / 2)
+    f2 = (fft.fftfreq(rows, 1 / rows) / (rows / 2))[:, None]
+    f_squared = (np.pi / (pixel_size / 1e6))**2 * (f1**2 + f2**2)
 
     z = (np.arange(minZ * 1e-3, (maxZ + stepZ) * 1e-3, stepZ * 1e-3) / n) + (offset * 1e-3)
+    k = 2 * np.pi / (wavelength * 1e-9)
 
-    wavelength_m = wavelength * 1e-9
-    k = 2 * np.pi / wavelength_m
-
-    kern = -1j * np.zeros((len(z), im.shape[0], im.shape[1]))
+    kern = np.empty((len(z), rows, columns // 2 + 1))
     for i, z_ in enumerate(z):
-
-        kern[i] = np.exp(-1j * f**2 * z_ / (2 * k))
+        kern[i] = np.cos(f_squared * z_ / (2 * k))
     return kern
 
 
 def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0):
-    '''create the reconstructed hologram stack of real images
+    '''create the reconstructed hologram stack of real images from the half spectrum
 
     Parameters
     ----------
     im_fft : np.array
         calculated from forward_transform
     kern : np.array
-        calculated from create_kernel, shape (planes, rows, columns)
+        calculated from create_kernel
     im_stack : np.array
         pre-allocated array to receive output, shape (planes, rows, columns)
     inverse_output_option: int
@@ -291,14 +279,14 @@ def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0):
     np.array
         im_stack
     '''
-
-    for i in range(np.shape(kern)[0]):
-        im_tmp = np.multiply(im_fft, kern[i])
+    shape = im_stack.shape[1:]
+    for i in range(kern.shape[0]):
+        im_plane = fft.irfft2(im_fft * kern[i], s=shape, workers=os.cpu_count())
         match inverse_output_option:
             case 1:
-                im_stack[i] = fft.ifft2(fft.ifftshift(im_tmp), workers=os.cpu_count()).real
+                im_stack[i] = im_plane
             case _:
-                im_stack[i] = (fft.ifft2(im_tmp, workers=os.cpu_count()).real)**2
+                im_stack[i] = im_plane**2
 
     return im_stack
 
