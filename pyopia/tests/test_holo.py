@@ -79,6 +79,22 @@ def _expected_stack(im, forward_filter_option, inverse_output_option):
     return stack**2 if inverse_output_option == 0 else stack
 
 
+def test_kernel_recurrence_matches_exact_cosines_over_several_blocks():
+    shape = (64, 96)
+    kern = holo.create_kernel(shape, PIXEL_SIZE, **{**RECON_PARAMS, 'maxZ': 20})
+
+    fy = np.fft.fftfreq(shape[0], 1 / shape[0])[:, None] / (shape[0] / 2)
+    fx = (np.arange(shape[1] // 2 + 1) / (shape[1] / 2))[None, :]
+    f_squared = (np.pi / (PIXEL_SIZE / 1e6))**2 * (fx**2 + fy**2)
+    k = 2 * np.pi / (RECON_PARAMS['wavelength'] * 1e-9)
+    z = np.arange(0, 20 + RECON_PARAMS['stepZ'], RECON_PARAMS['stepZ']) * 1e-3 / RECON_PARAMS['n'] + RECON_PARAMS['offset'] * 1e-3
+
+    planes = list(kern)
+    assert len(planes) == len(kern) == len(z) == 41
+    for plane, z_ in zip(planes, z):
+        np.testing.assert_allclose(plane, np.cos(f_squared * z_ / (2 * k)), atol=1e-10)
+
+
 @pytest.mark.parametrize('shape', [(32, 48), (33, 47)])
 @pytest.mark.parametrize('inverse_output_option', [0, 1])
 @pytest.mark.parametrize('forward_filter_option', [0, 1, 2])

@@ -142,7 +142,7 @@ class Reconstruct():
     of `im_corrected` and stores them on `data['kern']` / `data['im_stack']` for reuse on
     subsequent calls. The image stack has shape (planes, rows, columns), so that each plane is
     contiguous in memory. The kernel is real and covers the half spectrum of a real image
-    (see :func:`create_kernel`).
+    (see :class:`Kernel`).
 
     Parameters
     ----------
@@ -174,7 +174,7 @@ class Reconstruct():
             logger.info(f'Build kernel with pixel_size = {pixel_size} um')
             kern = create_kernel(imc.shape, pixel_size, **data['holo_recon_params'])
             data['kern'] = kern
-            data['im_stack'] = np.zeros((kern.shape[0], *imc.shape))
+            data['im_stack'] = np.zeros((len(kern), *imc.shape))
 
         kern = data['kern']
         im_stack = data['im_stack']
@@ -215,11 +215,68 @@ def forward_transform(im, forward_filter_option=2):
     return im_fft
 
 
-def create_kernel(shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
-    '''create the cosine of the reconstruction kernel phase on the half spectrum of a real image
+# Number of planes between the exact evaluations that restart the kernel recurrence
+_KERNEL_RESEED = 13
 
-    For a real image the spectrum is Hermitian and the kernel phase is even in frequency, so the real part of the
-    reconstructed field is the inverse transform of the spectrum times the cosine of the phase alone.
+
+class Kernel():
+    '''Cosine of the reconstruction kernel phase on the half spectrum of a real image, generated one plane at a time
+
+    For a real image the spectrum is conjugate-symmetric and the phase is the same at opposite frequencies, so the
+    real part of the reconstructed field is the inverse transform of the spectrum times the cosine of the phase alone.
+
+    Iterating gives the planes in order, each of shape (rows, columns // 2 + 1) at the FFT frequencies of the image.
+    The planes follow cos(p + dp) = 2 cos(dp) cos(p) - cos(p - dp), with the first two planes of each block of
+    `_KERNEL_RESEED` planes evaluated exactly, so the full kernel is never held in memory.
+
+    Parameters
+    ----------
+    shape : tuple
+        (rows, columns) of the hologram
+    pixel_size : float
+        pixel_size in microns per pixel (i.e. usually 4.4 for lisst-holo type of resolution)
+    wavelength : float
+        laser wavelength in nm
+    n : float
+        refractive index of the sample medium
+    offset : float
+        air-equivalent distance in mm from the sensor to the front of the sample volume
+        (air path plus glass path divided by the glass refractive index)
+    minZ : float
+        minimum reconstruction depth within the sample volume in mm
+    maxZ : float
+        maximum reconstruction depth within the sample volume in mm
+    stepZ : float
+        step size in mm (i.e. resolution of reconstruction between minZ and maxZ)
+    '''
+
+    def __init__(self, shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
+        rows, columns = shape
+        f1 = np.arange(columns // 2 + 1) / (columns / 2)
+        f2 = (fft.fftfreq(rows, 1 / rows) / (rows / 2))[:, None]
+        f_squared = (np.pi / (pixel_size / 1e6))**2 * (f1**2 + f2**2)
+
+        self.z = (np.arange(minZ * 1e-3, (maxZ + stepZ) * 1e-3, stepZ * 1e-3) / n) + (offset * 1e-3)
+        self.phase_per_depth = f_squared / (2 * 2 * np.pi / (wavelength * 1e-9))
+        if len(self.z) > 1:
+            self.two_cos_step = 2 * np.cos(self.phase_per_depth * (self.z[1] - self.z[0]))
+
+    def __len__(self):
+        return len(self.z)
+
+    def __iter__(self):
+        before_previous = previous = None
+        for i, z_ in enumerate(self.z):
+            if i % _KERNEL_RESEED < 2:
+                plane = np.cos(self.phase_per_depth * z_)
+            else:
+                plane = self.two_cos_step * previous - before_previous
+            before_previous, previous = previous, plane
+            yield plane
+
+
+def create_kernel(shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
+    '''create the reconstruction kernel for a real image of the given shape
 
     Parameters
     ----------
@@ -243,21 +300,10 @@ def create_kernel(shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
 
     Returns
     -------
-    np.array
-        cosine of the kernel phase, shape (planes, rows, columns // 2 + 1), at the FFT frequencies of the image
+    Kernel
+        the cosine of the kernel phase for each plane, see :class:`Kernel`
     '''
-    rows, columns = shape
-    f1 = np.arange(columns // 2 + 1) / (columns / 2)
-    f2 = (fft.fftfreq(rows, 1 / rows) / (rows / 2))[:, None]
-    f_squared = (np.pi / (pixel_size / 1e6))**2 * (f1**2 + f2**2)
-
-    z = (np.arange(minZ * 1e-3, (maxZ + stepZ) * 1e-3, stepZ * 1e-3) / n) + (offset * 1e-3)
-    k = 2 * np.pi / (wavelength * 1e-9)
-
-    kern = np.empty((len(z), rows, columns // 2 + 1))
-    for i, z_ in enumerate(z):
-        kern[i] = np.cos(f_squared * z_ / (2 * k))
-    return kern
+    return Kernel(shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ)
 
 
 def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0):
@@ -267,7 +313,7 @@ def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0):
     ----------
     im_fft : np.array
         calculated from forward_transform
-    kern : np.array
+    kern : Kernel
         calculated from create_kernel
     im_stack : np.array
         pre-allocated array to receive output, shape (planes, rows, columns)
@@ -280,8 +326,8 @@ def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0):
         im_stack
     '''
     shape = im_stack.shape[1:]
-    for i in range(kern.shape[0]):
-        im_plane = fft.irfft2(im_fft * kern[i], s=shape, workers=os.cpu_count())
+    for i, kern_plane in enumerate(kern):
+        im_plane = fft.irfft2(im_fft * kern_plane, s=shape, workers=os.cpu_count())
         match inverse_output_option:
             case 1:
                 im_stack[i] = im_plane
