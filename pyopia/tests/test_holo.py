@@ -113,6 +113,23 @@ def test_reconstruct_matches_an_independent_calculation(shape, forward_filter_op
     np.testing.assert_allclose(stack, expected, atol=atol)
 
 
+def test_reconstruct_with_threads_matches_the_serial_stack():
+    im = np.random.default_rng(0).normal(1, 0.05, (48, 64))
+    params = {**RECON_PARAMS, 'maxZ': 20}
+
+    def stack(workers):
+        data = {'im_corrected': im, 'settings': {'general': {'pixel_size': PIXEL_SIZE}}, 'holo_recon_params': params}
+        return holo.Reconstruct(forward_filter_option=2, workers=workers)(data)['im_stack']
+
+    assert stack(1).shape[0] == 41
+    np.testing.assert_allclose(stack(4), stack(1), atol=1e-10)
+
+
+def test_reconstruct_rejects_fewer_than_one_worker():
+    with pytest.raises(ValueError, match='workers'):
+        holo.Reconstruct(workers=0)
+
+
 def test_reconstruct_rejects_other_dtypes():
     with pytest.raises(ValueError, match='float16'):
         holo.Reconstruct(dtype='float16')

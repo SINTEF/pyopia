@@ -13,6 +13,7 @@ https://journals.ametsoc.org/view/journals/atot/32/6/jtech-d-14-00157_1.xml
 '''
 
 import os
+from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 import pandas as pd
 from scipy import fft
@@ -156,6 +157,9 @@ class Reconstruct():
         floating point precision of the transforms, kernel and image stack ('float64' (default) or 'float32').
         'float32' is faster and halves the memory of the stack; pixels close to the stack_clean threshold
         can differ from the 'float64' result
+    workers : int
+        number of threads that reconstruct blocks of planes in parallel (default 1: the planes are reconstructed in
+        turn, with each transform using all cores). With more than one, each transform uses a single thread
 
     Returns
     -------
@@ -165,13 +169,16 @@ class Reconstruct():
         :attr:`pyopia.pipeline.Data.im_stack`
     '''
 
-    def __init__(self, stack_clean=0, forward_filter_option=0, inverse_output_option=0, dtype='float64'):
+    def __init__(self, stack_clean=0, forward_filter_option=0, inverse_output_option=0, dtype='float64', workers=1):
         if dtype not in ('float64', 'float32'):
             raise ValueError(f"dtype must be 'float64' or 'float32', not {dtype!r}")
+        if workers < 1:
+            raise ValueError(f'workers must be at least 1, not {workers!r}')
         self.stack_clean = stack_clean
         self.forward_filter_option = forward_filter_option
         self.inverse_output_option = inverse_output_option
         self.dtype = np.dtype(dtype)
+        self.workers = workers
 
     def __call__(self, data):
         imc = data['im_corrected']
@@ -187,7 +194,7 @@ class Reconstruct():
         im_stack = data['im_stack']
 
         im_fft = forward_transform(imc.astype(self.dtype, copy=False), self.forward_filter_option)
-        im_stack = inverse_transform(im_fft, kern, im_stack, self.inverse_output_option)
+        im_stack = inverse_transform(im_fft, kern, im_stack, self.inverse_output_option, self.workers)
         data['im_stack'] = clean_stack(im_stack, self.stack_clean)
 
         return data
@@ -279,12 +286,16 @@ class Kernel():
         return len(self.z)
 
     def __iter__(self):
+        return self.block(0, len(self))
+
+    def block(self, start, stop):
+        '''Generate the planes from `start` up to (not including) `stop`, restarting the recurrence at `start`'''
         buffers = [np.empty(self.shape, dtype=self.dtype) for _ in range(3)]
         phase = np.empty(self.shape)
-        for i, z_ in enumerate(self.z):
+        for i in range(start, stop):
             plane = buffers[i % 3]
-            if i % _KERNEL_RESEED < 2:
-                np.multiply(self.phase_per_depth, z_, out=phase)
+            if (i - start) % _KERNEL_RESEED < 2:
+                np.multiply(self.phase_per_depth, self.z[i], out=phase)
                 np.cos(phase, out=plane)
             else:
                 np.multiply(self.two_cos_step, buffers[(i - 1) % 3], out=plane)
@@ -325,7 +336,7 @@ def create_kernel(shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ, d
     return Kernel(shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ, dtype)
 
 
-def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0):
+def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0, workers=1):
     '''create the reconstructed hologram stack of real images from the half spectrum
 
     Parameters
@@ -338,26 +349,40 @@ def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0):
         pre-allocated array to receive output, shape (planes, rows, columns)
     inverse_output_option: int
         output intensity (0=squared real part (default), 1=real part)
+    workers : int
+        number of threads that reconstruct blocks of consecutive planes in parallel (default 1: each transform uses
+        all cores). With more than one, each transform uses a single thread
 
     Returns
     -------
     np.array
         im_stack
     '''
-    rows = im_stack.shape[1]
-    positive = rows // 2 + 1
-    opposite = slice(rows - rows // 2 - 1, 0, -1)  # kernel rows for the negative frequency rows, in row order
+    workers = min(workers, len(kern))
+    fft_workers = os.cpu_count() if workers == 1 else 1
+    bounds = np.linspace(0, len(kern), workers + 1).astype(int)
 
-    im_product = np.empty_like(im_fft)
-    for i, kern_plane in enumerate(kern):
-        np.multiply(im_fft[:positive], kern_plane, out=im_product[:positive])
-        np.multiply(im_fft[positive:], kern_plane[opposite], out=im_product[positive:])
-        im_plane = fft.irfft2(im_product, s=im_stack.shape[1:], overwrite_x=True, workers=os.cpu_count())
-        match inverse_output_option:
-            case 1:
-                im_stack[i] = im_plane
-            case _:
-                np.multiply(im_plane, im_plane, out=im_stack[i])
+    def reconstruct_block(start, stop):
+        rows = im_stack.shape[1]
+        positive = rows // 2 + 1
+        opposite = slice(rows - rows // 2 - 1, 0, -1)  # kernel rows for the negative frequency rows, in row order
+
+        im_product = np.empty_like(im_fft)
+        for i, kern_plane in zip(range(start, stop), kern.block(start, stop)):
+            np.multiply(im_fft[:positive], kern_plane, out=im_product[:positive])
+            np.multiply(im_fft[positive:], kern_plane[opposite], out=im_product[positive:])
+            im_plane = fft.irfft2(im_product, s=im_stack.shape[1:], overwrite_x=True, workers=fft_workers)
+            match inverse_output_option:
+                case 1:
+                    im_stack[i] = im_plane
+                case _:
+                    np.multiply(im_plane, im_plane, out=im_stack[i])
+
+    if workers == 1:
+        reconstruct_block(0, len(kern))
+    else:
+        with ThreadPoolExecutor(workers) as pool:
+            list(pool.map(reconstruct_block, bounds[:-1], bounds[1:]))
 
     return im_stack
 
