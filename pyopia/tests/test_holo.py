@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 import pytest
+from skimage.filters import sobel
 
 import pyopia.instrument.holo as holo
 
@@ -144,6 +145,30 @@ def test_reconstruct_stack_clean_zeroes_pixels_below_a_fraction_of_the_maximum()
     expected[expected < expected.max() * 0.02] = 0
     np.testing.assert_allclose(stack, expected, atol=1e-12)
     assert (stack == 0).any()
+
+
+@pytest.mark.parametrize('dtype', ['float64', 'float32'])
+@pytest.mark.parametrize('shape', [(1, 1), (1, 7), (7, 1), (3, 3), (40, 50)])
+def test_sobel_stack_equals_skimage_sobel_on_each_plane(shape, dtype):
+    im_stack = np.random.default_rng(0).random((5, *shape)).astype(dtype)
+
+    result = holo.sobel_stack(im_stack)
+
+    assert result.dtype == dtype
+    assert np.array_equal(result, np.stack([sobel(plane) for plane in im_stack]))
+
+
+@pytest.mark.parametrize('increase_depth_of_field', [False, True])
+def test_find_focus_sobel_does_not_depend_on_the_chunk_size(monkeypatch, increase_depth_of_field):
+    im_stack = np.random.default_rng(0).random((9, 40, 50))
+    im_stack[4, 10:30, 10:30] += 3
+
+    im_single, ifocus_single = holo.find_focus_sobel(im_stack, (5, 5, 35, 45), increase_depth_of_field)
+    monkeypatch.setattr(holo, '_SOBEL_CHUNK_PIXELS', 1)
+    im_chunked, ifocus_chunked = holo.find_focus_sobel(im_stack, (5, 5, 35, 45), increase_depth_of_field)
+
+    assert ifocus_single == ifocus_chunked == 4
+    assert np.array_equal(im_single, im_chunked)
 
 
 def test_mergestats_reports_the_depth_of_the_focus_plane():

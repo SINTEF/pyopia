@@ -16,9 +16,8 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 import pandas as pd
-from scipy import fft
+from scipy import fft, ndimage
 from skimage.io import imread
-from skimage.filters import sobel
 from skimage.morphology import disk, erosion, dilation
 import pyopia.process
 import struct
@@ -498,6 +497,38 @@ def find_focus_imax(im_stack, bbox, increase_depth_of_field):
     return im_focus, ifocus
 
 
+# Pixels (planes x rows x columns) of a box whose edge magnitude is held at once
+_SOBEL_CHUNK_PIXELS = 2**20
+
+_SOBEL_EDGE = np.array([1, 0, -1])
+_SOBEL_SMOOTH = np.array([1, 2, 1]) / 4
+_SOBEL_KERNELS = [(_SOBEL_EDGE[:, None] * _SOBEL_SMOOTH[None, :])[None],
+                  (_SOBEL_SMOOTH[:, None] * _SOBEL_EDGE[None, :])[None]]
+
+
+def sobel_stack(im_stack):
+    '''Sobel edge magnitude of every plane of a stack
+
+    Equal to :func:`skimage.filters.sobel` applied to each plane, but computed for all planes at once.
+
+    Parameters
+    ----------
+    im_stack : np.array
+        image stack, shape (planes, rows, columns)
+
+    Returns
+    -------
+    np.array
+        edge magnitude of each plane, same shape and type as `im_stack`
+    '''
+    output = np.zeros(im_stack.shape, dtype=im_stack.dtype)
+    for kernel in _SOBEL_KERNELS:
+        gradient = ndimage.convolve(im_stack, kernel, mode='reflect')
+        gradient *= gradient
+        output += gradient
+    return np.sqrt(output) / np.sqrt(2, dtype=output.dtype)
+
+
 def find_focus_sobel(im_stack, bbox, increase_depth_of_field):
     '''finds and returns the focussed image for the bbox region within im_stack
     using edge magnitude of bbox area
@@ -523,17 +554,18 @@ def find_focus_sobel(im_stack, bbox, increase_depth_of_field):
         index through stack of focussed image
     '''
     im_bbox = im_stack[:, bbox[0]:bbox[2], bbox[1]:bbox[3]]
-    roi = np.zeros_like(im_bbox)
-    for zi in range(roi.shape[0]):
-        roi[zi] = sobel(im_bbox[zi])
+    n_planes = im_bbox.shape[0]
 
-    focus = np.sum(roi, axis=(1, 2))
+    # the edge magnitude is found a few planes at a time, so that a very large box does not need several copies of itself
+    chunk = max(1, _SOBEL_CHUNK_PIXELS // (im_bbox.shape[1] * im_bbox.shape[2]))
+    focus = np.concatenate([np.sum(sobel_stack(im_bbox[start:start + chunk]), axis=(1, 2))
+                            for start in range(0, n_planes, chunk)])
     ifocus = np.argmax(focus)
 
     if increase_depth_of_field:
-        im_focus = np.max(roi[np.max([ifocus-1, 0]):np.min([ifocus+2, roi.shape[0]])], axis=0)
+        im_focus = np.max(sobel_stack(im_bbox[np.max([ifocus-1, 0]):np.min([ifocus+2, n_planes])]), axis=0)
     else:
-        im_focus = roi[ifocus]
+        im_focus = sobel_stack(im_bbox[ifocus:ifocus + 1])[0]
 
     return im_focus, ifocus
 
