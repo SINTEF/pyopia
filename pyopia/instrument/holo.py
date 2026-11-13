@@ -152,6 +152,10 @@ class Reconstruct():
         switch to control filtering in frequency domain (0=none (default), 1=DC only, 2=zero-frequency row and column)
     inverse_output_option :  int
         switch to control output intensity (0=squared real part (default), 1=real part)
+    dtype : str
+        floating point precision of the transforms, kernel and image stack ('float64' (default) or 'float32').
+        'float32' is faster and halves the memory of the stack; pixels close to the stack_clean threshold
+        can differ from the 'float64' result
 
     Returns
     -------
@@ -161,10 +165,13 @@ class Reconstruct():
         :attr:`pyopia.pipeline.Data.im_stack`
     '''
 
-    def __init__(self, stack_clean=0, forward_filter_option=0, inverse_output_option=0):
+    def __init__(self, stack_clean=0, forward_filter_option=0, inverse_output_option=0, dtype='float64'):
+        if dtype not in ('float64', 'float32'):
+            raise ValueError(f"dtype must be 'float64' or 'float32', not {dtype!r}")
         self.stack_clean = stack_clean
         self.forward_filter_option = forward_filter_option
         self.inverse_output_option = inverse_output_option
+        self.dtype = np.dtype(dtype)
 
     def __call__(self, data):
         imc = data['im_corrected']
@@ -172,14 +179,14 @@ class Reconstruct():
         if 'kern' not in data:
             pixel_size = data['settings']['general']['pixel_size']
             logger.info(f'Build kernel with pixel_size = {pixel_size} um')
-            kern = create_kernel(imc.shape, pixel_size, **data['holo_recon_params'])
+            kern = create_kernel(imc.shape, pixel_size, **data['holo_recon_params'], dtype=self.dtype)
             data['kern'] = kern
-            data['im_stack'] = np.zeros((len(kern), *imc.shape))
+            data['im_stack'] = np.zeros((len(kern), *imc.shape), dtype=self.dtype)
 
         kern = data['kern']
         im_stack = data['im_stack']
 
-        im_fft = forward_transform(imc, self.forward_filter_option)
+        im_fft = forward_transform(imc.astype(self.dtype, copy=False), self.forward_filter_option)
         im_stack = inverse_transform(im_fft, kern, im_stack, self.inverse_output_option)
         data['im_stack'] = clean_stack(im_stack, self.stack_clean)
 
@@ -251,37 +258,41 @@ class Kernel():
         maximum reconstruction depth within the sample volume in mm
     stepZ : float
         step size in mm (i.e. resolution of reconstruction between minZ and maxZ)
+    dtype : np.dtype
+        floating point type of the planes (the phase is always calculated in double precision)
     '''
 
-    def __init__(self, shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
+    def __init__(self, shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ, dtype=np.float64):
         rows, columns = shape
         f1 = np.arange(columns // 2 + 1) / (columns / 2)
         f2 = (np.arange(rows // 2 + 1) / (rows / 2))[:, None]
         f_squared = (np.pi / (pixel_size / 1e6))**2 * (f1**2 + f2**2)
 
         self.shape = f_squared.shape
+        self.dtype = np.dtype(dtype)
         self.z = (np.arange(minZ * 1e-3, (maxZ + stepZ) * 1e-3, stepZ * 1e-3) / n) + (offset * 1e-3)
         self.phase_per_depth = f_squared / (2 * 2 * np.pi / (wavelength * 1e-9))
         if len(self.z) > 1:
-            self.two_cos_step = 2 * np.cos(self.phase_per_depth * (self.z[1] - self.z[0]))
+            self.two_cos_step = (2 * np.cos(self.phase_per_depth * (self.z[1] - self.z[0]))).astype(self.dtype)
 
     def __len__(self):
         return len(self.z)
 
     def __iter__(self):
-        buffers = [np.empty(self.shape) for _ in range(3)]
+        buffers = [np.empty(self.shape, dtype=self.dtype) for _ in range(3)]
+        phase = np.empty(self.shape)
         for i, z_ in enumerate(self.z):
             plane = buffers[i % 3]
             if i % _KERNEL_RESEED < 2:
-                np.multiply(self.phase_per_depth, z_, out=plane)
-                np.cos(plane, out=plane)
+                np.multiply(self.phase_per_depth, z_, out=phase)
+                np.cos(phase, out=plane)
             else:
                 np.multiply(self.two_cos_step, buffers[(i - 1) % 3], out=plane)
                 np.subtract(plane, buffers[(i - 2) % 3], out=plane)
             yield plane
 
 
-def create_kernel(shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
+def create_kernel(shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ, dtype=np.float64):
     '''create the reconstruction kernel for a real image of the given shape
 
     Parameters
@@ -303,13 +314,15 @@ def create_kernel(shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
         maximum reconstruction depth within the sample volume in mm
     stepZ : float
         step size in mm (i.e. resolution of reconstruction between minZ and maxZ)
+    dtype : np.dtype
+        floating point type of the planes
 
     Returns
     -------
     Kernel
         the cosine of the kernel phase for each plane, see :class:`Kernel`
     '''
-    return Kernel(shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ)
+    return Kernel(shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ, dtype)
 
 
 def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0):

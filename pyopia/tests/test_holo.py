@@ -79,9 +79,10 @@ def _expected_stack(im, forward_filter_option, inverse_output_option):
     return stack**2 if inverse_output_option == 0 else stack
 
 
+@pytest.mark.parametrize('dtype, atol', [(np.float64, 1e-10), (np.float32, 5e-6)])
 @pytest.mark.parametrize('shape', [(64, 96), (65, 97)])
-def test_kernel_recurrence_matches_exact_cosines_over_several_blocks(shape):
-    kern = holo.create_kernel(shape, PIXEL_SIZE, **{**RECON_PARAMS, 'maxZ': 20})
+def test_kernel_recurrence_matches_exact_cosines_over_several_blocks(shape, dtype, atol):
+    kern = holo.create_kernel(shape, PIXEL_SIZE, **{**RECON_PARAMS, 'maxZ': 20}, dtype=dtype)
 
     fy = (np.arange(shape[0] // 2 + 1) / (shape[0] / 2))[:, None]
     fx = (np.arange(shape[1] // 2 + 1) / (shape[1] / 2))[None, :]
@@ -91,21 +92,30 @@ def test_kernel_recurrence_matches_exact_cosines_over_several_blocks(shape):
 
     n_planes = 0
     for plane, z_ in zip(kern, z):  # a plane is only valid until two more have been requested
-        np.testing.assert_allclose(plane, np.cos(f_squared * z_ / (2 * k)), atol=1e-10)
+        assert plane.dtype == dtype
+        np.testing.assert_allclose(plane, np.cos(f_squared * z_ / (2 * k)), atol=atol)
         n_planes += 1
     assert n_planes == len(kern) == len(z) == 41
 
 
+@pytest.mark.parametrize('dtype, atol', [('float64', 1e-12), ('float32', 5e-6)])
 @pytest.mark.parametrize('shape', [(32, 48), (33, 47)])
 @pytest.mark.parametrize('inverse_output_option', [0, 1])
 @pytest.mark.parametrize('forward_filter_option', [0, 1, 2])
-def test_reconstruct_matches_an_independent_calculation(shape, forward_filter_option, inverse_output_option):
+def test_reconstruct_matches_an_independent_calculation(shape, forward_filter_option, inverse_output_option, dtype, atol):
     im = np.random.default_rng(0).normal(1, 0.05, shape)
 
-    stack = _reconstruct(im, forward_filter_option=forward_filter_option, inverse_output_option=inverse_output_option)
+    stack = _reconstruct(im, forward_filter_option=forward_filter_option, inverse_output_option=inverse_output_option,
+                         dtype=dtype)
 
     expected = _expected_stack(im, forward_filter_option, inverse_output_option)
-    np.testing.assert_allclose(stack, expected, atol=1e-12)
+    assert stack.dtype == dtype
+    np.testing.assert_allclose(stack, expected, atol=atol)
+
+
+def test_reconstruct_rejects_other_dtypes():
+    with pytest.raises(ValueError, match='float16'):
+        holo.Reconstruct(dtype='float16')
 
 
 def test_reconstruct_stack_clean_zeroes_pixels_below_a_fraction_of_the_maximum():
