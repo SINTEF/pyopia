@@ -13,11 +13,11 @@ https://journals.ametsoc.org/view/journals/atot/32/6/jtech-d-14-00157_1.xml
 '''
 
 import os
+from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 import pandas as pd
-from scipy import fft
+from scipy import fft, ndimage
 from skimage.io import imread
-from skimage.filters import sobel
 from skimage.morphology import disk, erosion, dilation
 import pyopia.process
 import struct
@@ -140,7 +140,9 @@ class Reconstruct():
 
     On the first call, builds the reconstruction kernel and image stack from the dimensions
     of `im_corrected` and stores them on `data['kern']` / `data['im_stack']` for reuse on
-    subsequent calls.
+    subsequent calls. The image stack has shape (planes, rows, columns), so that each plane is
+    contiguous in memory. The kernel is real and covers the half spectrum of a real image
+    (see :class:`Kernel`).
 
     Parameters
     ----------
@@ -150,6 +152,13 @@ class Reconstruct():
         switch to control filtering in frequency domain (0=none (default), 1=DC only, 2=zero-frequency row and column)
     inverse_output_option :  int
         switch to control output intensity (0=squared real part (default), 1=real part)
+    dtype : str
+        floating point precision of the transforms, kernel and image stack ('float64' (default) or 'float32').
+        'float32' is faster and halves the memory of the stack; pixels close to the stack_clean threshold
+        can differ from the 'float64' result
+    workers : int
+        number of threads that reconstruct blocks of planes in parallel (default 1: the planes are reconstructed in
+        turn, with each transform using all cores). With more than one, each transform uses a single thread
 
     Returns
     -------
@@ -159,10 +168,16 @@ class Reconstruct():
         :attr:`pyopia.pipeline.Data.im_stack`
     '''
 
-    def __init__(self, stack_clean=0, forward_filter_option=0, inverse_output_option=0):
+    def __init__(self, stack_clean=0, forward_filter_option=0, inverse_output_option=0, dtype='float64', workers=1):
+        if dtype not in ('float64', 'float32'):
+            raise ValueError(f"dtype must be 'float64' or 'float32', not {dtype!r}")
+        if workers < 1:
+            raise ValueError(f'workers must be at least 1, not {workers!r}')
         self.stack_clean = stack_clean
         self.forward_filter_option = forward_filter_option
         self.inverse_output_option = inverse_output_option
+        self.dtype = np.dtype(dtype)
+        self.workers = workers
 
     def __call__(self, data):
         imc = data['im_corrected']
@@ -170,22 +185,22 @@ class Reconstruct():
         if 'kern' not in data:
             pixel_size = data['settings']['general']['pixel_size']
             logger.info(f'Build kernel with pixel_size = {pixel_size} um')
-            kern = create_kernel(imc, pixel_size, **data['holo_recon_params'])
+            kern = create_kernel(imc.shape, pixel_size, **data['holo_recon_params'], dtype=self.dtype)
             data['kern'] = kern
-            data['im_stack'] = np.zeros(np.shape(kern)).astype(np.float64)
+            data['im_stack'] = np.zeros((len(kern), *imc.shape), dtype=self.dtype)
 
         kern = data['kern']
         im_stack = data['im_stack']
 
-        im_fft = forward_transform(imc, self.forward_filter_option)
-        im_stack = inverse_transform(im_fft, kern, im_stack, self.inverse_output_option)
+        im_fft = forward_transform(imc.astype(self.dtype, copy=False), self.forward_filter_option)
+        im_stack = inverse_transform(im_fft, kern, im_stack, self.inverse_output_option, self.workers)
         data['im_stack'] = clean_stack(im_stack, self.stack_clean)
 
         return data
 
 
 def forward_transform(im, forward_filter_option=2):
-    '''Perform forward transform with optional filtering
+    '''Half spectrum of a real image, with optional filtering
 
     Parameters
     ----------
@@ -197,13 +212,10 @@ def forward_transform(im, forward_filter_option=2):
     Returns
     -------
     im_fft : np.array
-        im_fft
+        non-negative column frequencies only, shape (rows, columns // 2 + 1), zero frequency first
     '''
+    im_fft = fft.rfft2(im, workers=os.cpu_count())
 
-    # Perform forward transform
-    im_fft = fft.fft2(im, workers=os.cpu_count())
-
-    # apply filtering if required
     match forward_filter_option:
         case 1:
             im_fft[0, 0] = 0
@@ -213,19 +225,30 @@ def forward_transform(im, forward_filter_option=2):
         case _:
             pass
 
-    # fftshift
-    im_fft = fft.fftshift(im_fft)
-
     return im_fft
 
 
-def create_kernel(im, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
-    '''create reconstruction kernel
+# Number of planes between the exact evaluations that restart the kernel recurrence
+_KERNEL_RESEED = 13
+
+
+class Kernel():
+    '''Cosine of the reconstruction kernel phase on the half spectrum of a real image, generated one plane at a time
+
+    For a real image the spectrum is conjugate-symmetric and the phase is the same at opposite frequencies, so the
+    real part of the reconstructed field is the inverse transform of the spectrum times the cosine of the phase alone.
+
+    Iterating gives the planes in order, each of shape (rows // 2 + 1, columns // 2 + 1) at the non-negative FFT
+    frequencies of the image; the phase depends on each frequency only through its square, so rows at negative
+    frequencies take the plane of the row at the opposite frequency. The planes follow
+    cos(p + dp) = 2 cos(dp) cos(p) - cos(p - dp), with the first two planes of each block of `_KERNEL_RESEED` planes
+    evaluated exactly, so the full kernel is never held in memory. The planes are written into three arrays that are
+    reused, so a plane is only valid until two further planes have been requested.
 
     Parameters
     ----------
-    im : np.array
-        hologram
+    shape : tuple
+        (rows, columns) of the hologram
     pixel_size : float
         pixel_size in microns per pixel (i.e. usually 4.4 for lisst-holo type of resolution)
     wavelength : float
@@ -241,63 +264,124 @@ def create_kernel(im, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
         maximum reconstruction depth within the sample volume in mm
     stepZ : float
         step size in mm (i.e. resolution of reconstruction between minZ and maxZ)
+    dtype : np.dtype
+        floating point type of the planes (the phase is always calculated in double precision)
+    '''
+
+    def __init__(self, shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ, dtype=np.float64):
+        rows, columns = shape
+        f1 = np.arange(columns // 2 + 1) / (columns / 2)
+        f2 = (np.arange(rows // 2 + 1) / (rows / 2))[:, None]
+        f_squared = (np.pi / (pixel_size / 1e6))**2 * (f1**2 + f2**2)
+
+        self.shape = f_squared.shape
+        self.dtype = np.dtype(dtype)
+        self.z = (np.arange(minZ * 1e-3, (maxZ + stepZ) * 1e-3, stepZ * 1e-3) / n) + (offset * 1e-3)
+        self.phase_per_depth = f_squared / (2 * 2 * np.pi / (wavelength * 1e-9))
+        if len(self.z) > 1:
+            self.two_cos_step = (2 * np.cos(self.phase_per_depth * (self.z[1] - self.z[0]))).astype(self.dtype)
+
+    def __len__(self):
+        return len(self.z)
+
+    def __iter__(self):
+        return self.block(0, len(self))
+
+    def block(self, start, stop):
+        '''Generate the planes from `start` up to (not including) `stop`, restarting the recurrence at `start`'''
+        buffers = [np.empty(self.shape, dtype=self.dtype) for _ in range(3)]
+        phase = np.empty(self.shape)
+        for i in range(start, stop):
+            plane = buffers[i % 3]
+            if (i - start) % _KERNEL_RESEED < 2:
+                np.multiply(self.phase_per_depth, self.z[i], out=phase)
+                np.cos(phase, out=plane)
+            else:
+                np.multiply(self.two_cos_step, buffers[(i - 1) % 3], out=plane)
+                np.subtract(plane, buffers[(i - 2) % 3], out=plane)
+            yield plane
+
+
+def create_kernel(shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ, dtype=np.float64):
+    '''create the reconstruction kernel for a real image of the given shape
+
+    Parameters
+    ----------
+    shape : tuple
+        (rows, columns) of the hologram
+    pixel_size : float
+        pixel_size in microns per pixel (i.e. usually 4.4 for lisst-holo type of resolution)
+    wavelength : float
+        laser wavelength in nm
+    n : float
+        refractive index of the sample medium
+    offset : float
+        air-equivalent distance in mm from the sensor to the front of the sample volume
+        (air path plus glass path divided by the glass refractive index)
+    minZ : float
+        minimum reconstruction depth within the sample volume in mm
+    maxZ : float
+        maximum reconstruction depth within the sample volume in mm
+    stepZ : float
+        step size in mm (i.e. resolution of reconstruction between minZ and maxZ)
+    dtype : np.dtype
+        floating point type of the planes
 
     Returns
     -------
-    np.array
-        holographic reconstruction kernel (3D array of complex numbers)
+    Kernel
+        the cosine of the kernel phase for each plane, see :class:`Kernel`
     '''
-    cx = im.shape[1] / 2
-    cy = im.shape[0] / 2
-
-    x = (np.arange(0, im.shape[1]) - cx) / cx
-    y = (np.arange(0, im.shape[0]) - cy) / cy
-    y = y.reshape(im.shape[0], 1)
-
-    f1 = np.tile(x, (im.shape[0], 1))
-    f2 = np.tile(y, (1, im.shape[1]))
-
-    f = (np.pi / (pixel_size / 1e6)) * (f1**2 + f2**2)**0.5
-
-    z = (np.arange(minZ * 1e-3, (maxZ + stepZ) * 1e-3, stepZ * 1e-3) / n) + (offset * 1e-3)
-
-    wavelength_m = wavelength * 1e-9
-    k = 2 * np.pi / wavelength_m
-
-    kern = -1j * np.zeros((im.shape[0], im.shape[1], len(z)))
-    for i, z_ in enumerate(z):
-
-        kern[:, :, i] = np.exp(-1j * f**2 * z_ / (2 * k))
-    return kern
+    return Kernel(shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ, dtype)
 
 
-def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0):
-    '''create the reconstructed hologram stack of real images
+def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0, workers=1):
+    '''create the reconstructed hologram stack of real images from the half spectrum
 
     Parameters
     ----------
     im_fft : np.array
         calculated from forward_transform
-    kern : np.array
+    kern : Kernel
         calculated from create_kernel
     im_stack : np.array
-        pre-allocated array to receive output
+        pre-allocated array to receive output, shape (planes, rows, columns)
     inverse_output_option: int
         output intensity (0=squared real part (default), 1=real part)
+    workers : int
+        number of threads that reconstruct blocks of consecutive planes in parallel (default 1: each transform uses
+        all cores). With more than one, each transform uses a single thread
 
     Returns
     -------
     np.array
         im_stack
     '''
+    workers = min(workers, len(kern))
+    fft_workers = os.cpu_count() if workers == 1 else 1
+    bounds = np.linspace(0, len(kern), workers + 1).astype(int)
 
-    for i in range(np.shape(kern)[2]):
-        im_tmp = np.multiply(im_fft, kern[:, :, i])
-        match inverse_output_option:
-            case 1:
-                im_stack[:, :, i] = fft.ifft2(im_tmp, workers=os.cpu_count()).real
-            case _:
-                im_stack[:, :, i] = (fft.ifft2(im_tmp, workers=os.cpu_count()).real)**2
+    def reconstruct_block(start, stop):
+        rows = im_stack.shape[1]
+        positive = rows // 2 + 1
+        opposite = slice(rows - rows // 2 - 1, 0, -1)  # kernel rows for the negative frequency rows, in row order
+
+        im_product = np.empty_like(im_fft)
+        for i, kern_plane in zip(range(start, stop), kern.block(start, stop)):
+            np.multiply(im_fft[:positive], kern_plane, out=im_product[:positive])
+            np.multiply(im_fft[positive:], kern_plane[opposite], out=im_product[positive:])
+            im_plane = fft.irfft2(im_product, s=im_stack.shape[1:], overwrite_x=True, workers=fft_workers)
+            match inverse_output_option:
+                case 1:
+                    im_stack[i] = im_plane
+                case _:
+                    np.multiply(im_plane, im_plane, out=im_stack[i])
+
+    if workers == 1:
+        reconstruct_block(0, len(kern))
+    else:
+        with ThreadPoolExecutor(workers) as pool:
+            list(pool.map(reconstruct_block, bounds[:-1], bounds[1:]))
 
     return im_stack
 
@@ -318,8 +402,9 @@ def clean_stack(im_stack, stack_clean):
         cleaned version of im_stack
     '''
     if stack_clean > 0.0:
-        im_max = np.amax(im_stack, axis=None)
-        im_stack[im_stack < im_max * stack_clean] = 0
+        threshold = np.amax(im_stack, axis=None) * stack_clean
+        for im_plane in im_stack:
+            im_plane[im_plane < threshold] = 0
     return im_stack
 
 
@@ -329,14 +414,14 @@ def std_map(im_stack):
     Parameters
     ----------
     im_stack : np.array
-        image stack
+        image stack, shape (planes, rows, columns)
 
     Returns
     -------
     np.array
         2D image of the standard deviation through the stack
     '''
-    std_map = np.std(im_stack, axis=2)
+    std_map = np.std(im_stack, axis=0)
     return std_map
 
 
@@ -346,14 +431,14 @@ def max_map(im_stack):
     Parameters
     ----------
     im_stack : np.array
-        image stack
+        image stack, shape (planes, rows, columns)
 
     Returns
     -------
     np.array
         2D image of the maximum through the stack
     '''
-    max_map = np.max(im_stack, axis=2)
+    max_map = np.max(im_stack, axis=0)
     return max_map
 
 
@@ -384,7 +469,7 @@ def find_focus_imax(im_stack, bbox, increase_depth_of_field):
     Parameters
     ----------
     im_stack : nparray
-        image stack
+        image stack, shape (planes, rows, columns)
 
     bbox : tuple
         Bounding box (min_row, min_col, max_row, max_col)
@@ -400,16 +485,48 @@ def find_focus_imax(im_stack, bbox, increase_depth_of_field):
     ifocus: int
         index through stack of focussed image
     '''
-    roi = im_stack[bbox[0]:bbox[2], bbox[1]:bbox[3], :]
-    focus = np.sum(roi, axis=(0, 1))
+    roi = im_stack[:, bbox[0]:bbox[2], bbox[1]:bbox[3]]
+    focus = np.sum(roi, axis=(1, 2))
     ifocus = np.argmax(focus)
 
     if increase_depth_of_field:
-        im_focus = np.max(roi[:, :, np.max([ifocus-1, 0]):np.min([ifocus+1, roi.shape[2]])], axis=2)
+        im_focus = np.max(roi[np.max([ifocus-1, 0]):np.min([ifocus+2, roi.shape[0]])], axis=0)
     else:
-        im_focus = roi[:, :, ifocus]
+        im_focus = roi[ifocus]
 
     return im_focus, ifocus
+
+
+# Pixels (planes x rows x columns) of a box whose edge magnitude is held at once
+_SOBEL_CHUNK_PIXELS = 2**20
+
+_SOBEL_EDGE = np.array([1, 0, -1])
+_SOBEL_SMOOTH = np.array([1, 2, 1]) / 4
+_SOBEL_KERNELS = [(_SOBEL_EDGE[:, None] * _SOBEL_SMOOTH[None, :])[None],
+                  (_SOBEL_SMOOTH[:, None] * _SOBEL_EDGE[None, :])[None]]
+
+
+def sobel_stack(im_stack):
+    '''Sobel edge magnitude of every plane of a stack
+
+    Equal to :func:`skimage.filters.sobel` applied to each plane, but computed for all planes at once.
+
+    Parameters
+    ----------
+    im_stack : np.array
+        image stack, shape (planes, rows, columns)
+
+    Returns
+    -------
+    np.array
+        edge magnitude of each plane, same shape and type as `im_stack`
+    '''
+    output = np.zeros(im_stack.shape, dtype=im_stack.dtype)
+    for kernel in _SOBEL_KERNELS:
+        gradient = ndimage.convolve(im_stack, kernel, mode='reflect')
+        gradient *= gradient
+        output += gradient
+    return np.sqrt(output) / np.sqrt(2, dtype=output.dtype)
 
 
 def find_focus_sobel(im_stack, bbox, increase_depth_of_field):
@@ -419,7 +536,7 @@ def find_focus_sobel(im_stack, bbox, increase_depth_of_field):
     Parameters
     ----------
     im_stack : nparray
-        image stack
+        image stack, shape (planes, rows, columns)
 
     bbox : tuple
         Bounding box (min_row, min_col, max_row, max_col)
@@ -436,18 +553,19 @@ def find_focus_sobel(im_stack, bbox, increase_depth_of_field):
     ifocus: int
         index through stack of focussed image
     '''
-    im_bbox = im_stack[bbox[0]:bbox[2], bbox[1]:bbox[3], :]
-    roi = np.zeros_like(im_bbox)
-    for zi in range(roi.shape[2]):
-        roi[:, :, zi] = sobel(im_bbox[:, :, zi])
+    im_bbox = im_stack[:, bbox[0]:bbox[2], bbox[1]:bbox[3]]
+    n_planes = im_bbox.shape[0]
 
-    focus = np.sum(roi, axis=(0, 1))
+    # the edge magnitude is found a few planes at a time, so that a very large box does not need several copies of itself
+    chunk = max(1, _SOBEL_CHUNK_PIXELS // (im_bbox.shape[1] * im_bbox.shape[2]))
+    focus = np.concatenate([np.sum(sobel_stack(im_bbox[start:start + chunk]), axis=(1, 2))
+                            for start in range(0, n_planes, chunk)])
     ifocus = np.argmax(focus)
 
     if increase_depth_of_field:
-        im_focus = np.max(roi[:, :, np.max([ifocus-1, 0]):np.min([ifocus+1, roi.shape[2]])], axis=2)
+        im_focus = np.max(sobel_stack(im_bbox[np.max([ifocus-1, 0]):np.min([ifocus+2, n_planes])]), axis=0)
     else:
-        im_focus = roi[:, :, ifocus]
+        im_focus = sobel_stack(im_bbox[ifocus:ifocus + 1])[0]
 
     return im_focus, ifocus
 
@@ -536,7 +654,7 @@ class Focus():
         # identify particles
         region_properties = pyopia.process.measure_particles(imssbw)
         # loop through bounding boxes to focus each particle and add to output imc
-        im_focussed = np.zeros_like(im_stack[:, :, 0])
+        im_focussed = np.zeros_like(im_stack[0])
         ifocus = []
         rp_out = []
         for rp in region_properties:
@@ -549,7 +667,7 @@ class Focus():
                 case _:
                     raise ValueError('focus_function in pyopia.instrument.holo.Focus not recognised')
 
-            if self.discard_end_slices and (ifocus_ == 0 or ifocus_ == im_stack.shape[2] - 1):
+            if self.discard_end_slices and (ifocus_ == 0 or ifocus_ == im_stack.shape[0] - 1):
                 continue
             ifocus.append(ifocus_)
             rp_out.append(rp)
