@@ -225,9 +225,12 @@ class Kernel():
     For a real image the spectrum is conjugate-symmetric and the phase is the same at opposite frequencies, so the
     real part of the reconstructed field is the inverse transform of the spectrum times the cosine of the phase alone.
 
-    Iterating gives the planes in order, each of shape (rows, columns // 2 + 1) at the FFT frequencies of the image.
-    The planes follow cos(p + dp) = 2 cos(dp) cos(p) - cos(p - dp), with the first two planes of each block of
-    `_KERNEL_RESEED` planes evaluated exactly, so the full kernel is never held in memory.
+    Iterating gives the planes in order, each of shape (rows // 2 + 1, columns // 2 + 1) at the non-negative FFT
+    frequencies of the image; the phase depends on each frequency only through its square, so rows at negative
+    frequencies take the plane of the row at the opposite frequency. The planes follow
+    cos(p + dp) = 2 cos(dp) cos(p) - cos(p - dp), with the first two planes of each block of `_KERNEL_RESEED` planes
+    evaluated exactly, so the full kernel is never held in memory. The planes are written into three arrays that are
+    reused, so a plane is only valid until two further planes have been requested.
 
     Parameters
     ----------
@@ -253,9 +256,10 @@ class Kernel():
     def __init__(self, shape, pixel_size, wavelength, n, offset, minZ, maxZ, stepZ):
         rows, columns = shape
         f1 = np.arange(columns // 2 + 1) / (columns / 2)
-        f2 = (fft.fftfreq(rows, 1 / rows) / (rows / 2))[:, None]
+        f2 = (np.arange(rows // 2 + 1) / (rows / 2))[:, None]
         f_squared = (np.pi / (pixel_size / 1e6))**2 * (f1**2 + f2**2)
 
+        self.shape = f_squared.shape
         self.z = (np.arange(minZ * 1e-3, (maxZ + stepZ) * 1e-3, stepZ * 1e-3) / n) + (offset * 1e-3)
         self.phase_per_depth = f_squared / (2 * 2 * np.pi / (wavelength * 1e-9))
         if len(self.z) > 1:
@@ -265,13 +269,15 @@ class Kernel():
         return len(self.z)
 
     def __iter__(self):
-        before_previous = previous = None
+        buffers = [np.empty(self.shape) for _ in range(3)]
         for i, z_ in enumerate(self.z):
+            plane = buffers[i % 3]
             if i % _KERNEL_RESEED < 2:
-                plane = np.cos(self.phase_per_depth * z_)
+                np.multiply(self.phase_per_depth, z_, out=plane)
+                np.cos(plane, out=plane)
             else:
-                plane = self.two_cos_step * previous - before_previous
-            before_previous, previous = previous, plane
+                np.multiply(self.two_cos_step, buffers[(i - 1) % 3], out=plane)
+                np.subtract(plane, buffers[(i - 2) % 3], out=plane)
             yield plane
 
 
@@ -325,14 +331,20 @@ def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0):
     np.array
         im_stack
     '''
-    shape = im_stack.shape[1:]
+    rows = im_stack.shape[1]
+    positive = rows // 2 + 1
+    opposite = slice(rows - rows // 2 - 1, 0, -1)  # kernel rows for the negative frequency rows, in row order
+
+    im_product = np.empty_like(im_fft)
     for i, kern_plane in enumerate(kern):
-        im_plane = fft.irfft2(im_fft * kern_plane, s=shape, workers=os.cpu_count())
+        np.multiply(im_fft[:positive], kern_plane, out=im_product[:positive])
+        np.multiply(im_fft[positive:], kern_plane[opposite], out=im_product[positive:])
+        im_plane = fft.irfft2(im_product, s=im_stack.shape[1:], overwrite_x=True, workers=os.cpu_count())
         match inverse_output_option:
             case 1:
                 im_stack[i] = im_plane
             case _:
-                im_stack[i] = im_plane**2
+                np.multiply(im_plane, im_plane, out=im_stack[i])
 
     return im_stack
 
@@ -353,8 +365,9 @@ def clean_stack(im_stack, stack_clean):
         cleaned version of im_stack
     '''
     if stack_clean > 0.0:
-        im_max = np.amax(im_stack, axis=None)
-        im_stack[im_stack < im_max * stack_clean] = 0
+        threshold = np.amax(im_stack, axis=None) * stack_clean
+        for im_plane in im_stack:
+            im_plane[im_plane < threshold] = 0
     return im_stack
 
 
