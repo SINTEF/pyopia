@@ -228,7 +228,8 @@ def forward_transform(im, forward_filter_option=2):
     return im_fft
 
 
-# Number of planes between the exact evaluations that restart the kernel recurrence
+# Number of planes between the exact evaluations that restart the kernel recurrence. At 1200 x 1600 and 101 planes the
+# error against exact cosines is 1e-12 for 3, 8e-12 for 13 and 2e-11 for 51, and the time stops falling at about 10
 _KERNEL_RESEED = 13
 
 
@@ -343,7 +344,7 @@ def inverse_transform(im_fft, kern, im_stack, inverse_output_option=0, workers=1
     im_fft : np.array
         calculated from forward_transform
     kern : Kernel
-        calculated from create_kernel
+        instance of :class:`Kernel` returned by create_kernel
     im_stack : np.array
         pre-allocated array to receive output, shape (planes, rows, columns)
     inverse_output_option: int
