@@ -499,12 +499,12 @@ def find_focus_imax(im_stack, bbox, increase_depth_of_field):
 
 
 # Pixels (planes x rows x columns) of a box whose edge magnitude is held at once
-_SOBEL_CHUNK_PIXELS = 2**20
+SOBEL_CHUNK_PIXELS = 2**20
 
-_SOBEL_EDGE = np.array([1, 0, -1])
-_SOBEL_SMOOTH = np.array([1, 2, 1]) / 4
-_SOBEL_KERNELS = [(_SOBEL_EDGE[:, None] * _SOBEL_SMOOTH[None, :])[None],
-                  (_SOBEL_SMOOTH[:, None] * _SOBEL_EDGE[None, :])[None]]
+SOBEL_EDGE = np.array([1, 0, -1])
+SOBEL_SMOOTH = np.array([1, 2, 1]) / 4
+SOBEL_KERNELS = [(SOBEL_EDGE[:, None] * SOBEL_SMOOTH[None, :])[None],
+                 (SOBEL_SMOOTH[:, None] * SOBEL_EDGE[None, :])[None]]
 
 
 def sobel_stack(im_stack):
@@ -523,7 +523,7 @@ def sobel_stack(im_stack):
         edge magnitude of each plane, same shape and type as `im_stack`
     '''
     output = np.zeros(im_stack.shape, dtype=im_stack.dtype)
-    for kernel in _SOBEL_KERNELS:
+    for kernel in SOBEL_KERNELS:
         gradient = ndimage.convolve(im_stack, kernel, mode='reflect')
         gradient *= gradient
         output += gradient
@@ -558,7 +558,7 @@ def find_focus_sobel(im_stack, bbox, increase_depth_of_field):
     n_planes = im_bbox.shape[0]
 
     # the edge magnitude is found a few planes at a time, so that a very large box does not need several copies of itself
-    chunk = max(1, _SOBEL_CHUNK_PIXELS // (im_bbox.shape[1] * im_bbox.shape[2]))
+    chunk = max(1, SOBEL_CHUNK_PIXELS // (im_bbox.shape[1] * im_bbox.shape[2]))
     focus = np.concatenate([np.sum(sobel_stack(im_bbox[start:start + chunk]), axis=(1, 2))
                             for start in range(0, n_planes, chunk)])
     ifocus = np.argmax(focus)

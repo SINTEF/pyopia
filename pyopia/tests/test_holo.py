@@ -164,7 +164,7 @@ def test_find_focus_sobel_does_not_depend_on_the_chunk_size(monkeypatch, increas
     im_stack[4, 10:30, 10:30] += 3
 
     im_single, ifocus_single = holo.find_focus_sobel(im_stack, (5, 5, 35, 45), increase_depth_of_field)
-    monkeypatch.setattr(holo, '_SOBEL_CHUNK_PIXELS', 1)
+    monkeypatch.setattr(holo, 'SOBEL_CHUNK_PIXELS', 1)
     im_chunked, ifocus_chunked = holo.find_focus_sobel(im_stack, (5, 5, 35, 45), increase_depth_of_field)
 
     assert ifocus_single == ifocus_chunked == 4
