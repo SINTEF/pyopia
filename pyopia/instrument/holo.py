@@ -230,7 +230,7 @@ def forward_transform(im, forward_filter_option=2):
 
 # Number of planes between the exact evaluations that restart the kernel recurrence. At 1200 x 1600 and 101 planes the
 # error against exact cosines is 1e-12 for 3, 8e-12 for 13 and 2e-11 for 51, and the time stops falling at about 10
-_KERNEL_RESEED = 13
+KERNEL_RESEED = 13
 
 
 class Kernel():
@@ -242,7 +242,7 @@ class Kernel():
     Iterating gives the planes in order, each of shape (rows // 2 + 1, columns // 2 + 1) at the non-negative FFT
     frequencies of the image; the phase depends on each frequency only through its square, so rows at negative
     frequencies take the plane of the row at the opposite frequency. The planes follow
-    cos(p + dp) = 2 cos(dp) cos(p) - cos(p - dp), with the first two planes of each block of `_KERNEL_RESEED` planes
+    cos(p + dp) = 2 cos(dp) cos(p) - cos(p - dp), with the first two planes of each block of `KERNEL_RESEED` planes
     evaluated exactly, so the full kernel is never held in memory. The planes are written into three arrays that are
     reused, so a plane is only valid until two further planes have been requested.
 
@@ -294,7 +294,7 @@ class Kernel():
         phase = np.empty(self.shape)
         for i in range(start, stop):
             plane = buffers[i % 3]
-            if (i - start) % _KERNEL_RESEED < 2:
+            if (i - start) % KERNEL_RESEED < 2:
                 np.multiply(self.phase_per_depth, self.z[i], out=phase)
                 np.cos(phase, out=plane)
             else:

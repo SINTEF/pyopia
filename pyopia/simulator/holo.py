@@ -10,7 +10,7 @@ import scipy.fft as fft
 import skimage.io
 
 
-def _transfer_function(shape, pixel_size, wavelength, distance):
+def transfer_function(shape, pixel_size, wavelength, distance):
     '''Band-limited angular spectrum transfer function for propagating a distance in a medium
 
     Parameters
@@ -90,7 +90,7 @@ def synthetic_hologram(shape, particles, pixel_size=4.4, wavelength=658, n=1.33,
     wavelength_m = wavelength * 1e-9
     padded = (ny + 2 * pad, nx + 2 * pad)
 
-    h_offset = _transfer_function(padded, pitch, wavelength_m, offset * 1e-3)
+    h_offset = transfer_function(padded, pitch, wavelength_m, offset * 1e-3)
     rows, cols = np.mgrid[0:padded[0], 0:padded[1]]
 
     scattered = np.zeros(padded, dtype=complex)
@@ -103,7 +103,7 @@ def synthetic_hologram(shape, particles, pixel_size=4.4, wavelength=658, n=1.33,
         disk = np.zeros(padded)
         disk[window] = np.clip(radius - distance + 0.5, 0, 1)  # anti-aliased edge
 
-        h_medium = _transfer_function(padded, pitch, wavelength_m / n, depth * 1e-3)
+        h_medium = transfer_function(padded, pitch, wavelength_m / n, depth * 1e-3)
         scattered += fft.ifft2(fft.fft2(disk) * h_offset * h_medium, workers=os.cpu_count())
 
     field = (1 - scattered)[pad:pad + ny, pad:pad + nx]

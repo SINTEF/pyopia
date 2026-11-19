@@ -12,27 +12,27 @@ from skimage.filters import sobel
 import pyopia.instrument.holo as holo
 
 
-def _stack_with_particle_at_plane(plane, n_planes=11):
+def stack_with_particle_at_plane(plane, n_planes=11):
     im_stack = np.zeros((n_planes, 40, 40))
     im_stack[:, :, :] = 0.1
     im_stack[plane, 16:24, 16:24] = 1.0
     return im_stack
 
 
-def _focus(im_stack):
+def focus_stack(im_stack):
     focus = holo.Focus(stacksummary_function='max_map', threshold=0.97, focus_function='find_focus_imax')
     return focus({'im_stack': im_stack})
 
 
 def test_focus_discards_particles_at_either_end_of_the_stack():
-    assert _focus(_stack_with_particle_at_plane(5))['stack_ifocus'] == [5]
-    assert _focus(_stack_with_particle_at_plane(0))['stack_ifocus'] == []
-    assert _focus(_stack_with_particle_at_plane(10))['stack_ifocus'] == []
+    assert focus_stack(stack_with_particle_at_plane(5))['stack_ifocus'] == [5]
+    assert focus_stack(stack_with_particle_at_plane(0))['stack_ifocus'] == []
+    assert focus_stack(stack_with_particle_at_plane(10))['stack_ifocus'] == []
 
 
 @pytest.mark.parametrize('focus_function', [holo.find_focus_imax, holo.find_focus_sobel])
 def test_increased_depth_of_field_includes_both_planes_either_side_of_focus(focus_function):
-    im_stack = _stack_with_particle_at_plane(5)
+    im_stack = stack_with_particle_at_plane(5)
     im_stack[6, 13:15, 13:15] = 0.5  # only visible on the plane after the focus plane
     im_stack[4, 25:27, 25:27] = 0.5  # only visible on the plane before the focus plane
     bbox = (12, 12, 28, 28)
@@ -50,7 +50,7 @@ RECON_PARAMS = dict(wavelength=658, n=1.33, offset=27, minZ=0, maxZ=1, stepZ=0.5
 PIXEL_SIZE = 4.4
 
 
-def _reconstruct(im, **reconstruct_args):
+def reconstruct(im, **reconstruct_args):
     data = {
         'im_corrected': im,
         'settings': {'general': {'pixel_size': PIXEL_SIZE}},
@@ -59,7 +59,7 @@ def _reconstruct(im, **reconstruct_args):
     return holo.Reconstruct(**reconstruct_args)(data)['im_stack']
 
 
-def _expected_stack(im, forward_filter_option, inverse_output_option):
+def expected_stack(im, forward_filter_option, inverse_output_option):
     '''Real part of the propagated field, plane by plane, on the unshifted frequency grid'''
     spectrum = np.fft.fft2(im)
     if forward_filter_option == 1:
@@ -106,10 +106,10 @@ def test_kernel_recurrence_matches_exact_cosines_over_several_blocks(shape, dtyp
 def test_reconstruct_matches_an_independent_calculation(shape, forward_filter_option, inverse_output_option, dtype, atol):
     im = np.random.default_rng(0).normal(1, 0.05, shape)
 
-    stack = _reconstruct(im, forward_filter_option=forward_filter_option, inverse_output_option=inverse_output_option,
-                         dtype=dtype)
+    stack = reconstruct(im, forward_filter_option=forward_filter_option, inverse_output_option=inverse_output_option,
+                        dtype=dtype)
 
-    expected = _expected_stack(im, forward_filter_option, inverse_output_option)
+    expected = expected_stack(im, forward_filter_option, inverse_output_option)
     assert stack.dtype == dtype
     np.testing.assert_allclose(stack, expected, atol=atol)
 
@@ -139,9 +139,9 @@ def test_reconstruct_rejects_other_dtypes():
 def test_reconstruct_stack_clean_zeroes_pixels_below_a_fraction_of_the_maximum():
     im = np.random.default_rng(0).normal(1, 0.05, (32, 48))
 
-    stack = _reconstruct(im, forward_filter_option=2, stack_clean=0.02)
+    stack = reconstruct(im, forward_filter_option=2, stack_clean=0.02)
 
-    expected = _expected_stack(im, 2, 0)
+    expected = expected_stack(im, 2, 0)
     expected[expected < expected.max() * 0.02] = 0
     np.testing.assert_allclose(stack, expected, atol=1e-12)
     assert (stack == 0).any()
