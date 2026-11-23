@@ -315,7 +315,7 @@ class Data(TypedDict):
     Obtained from e.g. :class:`pyopia.process.CalculateStats`
     '''
     im_stack: float
-    '''3-d array of reconstructed real hologram images
+    '''3-d array of reconstructed real hologram images, shape (planes, rows, columns)
     Obtained from :class:`pyopia.instrument.holo.Reconstruct`
     '''
     imss: float
